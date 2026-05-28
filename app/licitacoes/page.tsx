@@ -159,6 +159,7 @@ function montarItemCotado(params: {
 export default function Licitacoes() {
   const [margem, setMargem] = useState("30");
   const [usarIa, setUsarIa] = useState(false);
+  const [incluirConferir, setIncluirConferir] = useState(false);
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [erro, setErro] = useState("");
@@ -167,7 +168,9 @@ export default function Licitacoes() {
   const [arquivoNome, setArquivoNome] = useState("");
 
   const resumo = useMemo(() => {
-    const total = itens.reduce((acc, item) => acc + (item.valor_total || 0), 0);
+    const total = itens
+      .filter((item) => item.status === "Encontrado" || (incluirConferir && item.status === "Conferir match"))
+      .reduce((acc, item) => acc + (item.valor_total || 0), 0);
 
     return {
       total,
@@ -178,7 +181,7 @@ export default function Licitacoes() {
       ).length,
       pdfs: itens.filter((i) => i.pdf_url).length,
     };
-  }, [itens]);
+  }, [itens, incluirConferir]);
 
   const itensFiltrados = useMemo(() => {
     if (filtro === "preenchidos") return itens.filter((i) => i.status === "Encontrado");
@@ -191,13 +194,26 @@ export default function Licitacoes() {
     return itens;
   }, [itens, filtro]);
 
+  const itensParaExportar = useMemo(() => {
+    return itens.filter((item) => {
+      if (item.status === "Encontrado") return true;
+      if (item.status === "Conferir match" && incluirConferir) return true;
+      return false;
+    });
+  }, [itens, incluirConferir]);
+
   async function buscarComIa(descricao: string, produtos: Produto[]) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 15000);
+    const timeout = setTimeout(() => controller.abort(), 7000);
 
-    const candidatosLocais = encontrarCandidatos(descricao, produtos, 15).map(
+    const candidatosLocais = encontrarCandidatos(descricao, produtos, 8).map(
       (c) => c.produto
     );
+
+    if (!candidatosLocais.length) {
+      clearTimeout(timeout);
+      return null;
+    }
 
     try {
       const resp = await fetch("/api/ia/match-produto", {
@@ -303,7 +319,7 @@ export default function Licitacoes() {
         let score = melhor?.score || 0;
         let origem = "busca_local";
 
-        if (usarIa && score < 65 && produtos?.length) {
+        if (usarIa && score < 55 && produtos?.length) {
           const ia = await buscarComIa(descricao, produtos || []);
 
           if (ia && ia.score > score) {
@@ -329,7 +345,7 @@ export default function Licitacoes() {
 
       setItens(itensCotados);
       setMensagem(
-        `${itensCotados.length} itens processados. Busca local melhorada para abreviações e dosagens.`
+        `${itensCotados.length} itens processados. Por padrão, itens em "Conferir match" não entram na planilha final.`
       );
     } finally {
       setProcessando(false);
@@ -342,21 +358,30 @@ export default function Licitacoes() {
       return;
     }
 
-    const dados = itens.map((item) => ({
-      ITEM: item.numero_item,
-      "DESCRIÇÃO DOS PRODUTOS": item.descricao,
-      UNID: item.unidade,
-      QUANT: item.quantidade,
-      REGISTRO: item.registro_anvisa || "",
-      MARCA: item.marca || "",
-      CUSTO: item.custo_usado || "",
-      "VL. UNIT": item.valor_unitario || "",
-      "VL. TOTAL": item.valor_total || "",
-      "VENCIMENTO REGISTRO": item.vencimento_registro || "",
-      CONFIANCA: item.confianca || "",
-      "ORIGEM MATCH": item.origem_match || "",
-      STATUS: item.status,
-    }));
+    if (!itensParaExportar.length) {
+      setErro("Nenhum item confirmado para exportar. Verifique o filtro ou marque para incluir itens em Conferir match.");
+      return;
+    }
+
+    const dados = itens.map((item) => {
+      const podeCotar = item.status === "Encontrado" || (item.status === "Conferir match" && incluirConferir);
+
+      return {
+        ITEM: item.numero_item,
+        "DESCRIÇÃO DOS PRODUTOS": item.descricao,
+        UNID: item.unidade,
+        QUANT: item.quantidade,
+        REGISTRO: podeCotar ? item.registro_anvisa || "" : "",
+        MARCA: podeCotar ? item.marca || "" : "",
+        CUSTO: podeCotar ? item.custo_usado || "" : "",
+        "VL. UNIT": podeCotar ? item.valor_unitario || "" : "",
+        "VL. TOTAL": podeCotar ? item.valor_total || "" : "",
+        "VENCIMENTO REGISTRO": podeCotar ? item.vencimento_registro || "" : "",
+        CONFIANCA: item.confianca || "",
+        "ORIGEM MATCH": item.origem_match || "",
+        STATUS: item.status,
+      };
+    });
 
     const ws = XLSX.utils.json_to_sheet(dados);
     const wb = XLSX.utils.book_new();
@@ -373,10 +398,10 @@ export default function Licitacoes() {
       setErro("");
       setMensagem("");
 
-      const itensComPdf = itens.filter((item) => item.pdf_url);
+      const itensComPdf = itensParaExportar.filter((item) => item.pdf_url);
 
       if (!itensComPdf.length) {
-        setErro("Nenhum PDF de registro ANVISA foi encontrado para os itens cotados.");
+        setErro("Nenhum PDF de registro ANVISA foi encontrado para os itens confirmados.");
         return;
       }
 
@@ -432,7 +457,7 @@ export default function Licitacoes() {
             <label className="text-sm font-medium">Usar IA gratuita como fallback</label>
             <select className="input mt-2" value={usarIa ? "sim" : "nao"} onChange={(e) => setUsarIa(e.target.value === "sim")}>
               <option value="nao">Não, usar só busca local</option>
-              <option value="sim">Sim, usar IA quando não encontrar</option>
+              <option value="sim">Sim, usar IA rápida quando não encontrar</option>
             </select>
           </div>
 
@@ -442,14 +467,19 @@ export default function Licitacoes() {
           </div>
         </div>
 
+        <label className="mt-5 flex items-center gap-3 text-sm text-slate-700">
+          <input
+            type="checkbox"
+            checked={incluirConferir}
+            onChange={(e) => setIncluirConferir(e.target.checked)}
+          />
+          Incluir itens em “Conferir match” na planilha final e no ZIP dos registros
+        </label>
+
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          <b>Exemplo agora reconhecido:</b>
+          <b>Importante:</b> itens em “Conferir match” não são cotados por padrão. Marque a opção acima somente se quiser incluir esses itens na planilha final.
           <br />
-          Banco: GENTAMICINA INJ 40MG
-          <br />
-          Planilha: Gentamicina, sulfato 40mg/ml 1ml, solução injetável
-          <br /><br />
-          A IA possui timeout para não travar a tela.
+          A IA rápida possui timeout de 7 segundos para não travar a tela.
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
@@ -482,7 +512,7 @@ export default function Licitacoes() {
             </div>
 
             <div className="card p-5">
-              <p className="text-sm text-slate-500">Valor total</p>
+              <p className="text-sm text-slate-500">Valor total confirmado</p>
               <h3 className="text-2xl font-bold">{dinheiro(resumo.total)}</h3>
             </div>
           </section>
@@ -516,39 +546,56 @@ export default function Licitacoes() {
               </div>
             </div>
 
-            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
-              {itensFiltrados.map((item) => (
-                <div key={item.numero_item} className="rounded-2xl border bg-white p-5 shadow-sm">
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="text-xs text-slate-500">Item {item.numero_item}</p>
-                      <h3 className="font-bold text-slate-900 mt-1 break-words">{item.descricao}</h3>
-                    </div>
+            <div className="mt-6 overflow-hidden rounded-2xl border">
+              <table className="w-full table-fixed text-sm">
+                <thead className="bg-blue-50 text-slate-600">
+                  <tr>
+                    <th className="w-16 text-left p-3">Item</th>
+                    <th className="text-left p-3">Descrição</th>
+                    <th className="w-20 text-left p-3">Qtd</th>
+                    <th className="w-24 text-left p-3">Unid</th>
+                    <th className="w-32 text-left p-3">Marca</th>
+                    <th className="w-36 text-left p-3">Registro</th>
+                    <th className="w-28 text-left p-3">Custo</th>
+                    <th className="w-28 text-left p-3">Vl. Unit</th>
+                    <th className="w-28 text-left p-3">Vl. Total</th>
+                    <th className="w-24 text-left p-3">Conf.</th>
+                    <th className="w-32 text-left p-3">Status</th>
+                    <th className="w-20 text-left p-3">PDF</th>
+                  </tr>
+                </thead>
 
-                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs ${statusClasse(item.status)}`}>
-                      {item.status}
-                    </span>
-                  </div>
+                <tbody>
+                  {itensFiltrados.map((item) => {
+                    const cotar = item.status === "Encontrado" || (item.status === "Conferir match" && incluirConferir);
 
-                  <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
-                    <div><p className="text-slate-500">Qtd</p><p className="font-medium">{item.quantidade}</p></div>
-                    <div><p className="text-slate-500">Unidade</p><p className="font-medium">{item.unidade}</p></div>
-                    <div><p className="text-slate-500">Marca</p><p className="font-medium break-words">{item.marca || "-"}</p></div>
-                    <div><p className="text-slate-500">Registro</p><p className="font-medium break-words">{item.registro_anvisa || "-"}</p></div>
-                    <div><p className="text-slate-500">Custo</p><p className="font-medium">{dinheiro(item.custo_usado)}</p></div>
-                    <div><p className="text-slate-500">Vl. Unit</p><p className="font-medium">{dinheiro(item.valor_unitario)}</p></div>
-                    <div><p className="text-slate-500">Vl. Total</p><p className="font-bold">{dinheiro(item.valor_total)}</p></div>
-                    <div><p className="text-slate-500">Confiança</p><p className="font-medium">{item.confianca || 0}%</p></div>
-                    <div><p className="text-slate-500">Origem</p><p className="font-medium">{item.origem_match || "-"}</p></div>
-                    <div>
-                      <p className="text-slate-500">PDF</p>
-                      <p className={item.pdf_url ? "font-medium text-green-700" : "font-medium text-red-700"}>
-                        {item.pdf_url ? "Sim" : "Não"}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+                    return (
+                      <tr key={item.numero_item} className="border-t align-top">
+                        <td className="p-3 font-medium">{item.numero_item}</td>
+                        <td className="p-3 break-words">{item.descricao}</td>
+                        <td className="p-3">{item.quantidade}</td>
+                        <td className="p-3 break-words">{item.unidade}</td>
+                        <td className="p-3 break-words">{cotar ? item.marca || "-" : "-"}</td>
+                        <td className="p-3 break-words">{cotar ? item.registro_anvisa || "-" : "-"}</td>
+                        <td className="p-3">{cotar ? dinheiro(item.custo_usado) : "-"}</td>
+                        <td className="p-3">{cotar ? dinheiro(item.valor_unitario) : "-"}</td>
+                        <td className="p-3">{cotar ? dinheiro(item.valor_total) : "-"}</td>
+                        <td className="p-3">{item.confianca || 0}%</td>
+                        <td className="p-3">
+                          <span className={`inline-block rounded-full px-3 py-1 text-xs ${statusClasse(item.status)}`}>
+                            {item.status}
+                          </span>
+                        </td>
+                        <td className="p-3">
+                          <span className={item.pdf_url && cotar ? "text-green-700 font-medium" : "text-red-700 font-medium"}>
+                            {item.pdf_url && cotar ? "Sim" : "Não"}
+                          </span>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
 
             {itensFiltrados.length === 0 && (

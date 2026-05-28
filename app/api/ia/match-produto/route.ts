@@ -2,31 +2,45 @@ import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), 20000);
+  const timeout = setTimeout(() => controller.abort(), 8000);
+
   try {
     const apiKey = process.env.OPENROUTER_API_KEY;
+
     if (!apiKey) {
-      return NextResponse.json({ indice: null, confianca: 0, motivo: "OPENROUTER_API_KEY não configurada." });
+      return NextResponse.json(
+        { indice: null, confianca: 0, motivo: "OPENROUTER_API_KEY não configurada." },
+        { status: 200 }
+      );
     }
 
     const body = await req.json();
+
     const descricao = body.descricao;
     const produtos = body.produtos || [];
+
     if (!descricao || !produtos.length) {
       return NextResponse.json({ indice: null, confianca: 0, motivo: "Dados insuficientes." });
     }
 
-    const prompt = `Compare a descrição da licitação com os produtos do banco.
+    const prompt = `
+Compare a descrição da licitação com os produtos do banco.
 Escolha apenas se houver correspondência real de princípio ativo/produto, dosagem e apresentação.
 
-Descrição da licitação:
+Descrição:
 ${descricao}
 
-Produtos disponíveis:
-${produtos.map((p: any, index: number) => `${index + 1}. ${p.descricao || ""} | apresentação: ${p.apresentacao || ""} | marca: ${p.marca || ""}`).join("\n")}
+Produtos:
+${produtos
+  .map(
+    (p: any, index: number) =>
+      `${index + 1}. ${p.descricao || ""} | ${p.apresentacao || ""} | ${p.marca || ""}`
+  )
+  .join("\n")}
 
-Responda somente JSON válido:
-{"indice": número do melhor produto começando em 1 ou null, "confianca": número de 0 a 100, "motivo": "texto curto"}`;
+Responda somente JSON:
+{"indice": número ou null, "confianca": número 0-100, "motivo": "curto"}
+`;
 
     const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
       method: "POST",
@@ -46,17 +60,23 @@ Responda somente JSON válido:
 
     const data = await response.json();
     const content = data?.choices?.[0]?.message?.content || "{}";
+
+    let parsed;
+
     try {
-      return NextResponse.json(JSON.parse(content));
+      parsed = JSON.parse(content);
     } catch {
-      return NextResponse.json({ indice: null, confianca: 0, motivo: "IA respondeu fora do formato esperado." });
+      parsed = { indice: null, confianca: 0, motivo: "IA respondeu fora do formato esperado." };
     }
+
+    return NextResponse.json(parsed);
   } catch (error: any) {
-    return NextResponse.json({
-      indice: null,
-      confianca: 0,
-      motivo: error?.name === "AbortError" ? "Tempo limite da IA excedido." : error?.message || "Erro na IA."
-    });
+    const mensagem =
+      error?.name === "AbortError"
+        ? "Tempo limite da IA excedido."
+        : error?.message || "Erro na IA.";
+
+    return NextResponse.json({ indice: null, confianca: 0, motivo: mensagem });
   } finally {
     clearTimeout(timeout);
   }
