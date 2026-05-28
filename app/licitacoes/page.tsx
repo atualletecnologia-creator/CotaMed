@@ -42,6 +42,7 @@ type ItemLicitacao = {
   status: string;
   confianca?: number;
   origem_match?: string;
+  excluido?: boolean;
 };
 
 function normalizarCabecalho(valor: unknown) {
@@ -101,7 +102,12 @@ function pegarDescricao(linha: Record<string, unknown>) {
 function statusClasse(status: string) {
   if (status === "Encontrado") return "bg-green-100 text-green-700";
   if (status === "Conferir match") return "bg-yellow-100 text-yellow-800";
+  if (status === "Excluído") return "bg-slate-200 text-slate-700";
   return "bg-red-100 text-red-700";
+}
+
+function itemPodeCotar(item: ItemLicitacao) {
+  return !item.excluido && item.status === "Encontrado";
 }
 
 function montarItemCotado(params: {
@@ -125,6 +131,7 @@ function montarItemCotado(params: {
       status: "Produto não encontrado",
       confianca: 0,
       origem_match: "sem_match",
+      excluido: false,
     };
   }
 
@@ -153,13 +160,13 @@ function montarItemCotado(params: {
         : nivel === "medio"
           ? "Conferir match"
           : "Baixa confiança",
+    excluido: false,
   };
 }
 
 export default function Licitacoes() {
   const [margem, setMargem] = useState("30");
   const [usarIa, setUsarIa] = useState(false);
-  const [incluirConferir, setIncluirConferir] = useState(false);
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [erro, setErro] = useState("");
@@ -169,38 +176,46 @@ export default function Licitacoes() {
 
   const resumo = useMemo(() => {
     const total = itens
-      .filter((item) => item.status === "Encontrado" || (incluirConferir && item.status === "Conferir match"))
+      .filter(itemPodeCotar)
       .reduce((acc, item) => acc + (item.valor_total || 0), 0);
 
     return {
       total,
-      encontrados: itens.filter((i) => i.status === "Encontrado").length,
-      conferir: itens.filter((i) => i.status === "Conferir match").length,
+      encontrados: itens.filter((i) => i.status === "Encontrado" && !i.excluido).length,
+      conferir: itens.filter((i) => i.status === "Conferir match" && !i.excluido).length,
       naoEncontrados: itens.filter(
-        (i) => i.status !== "Encontrado" && i.status !== "Conferir match"
+        (i) => i.status !== "Encontrado" && i.status !== "Conferir match" && !i.excluido
       ).length,
-      pdfs: itens.filter((i) => i.pdf_url).length,
+      excluidos: itens.filter((i) => i.excluido).length,
+      pdfs: itens.filter((i) => i.pdf_url && itemPodeCotar(i)).length,
     };
-  }, [itens, incluirConferir]);
+  }, [itens]);
 
   const itensFiltrados = useMemo(() => {
-    if (filtro === "preenchidos") return itens.filter((i) => i.status === "Encontrado");
-    if (filtro === "conferir") return itens.filter((i) => i.status === "Conferir match");
+    if (filtro === "preenchidos") return itens.filter((i) => i.status === "Encontrado" && !i.excluido);
+    if (filtro === "conferir") return itens.filter((i) => i.status === "Conferir match" && !i.excluido);
     if (filtro === "nao_encontrados") {
-      return itens.filter((i) => i.status !== "Encontrado" && i.status !== "Conferir match");
+      return itens.filter((i) => i.status !== "Encontrado" && i.status !== "Conferir match" && !i.excluido);
     }
-    if (filtro === "com_pdf") return itens.filter((i) => !!i.pdf_url);
-    if (filtro === "sem_pdf") return itens.filter((i) => !i.pdf_url);
+    if (filtro === "com_pdf") return itens.filter((i) => !!i.pdf_url && !i.excluido);
+    if (filtro === "sem_pdf") return itens.filter((i) => !i.pdf_url && !i.excluido);
+    if (filtro === "excluidos") return itens.filter((i) => i.excluido);
     return itens;
   }, [itens, filtro]);
 
   const itensParaExportar = useMemo(() => {
-    return itens.filter((item) => {
-      if (item.status === "Encontrado") return true;
-      if (item.status === "Conferir match" && incluirConferir) return true;
-      return false;
-    });
-  }, [itens, incluirConferir]);
+    return itens.filter(itemPodeCotar);
+  }, [itens]);
+
+  function alternarExcluir(numeroItem: string) {
+    setItens((atuais) =>
+      atuais.map((item) =>
+        item.numero_item === numeroItem
+          ? { ...item, excluido: !item.excluido }
+          : item
+      )
+    );
+  }
 
   async function buscarComIa(descricao: string, produtos: Produto[]) {
     const controller = new AbortController();
@@ -345,7 +360,7 @@ export default function Licitacoes() {
 
       setItens(itensCotados);
       setMensagem(
-        `${itensCotados.length} itens processados. Por padrão, itens em "Conferir match" não entram na planilha final.`
+        `${itensCotados.length} itens processados. Itens em “Conferir match” não entram na planilha final.`
       );
     } finally {
       setProcessando(false);
@@ -359,31 +374,47 @@ export default function Licitacoes() {
     }
 
     if (!itensParaExportar.length) {
-      setErro("Nenhum item confirmado para exportar. Verifique o filtro ou marque para incluir itens em Conferir match.");
+      setErro("Nenhum item confirmado para exportar.");
       return;
     }
 
     const dados = itens.map((item) => {
-      const podeCotar = item.status === "Encontrado" || (item.status === "Conferir match" && incluirConferir);
+      const cotar = itemPodeCotar(item);
 
       return {
         ITEM: item.numero_item,
         "DESCRIÇÃO DOS PRODUTOS": item.descricao,
         UNID: item.unidade,
         QUANT: item.quantidade,
-        REGISTRO: podeCotar ? item.registro_anvisa || "" : "",
-        MARCA: podeCotar ? item.marca || "" : "",
-        CUSTO: podeCotar ? item.custo_usado || "" : "",
-        "VL. UNIT": podeCotar ? item.valor_unitario || "" : "",
-        "VL. TOTAL": podeCotar ? item.valor_total || "" : "",
-        "VENCIMENTO REGISTRO": podeCotar ? item.vencimento_registro || "" : "",
+        REGISTRO: cotar ? item.registro_anvisa || "" : "",
+        MARCA: cotar ? item.marca || "" : "",
+        CUSTO: cotar ? item.custo_usado || "" : "",
+        "VL. UNIT": cotar ? item.valor_unitario || "" : "",
+        "VL. TOTAL": cotar ? item.valor_total || "" : "",
+        "VENCIMENTO REGISTRO": cotar ? item.vencimento_registro || "" : "",
         CONFIANCA: item.confianca || "",
         "ORIGEM MATCH": item.origem_match || "",
-        STATUS: item.status,
+        STATUS: item.excluido ? "Excluído da cotação" : item.status,
       };
     });
 
     const ws = XLSX.utils.json_to_sheet(dados);
+    ws["!cols"] = [
+      { wch: 8 },
+      { wch: 55 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 18 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 20 },
+      { wch: 12 },
+      { wch: 14 },
+      { wch: 22 },
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Cotação");
 
@@ -467,19 +498,8 @@ export default function Licitacoes() {
           </div>
         </div>
 
-        <label className="mt-5 flex items-center gap-3 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={incluirConferir}
-            onChange={(e) => setIncluirConferir(e.target.checked)}
-          />
-          Incluir itens em “Conferir match” na planilha final e no ZIP dos registros
-        </label>
-
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          <b>Importante:</b> itens em “Conferir match” não são cotados por padrão. Marque a opção acima somente se quiser incluir esses itens na planilha final.
-          <br />
-          A IA rápida possui timeout de 7 segundos para não travar a tela.
+          Itens em <b>Conferir match</b> não entram na cotação final. Para retirar qualquer item, use o botão <b>Excluir</b> na linha dele.
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
@@ -490,7 +510,7 @@ export default function Licitacoes() {
 
       {itens.length > 0 && (
         <>
-          <section className="grid md:grid-cols-5 gap-4 mt-6">
+          <section className="grid md:grid-cols-6 gap-4 mt-6">
             <div className="card p-5">
               <p className="text-sm text-slate-500">Encontrados</p>
               <h3 className="text-2xl font-bold text-green-700">{resumo.encontrados}</h3>
@@ -507,12 +527,17 @@ export default function Licitacoes() {
             </div>
 
             <div className="card p-5">
+              <p className="text-sm text-slate-500">Excluídos</p>
+              <h3 className="text-2xl font-bold text-slate-700">{resumo.excluidos}</h3>
+            </div>
+
+            <div className="card p-5">
               <p className="text-sm text-slate-500">PDFs</p>
               <h3 className="text-2xl font-bold text-cotamed-700">{resumo.pdfs}</h3>
             </div>
 
             <div className="card p-5">
-              <p className="text-sm text-slate-500">Valor total confirmado</p>
+              <p className="text-sm text-slate-500">Valor confirmado</p>
               <h3 className="text-2xl font-bold">{dinheiro(resumo.total)}</h3>
             </div>
           </section>
@@ -530,10 +555,11 @@ export default function Licitacoes() {
                 <select className="input" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
                   <option value="todos">Todos os itens</option>
                   <option value="preenchidos">Somente preenchidos</option>
-                  <option value="conferir">Somente conferir</option>
+                  <option value="conferir">Somente Conferir match</option>
                   <option value="nao_encontrados">Não encontrados / baixa confiança</option>
                   <option value="com_pdf">Com PDF</option>
                   <option value="sem_pdf">Sem PDF</option>
+                  <option value="excluidos">Excluídos da cotação</option>
                 </select>
 
                 <button onClick={baixarPlanilhaPreenchida} className="btn-primary">
@@ -546,50 +572,67 @@ export default function Licitacoes() {
               </div>
             </div>
 
-            <div className="mt-6 overflow-hidden rounded-2xl border">
-              <table className="w-full table-fixed text-sm">
+            <div className="mt-6 rounded-2xl border overflow-hidden">
+              <table className="w-full text-sm">
                 <thead className="bg-blue-50 text-slate-600">
                   <tr>
-                    <th className="w-16 text-left p-3">Item</th>
-                    <th className="text-left p-3">Descrição</th>
-                    <th className="w-20 text-left p-3">Qtd</th>
-                    <th className="w-24 text-left p-3">Unid</th>
-                    <th className="w-32 text-left p-3">Marca</th>
-                    <th className="w-36 text-left p-3">Registro</th>
-                    <th className="w-28 text-left p-3">Custo</th>
-                    <th className="w-28 text-left p-3">Vl. Unit</th>
-                    <th className="w-28 text-left p-3">Vl. Total</th>
-                    <th className="w-24 text-left p-3">Conf.</th>
-                    <th className="w-32 text-left p-3">Status</th>
-                    <th className="w-20 text-left p-3">PDF</th>
+                    <th className="text-left p-3 w-[70px]">Item</th>
+                    <th className="text-left p-3 min-w-[340px]">Descrição</th>
+                    <th className="text-left p-3 w-[90px]">Qtd</th>
+                    <th className="text-left p-3 w-[100px]">Unid</th>
+                    <th className="text-left p-3 w-[150px]">Marca</th>
+                    <th className="text-left p-3 w-[150px]">Registro</th>
+                    <th className="text-left p-3 w-[110px]">Custo</th>
+                    <th className="text-left p-3 w-[110px]">Vl. Unit</th>
+                    <th className="text-left p-3 w-[110px]">Vl. Total</th>
+                    <th className="text-left p-3 w-[90px]">Conf.</th>
+                    <th className="text-left p-3 w-[140px]">Status</th>
+                    <th className="text-left p-3 w-[90px]">PDF</th>
+                    <th className="text-left p-3 w-[110px]">Ação</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {itensFiltrados.map((item) => {
-                    const cotar = item.status === "Encontrado" || (item.status === "Conferir match" && incluirConferir);
+                    const cotar = itemPodeCotar(item);
 
                     return (
-                      <tr key={item.numero_item} className="border-t align-top">
-                        <td className="p-3 font-medium">{item.numero_item}</td>
-                        <td className="p-3 break-words">{item.descricao}</td>
-                        <td className="p-3">{item.quantidade}</td>
-                        <td className="p-3 break-words">{item.unidade}</td>
-                        <td className="p-3 break-words">{cotar ? item.marca || "-" : "-"}</td>
-                        <td className="p-3 break-words">{cotar ? item.registro_anvisa || "-" : "-"}</td>
-                        <td className="p-3">{cotar ? dinheiro(item.custo_usado) : "-"}</td>
-                        <td className="p-3">{cotar ? dinheiro(item.valor_unitario) : "-"}</td>
-                        <td className="p-3">{cotar ? dinheiro(item.valor_total) : "-"}</td>
-                        <td className="p-3">{item.confianca || 0}%</td>
+                      <tr key={item.numero_item} className={item.excluido ? "border-t align-top bg-slate-50 opacity-70" : "border-t align-top"}>
+                        <td className="p-3 font-medium whitespace-nowrap">{item.numero_item}</td>
                         <td className="p-3">
-                          <span className={`inline-block rounded-full px-3 py-1 text-xs ${statusClasse(item.status)}`}>
-                            {item.status}
+                          <div className="max-w-[520px] whitespace-normal break-normal leading-6">
+                            {item.descricao}
+                          </div>
+                        </td>
+                        <td className="p-3 whitespace-nowrap">{item.quantidade}</td>
+                        <td className="p-3 whitespace-nowrap">{item.unidade}</td>
+                        <td className="p-3 whitespace-normal">{cotar ? item.marca || "-" : "-"}</td>
+                        <td className="p-3 whitespace-normal">{cotar ? item.registro_anvisa || "-" : "-"}</td>
+                        <td className="p-3 whitespace-nowrap">{cotar ? dinheiro(item.custo_usado) : "-"}</td>
+                        <td className="p-3 whitespace-nowrap">{cotar ? dinheiro(item.valor_unitario) : "-"}</td>
+                        <td className="p-3 whitespace-nowrap">{cotar ? dinheiro(item.valor_total) : "-"}</td>
+                        <td className="p-3 whitespace-nowrap">{item.confianca || 0}%</td>
+                        <td className="p-3">
+                          <span className={`inline-block rounded-full px-3 py-1 text-xs ${statusClasse(item.excluido ? "Excluído" : item.status)}`}>
+                            {item.excluido ? "Excluído" : item.status}
                           </span>
                         </td>
                         <td className="p-3">
                           <span className={item.pdf_url && cotar ? "text-green-700 font-medium" : "text-red-700 font-medium"}>
                             {item.pdf_url && cotar ? "Sim" : "Não"}
                           </span>
+                        </td>
+                        <td className="p-3">
+                          <button
+                            onClick={() => alternarExcluir(item.numero_item)}
+                            className={
+                              item.excluido
+                                ? "rounded-lg border px-3 py-1 text-xs text-green-700 hover:bg-green-50"
+                                : "rounded-lg border px-3 py-1 text-xs text-red-700 hover:bg-red-50"
+                            }
+                          >
+                            {item.excluido ? "Restaurar" : "Excluir"}
+                          </button>
                         </td>
                       </tr>
                     );
