@@ -7,6 +7,7 @@ import * as XLSX from "xlsx";
 import JSZip from "jszip";
 import { saveAs } from "file-saver";
 import { encontrarMelhorProduto, classificarConfianca } from "@/lib/buscaInteligente";
+import { baixarBlobPdfRegistro } from "@/lib/storagePdf";
 
 type Produto = {
   id?: string;
@@ -51,26 +52,16 @@ function normalizarCabecalho(valor: unknown) {
 
 function numero(valor: unknown) {
   if (valor === null || valor === undefined || valor === "") return 0;
-
   if (typeof valor === "number") return valor;
 
-  const texto = String(valor)
-    .replace("R$", "")
-    .replace(/\./g, "")
-    .replace(",", ".")
-    .trim();
-
+  const texto = String(valor).replace("R$", "").replace(/\./g, "").replace(",", ".").trim();
   const n = Number(texto);
   return Number.isFinite(n) ? n : 0;
 }
 
 function dinheiro(valor?: number | null) {
   if (valor === null || valor === undefined) return "-";
-
-  return valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  });
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function nomeSeguro(texto: string) {
@@ -80,6 +71,18 @@ function nomeSeguro(texto: string) {
     .replace(/[^a-zA-Z0-9]+/g, "_")
     .replace(/^_+|_+$/g, "")
     .slice(0, 60);
+}
+
+function pegarDescricao(linha: Record<string, unknown>) {
+  return String(
+    linha.descricao_dos_produtos ||
+    linha.descricao ||
+    linha.descrição ||
+    linha.produto ||
+    linha.medicamento ||
+    linha.objeto ||
+    ""
+  ).trim();
 }
 
 function montarItemCotado(params: {
@@ -161,13 +164,8 @@ export default function Licitacoes() {
     try {
       const resp = await fetch("/api/ia/match-produto", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({
-          descricao,
-          produtos: topProdutos
-        })
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ descricao, produtos: topProdutos })
       });
 
       if (!resp.ok) return null;
@@ -180,10 +178,7 @@ export default function Licitacoes() {
 
       if (!produto) return null;
 
-      return {
-        produto,
-        score: Number(data.confianca) || 0
-      };
+      return { produto, score: Number(data.confianca) || 0 };
     } catch {
       return null;
     }
@@ -211,17 +206,11 @@ export default function Licitacoes() {
       }
 
       const buffer = await file.arrayBuffer();
-
-      const workbook = XLSX.read(buffer, {
-        type: "array"
-      });
-
+      const workbook = XLSX.read(buffer, { type: "array" });
       const primeiraAba = workbook.SheetNames[0];
       const sheet = workbook.Sheets[primeiraAba];
 
-      const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
-        defval: ""
-      });
+      const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 
       if (!linhas.length) {
         setErro("A planilha está vazia.");
@@ -231,27 +220,15 @@ export default function Licitacoes() {
       const linhasNormalizadas = linhas
         .map((linha) => {
           const normalizada: Record<string, unknown> = {};
-
           Object.entries(linha).forEach(([chave, valor]) => {
             normalizada[normalizarCabecalho(chave)] = valor;
           });
-
           return normalizada;
         })
-        .filter((linha) =>
-          String(
-            linha.descricao ||
-            linha.descricao_dos_produtos ||
-            linha.produto ||
-            linha.item ||
-            linha.medicamento ||
-            linha.objeto ||
-            ""
-          ).trim()
-        );
+        .filter((linha) => pegarDescricao(linha));
 
       if (!linhasNormalizadas.length) {
-        setErro("Nenhum item válido encontrado na planilha.");
+        setErro("Nenhum item válido encontrado. Use a coluna DESCRIÇÃO DOS PRODUTOS ou descricao.");
         return;
       }
 
@@ -261,29 +238,9 @@ export default function Licitacoes() {
       for (let index = 0; index < linhasNormalizadas.length; index++) {
         const linha = linhasNormalizadas[index];
 
-        const descricao = String(
-          linha.descricao ||
-          linha.descricao_dos_produtos ||
-          linha.produto ||
-          linha.item ||
-          linha.medicamento ||
-          linha.objeto ||
-          ""
-        ).trim();
-
-        const quantidade =
-          numero(
-            linha.quantidade ||
-            linha.quant ||
-            linha.qtd
-          ) || 1;
-
-        const unidade = String(
-          linha.unidade ||
-          linha.unid ||
-          linha.und ||
-          "unidade"
-        ).trim();
+        const descricao = pegarDescricao(linha);
+        const quantidade = numero(linha.quantidade || linha.quant || linha.qtd) || 1;
+        const unidade = String(linha.unidade || linha.unid || linha.und || "unidade").trim();
 
         const melhor = encontrarMelhorProduto(descricao, produtos || []);
 
@@ -315,7 +272,7 @@ export default function Licitacoes() {
       }
 
       setItens(itensCotados);
-      setMensagem(`${itensCotados.length} itens processados com busca inteligente.`);
+      setMensagem(`${itensCotados.length} itens processados. O sistema não usa mais o número do item para buscar produto.`);
     } finally {
       setProcessando(false);
     }
@@ -344,19 +301,10 @@ export default function Licitacoes() {
     }));
 
     const ws = XLSX.utils.json_to_sheet(dados);
-    ws["!cols"] = [
-      { wch: 8 }, { wch: 55 }, { wch: 12 }, { wch: 14 }, { wch: 18 },
-      { wch: 20 }, { wch: 12 }, { wch: 12 }, { wch: 14 }, { wch: 20 },
-      { wch: 12 }, { wch: 14 }, { wch: 22 }
-    ];
-
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Cotação");
 
-    XLSX.writeFile(
-      wb,
-      `cotacao-preenchida-cotamed-${new Date().toISOString().slice(0, 10)}.xlsx`
-    );
+    XLSX.writeFile(wb, `cotacao-preenchida-cotamed-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
   async function baixarZipRegistros() {
@@ -374,27 +322,17 @@ export default function Licitacoes() {
       const zip = new JSZip();
 
       for (const item of itensComPdf) {
-        if (!item.pdf_url) continue;
+        const blob = await baixarBlobPdfRegistro(item.pdf_url);
 
-        const { data, error } = await supabase.storage
-          .from("registros-anvisa")
-          .createSignedUrl(item.pdf_url, 60 * 10);
+        if (!blob) continue;
 
-        if (error || !data?.signedUrl) continue;
-
-        const response = await fetch(data.signedUrl);
-        const blob = await response.blob();
         const nomeArquivo = `${item.numero_item}_${nomeSeguro(item.descricao)}_${item.registro_anvisa || "registro"}.pdf`;
-
         zip.file(nomeArquivo, blob);
       }
 
       const conteudo = await zip.generateAsync({ type: "blob" });
 
-      saveAs(
-        conteudo,
-        `registros-anvisa-cotamed-${new Date().toISOString().slice(0, 10)}.zip`
-      );
+      saveAs(conteudo, `registros-anvisa-cotamed-${new Date().toISOString().slice(0, 10)}.zip`);
 
       setMensagem("ZIP dos registros ANVISA gerado com sucesso.");
     } catch {
@@ -404,11 +342,17 @@ export default function Licitacoes() {
 
   return (
     <AppShell>
-      <div>
-        <h1 className="text-3xl font-bold">Licitações</h1>
-        <p className="text-slate-500">
-          Envie a planilha da licitação. O CotaMed busca itens semelhantes no banco e pode usar IA como fallback.
-        </p>
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold">Licitações</h1>
+          <p className="text-slate-500">
+            Envie a planilha da licitação. A busca é feita pela descrição, nunca pelo número do item.
+          </p>
+        </div>
+
+        <a href="/modelos/modelo-licitacao-cotamed.xlsx" download className="btn-primary text-center">
+          Baixar modelo da licitação
+        </a>
       </div>
 
       <section className="card p-6 mt-6">
@@ -435,9 +379,11 @@ export default function Licitacoes() {
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          <b>Busca inteligente:</b> compara palavras semelhantes, abreviações, sinônimos, dosagem e apresentação.
+          <b>Modelo aceito:</b>
           <br />
-          <b>Regras:</b> confiança acima de 80 = encontrado; 60 a 79 = conferir; abaixo de 60 = baixa confiança.
+          ITEM, DESCRIÇÃO DOS PRODUTOS, UNID, QUANT, REGISTRO, MARCA, CUSTO, VL. UNIT, VL. TOTAL
+          <br /><br />
+          O campo ITEM serve apenas para organizar a planilha. Ele não é usado na busca.
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
@@ -484,7 +430,9 @@ export default function Licitacoes() {
 
               <div className="flex flex-col md:flex-row gap-3">
                 <button onClick={baixarPlanilhaPreenchida} className="btn-primary">Baixar planilha preenchida</button>
-                <button onClick={baixarZipRegistros} className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50">Baixar ZIP dos registros</button>
+                <button onClick={baixarZipRegistros} className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50">
+                  Baixar ZIP dos registros
+                </button>
               </div>
             </div>
 

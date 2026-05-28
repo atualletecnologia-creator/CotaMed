@@ -51,23 +51,8 @@ const sinonimos: Record<string, string> = {
 };
 
 const palavrasIgnoradas = new Set([
-  "de",
-  "da",
-  "do",
-  "das",
-  "dos",
-  "para",
-  "por",
-  "em",
-  "a",
-  "o",
-  "e",
-  "produto",
-  "material",
-  "hospitalar",
-  "uso",
-  "adulto",
-  "infantil"
+  "de", "da", "do", "das", "dos", "para", "por", "em", "a", "o", "e",
+  "produto", "material", "hospitalar", "uso", "adulto", "infantil", "item"
 ]);
 
 export function normalizarDescricao(texto: unknown) {
@@ -96,7 +81,8 @@ export function tokensDescricao(texto: unknown) {
   return normalizarDescricao(texto)
     .split(/\s+/)
     .map((p) => p.trim())
-    .filter((p) => p.length >= 2 && !palavrasIgnoradas.has(p));
+    .filter((p) => p.length >= 2 && !palavrasIgnoradas.has(p))
+    .filter((p) => !/^\d+$/.test(p));
 }
 
 function jaccard(a: string[], b: string[]) {
@@ -141,16 +127,18 @@ export function calcularSimilaridade(descricaoLicitacao: string, produto: Produt
   const tokensLic = tokensDescricao(descLic);
   const tokensProd = tokensDescricao(descProd);
 
+  if (!tokensLic.length || !tokensProd.length) return 0;
+
   let score = 0;
 
   if (descProd === descLic) score += 100;
-  if (descProd.includes(descLic) || descLic.includes(descProd)) score += 45;
+  if (descProd.includes(descLic) || descLic.includes(descProd)) score += 35;
 
   score += jaccard(tokensLic, tokensProd) * 45;
 
   tokensLic.forEach((token) => {
     if (tokensProd.includes(token)) score += 3;
-    else if (tokensProd.some((p) => p.includes(token) || token.includes(p))) score += 1.5;
+    else if (tokensProd.some((p) => p.includes(token) || token.includes(p))) score += 1;
   });
 
   score += contemDosagem(descLic, descProd) * 20;
@@ -164,7 +152,7 @@ export function encontrarMelhorProduto(descricao: string, produtos: ProdutoBusca
       produto,
       score: calcularSimilaridade(descricao, produto)
     }))
-    .filter((item) => item.score > 0)
+    .filter((item) => item.score >= 45)
     .sort((a, b) => {
       if (b.score !== a.score) return b.score - a.score;
 

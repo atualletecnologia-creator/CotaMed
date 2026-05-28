@@ -4,10 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 import { supabase } from "@/lib/supabase";
 import * as XLSX from "xlsx";
+import { abrirPdfRegistro } from "@/lib/storagePdf";
 
 type Produto = {
   id?: string;
-  item: string;
   descricao?: string | null;
   apresentacao?: string | null;
   marca?: string | null;
@@ -25,7 +25,6 @@ type Produto = {
 type RegistroAnvisa = {
   id: string;
   item: string | null;
-  descricao?: string | null;
   apresentacao: string | null;
   marca: string | null;
   vencimento_registro: string | null;
@@ -64,7 +63,6 @@ function textoBusca(valor: unknown) {
 
 function numero(valor: unknown) {
   if (valor === null || valor === undefined || valor === "") return null;
-
   if (typeof valor === "number") return valor;
 
   const texto = String(valor)
@@ -77,36 +75,9 @@ function numero(valor: unknown) {
   return Number.isFinite(n) ? n : null;
 }
 
-function dataIso(valor: unknown) {
-  if (!valor) return null;
-
-  if (typeof valor === "number") {
-    const parsed = XLSX.SSF.parse_date_code(valor);
-    if (!parsed) return null;
-    return `${parsed.y}-${String(parsed.m).padStart(2, "0")}-${String(parsed.d).padStart(2, "0")}`;
-  }
-
-  const texto = String(valor).trim();
-
-  if (/^\d{4}-\d{2}-\d{2}/.test(texto)) {
-    return texto.slice(0, 10);
-  }
-
-  const partes = texto.match(/^(\d{2})\/(\d{2})\/(\d{4})$/);
-  if (partes) {
-    return `${partes[3]}-${partes[2]}-${partes[1]}`;
-  }
-
-  return null;
-}
-
 function dinheiro(valor?: number | null) {
   if (valor === null || valor === undefined) return "-";
-
-  return valor.toLocaleString("pt-BR", {
-    style: "currency",
-    currency: "BRL"
-  });
+  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
 function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: RegistroAnvisa[]) {
@@ -120,25 +91,21 @@ function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: Regis
     if (porRegistro) return porRegistro;
   }
 
-  return (
-    registros.find((r) => {
-      const descricaoRegistro = textoBusca(r.descricao || r.item);
-      const marcaIgual = textoBusca(r.marca) === produtoMarca;
-      const apresentacaoIgual = textoBusca(r.apresentacao) === produtoApresentacao;
+  return registros.find((r) => {
+    const descricaoRegistro = textoBusca(r.item);
+    const marcaIgual = textoBusca(r.marca) === produtoMarca;
+    const apresentacaoIgual = textoBusca(r.apresentacao) === produtoApresentacao;
+    const descricaoIgual =
+      descricaoRegistro === produtoDescricao ||
+      produtoDescricao.includes(descricaoRegistro) ||
+      descricaoRegistro.includes(produtoDescricao);
 
-      const descricaoIgual =
-        descricaoRegistro === produtoDescricao ||
-        produtoDescricao.includes(descricaoRegistro) ||
-        descricaoRegistro.includes(produtoDescricao);
-
-      return descricaoIgual && marcaIgual && apresentacaoIgual;
-    }) || null
-  );
+    return descricaoIgual && marcaIgual && apresentacaoIgual;
+  }) || null;
 }
 
 export default function BancoPrecos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
-  const [registrosAnvisa, setRegistrosAnvisa] = useState<RegistroAnvisa[]>([]);
   const [busca, setBusca] = useState("");
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
@@ -153,59 +120,36 @@ export default function BancoPrecos() {
     setCarregando(true);
     setErro("");
 
-    const [produtosResp, registrosResp] = await Promise.all([
-      supabase
-        .from("produtos")
-        .select("*")
-        .order("descricao", { ascending: true }),
-      supabase
-        .from("registros_anvisa")
-        .select("*")
-        .order("created_at", { ascending: false })
-    ]);
+    const { data, error } = await supabase
+      .from("produtos")
+      .select("*")
+      .order("descricao", { ascending: true });
 
-    if (produtosResp.error) {
-      setErro(produtosResp.error.message);
+    if (error) {
+      setErro(error.message);
       setCarregando(false);
       return;
     }
 
-    if (registrosResp.error) {
-      setErro(registrosResp.error.message);
-      setCarregando(false);
-      return;
-    }
-
-    const produtosOrdenados = (produtosResp.data || []).sort((a, b) =>
-      String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR")
-    );
-
-    setProdutos(produtosOrdenados);
-    setRegistrosAnvisa(registrosResp.data || []);
+    setProdutos(data || []);
     setCarregando(false);
   }
 
   const produtosFiltrados = useMemo(() => {
-    const termo = busca.toLowerCase().trim();
+    const termo = textoBusca(busca);
 
     const lista = !termo
       ? produtos
-      : produtos.filter((p) => {
-          const texto = [
-            p.item,
+      : produtos.filter((p) =>
+          textoBusca([
             p.descricao,
             p.apresentacao,
             p.marca,
             p.registro_anvisa,
             p.unidade,
             p.origem_preco
-          ]
-            .filter(Boolean)
-            .join(" ")
-            .toLowerCase();
-
-          return texto.includes(termo);
-        });
+          ].filter(Boolean).join(" ")).includes(termo)
+        );
 
     return [...lista].sort((a, b) =>
       String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR")
@@ -247,27 +191,17 @@ export default function BancoPrecos() {
         defval: ""
       });
 
-      if (!linhas.length) {
-        setErro("A planilha está vazia.");
-        return;
-      }
-
       const linhasOrdenadas = linhas
         .map((linha) => {
           const normalizada: Record<string, unknown> = {};
-
           Object.entries(linha).forEach(([chave, valor]) => {
             normalizada[normalizarCabecalho(chave)] = valor;
           });
-
           return normalizada;
         })
         .filter((linha) => String(linha.descricao || "").trim())
         .sort((a, b) =>
-          String(a.descricao || "").localeCompare(
-            String(b.descricao || ""),
-            "pt-BR"
-          )
+          String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR")
         );
 
       if (!linhasOrdenadas.length) {
@@ -278,9 +212,8 @@ export default function BancoPrecos() {
       let vinculados = 0;
       let semRegistro = 0;
 
-      const produtosParaSalvar = linhasOrdenadas.map((normalizada, index) => {
+      const produtosParaSalvar = linhasOrdenadas.map((normalizada) => {
         const descricao = String(normalizada.descricao || "").trim();
-        const itemAutomatico = String(index + 1).padStart(3, "0");
 
         const quantidadePorCaixa = numero(normalizada.quantidade_por_caixa);
         let custoUnitario = numero(normalizada.custo_unitario);
@@ -295,7 +228,6 @@ export default function BancoPrecos() {
         }
 
         const produtoBase: Partial<Produto> = {
-          item: itemAutomatico,
           descricao,
           apresentacao: String(normalizada.apresentacao || "").trim() || null,
           marca: String(normalizada.marca || "").trim() || null,
@@ -304,20 +236,17 @@ export default function BancoPrecos() {
 
         const registroEncontrado = encontrarRegistroAutomatico(produtoBase, registrosAtualizados || []);
 
-        if (registroEncontrado) {
-          vinculados++;
-        } else {
-          semRegistro++;
-        }
+        if (registroEncontrado) vinculados++;
+        else semRegistro++;
 
         return {
           user_id: userData.user.id,
-          item: itemAutomatico,
+          item: descricao,
           descricao,
           apresentacao: produtoBase.apresentacao,
           marca: produtoBase.marca,
           registro_anvisa: registroEncontrado?.registro_anvisa || produtoBase.registro_anvisa || null,
-          vencimento_registro: registroEncontrado?.vencimento_registro || dataIso(normalizada.vencimento_registro),
+          vencimento_registro: registroEncontrado?.vencimento_registro || null,
           pdf_url: registroEncontrado?.pdf_path || null,
           unidade: String(normalizada.unidade || "").trim() || null,
           quantidade_por_caixa: quantidadePorCaixa,
@@ -335,10 +264,7 @@ export default function BancoPrecos() {
         return;
       }
 
-      setMensagem(
-        `${produtosParaSalvar.length} produtos importados em ordem alfabética. ${vinculados} vinculados ao registro ANVISA. ${semRegistro} sem registro encontrado.`
-      );
-
+      setMensagem(`${produtosParaSalvar.length} produtos importados. ${vinculados} vinculados ao registro ANVISA. ${semRegistro} sem registro encontrado.`);
       await carregarDados();
     } finally {
       setImportando(false);
@@ -346,21 +272,11 @@ export default function BancoPrecos() {
   }
 
   async function abrirPdf(path?: string | null) {
-    if (!path) {
-      setErro("Este produto ainda não tem PDF ANVISA vinculado.");
-      return;
+    try {
+      await abrirPdfRegistro(path);
+    } catch (e: any) {
+      setErro(e.message || "Não foi possível abrir o PDF.");
     }
-
-    const { data, error } = await supabase.storage
-      .from("registros-anvisa")
-      .createSignedUrl(path, 60 * 10);
-
-    if (error) {
-      setErro(error.message);
-      return;
-    }
-
-    window.open(data.signedUrl, "_blank");
   }
 
   return (
@@ -369,7 +285,7 @@ export default function BancoPrecos() {
         <div>
           <h1 className="text-3xl font-bold">Banco de Preços</h1>
           <p className="text-slate-500">
-            Importe produtos pela descrição. O sistema ordena alfabeticamente e gera os itens automaticamente.
+            Banco sem numeração de item. O sistema usa apenas nome/descrição para cotar.
           </p>
         </div>
 
@@ -403,9 +319,7 @@ export default function BancoPrecos() {
           <br />
           {colunasModelo.join(", ")}
           <br /><br />
-          <b>Preenchimento automático:</b>
-          <br />
-          item em ordem alfabética, data_atualizacao_custo, origem_preco, registro_anvisa, vencimento_registro e PDF ANVISA.
+          <b>Preenchimento automático:</b> data_atualizacao_custo, origem_preco, registro_anvisa, vencimento_registro e PDF ANVISA.
         </div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
@@ -440,7 +354,6 @@ export default function BancoPrecos() {
             <table className="w-full text-sm">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
-                  <th className="text-left p-4">Item</th>
                   <th className="text-left p-4">Descrição</th>
                   <th className="text-left p-4">Apresentação</th>
                   <th className="text-left p-4">Marca</th>
@@ -456,8 +369,7 @@ export default function BancoPrecos() {
               <tbody>
                 {produtosFiltrados.map((p, index) => (
                   <tr key={p.id || index} className="border-t">
-                    <td className="p-4 font-medium">{String(index + 1).padStart(3, "0")}</td>
-                    <td className="p-4">{p.descricao || "-"}</td>
+                    <td className="p-4 font-medium">{p.descricao || "-"}</td>
                     <td className="p-4">{p.apresentacao || "-"}</td>
                     <td className="p-4">{p.marca || "-"}</td>
                     <td className="p-4">{p.registro_anvisa || "Não vinculado"}</td>

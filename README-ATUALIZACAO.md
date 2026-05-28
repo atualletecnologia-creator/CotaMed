@@ -1,62 +1,42 @@
-# Atualização CotaMed — Busca inteligente e IA
+# Atualização CotaMed — Sem numeração no Banco de Preços e modelo de licitação
 
-Esta atualização melhora a cotação quando a descrição da licitação não vem igual ao Banco de Preços.
+## O que foi corrigido
 
-## O que foi adicionado
+- Banco de Preços não mostra mais a coluna item.
+- Banco de Preços salva `item = descricao` para não depender de número.
+- Licitações não usam mais o campo ITEM para buscar produto.
+- Busca da cotação usa somente descrição/nome, apresentação e marca.
+- Abertura de PDF foi melhorada para funcionar com:
+  - caminho do Supabase Storage
+  - URL completa
+  - caminho com ou sem `registros-anvisa/`
+- Aba Licitações agora possui botão para baixar modelo de planilha.
 
-- Busca por similaridade local
-- Dicionário de sinônimos e abreviações hospitalares
-- Pontuação de confiança
-- Status:
-  - Encontrado
-  - Conferir match
-  - Baixa confiança
-- Fallback opcional com IA gratuita via OpenRouter
-
-## Arquivos para adicionar/substituir
+## Arquivos para substituir/adicionar
 
 ```text
-lib/buscaInteligente.ts
-app/api/ia/match-produto/route.ts
+app/banco-precos/page.tsx
 app/licitacoes/page.tsx
+lib/buscaInteligente.ts
+lib/storagePdf.ts
+public/modelos/modelo-licitacao-cotamed.xlsx
+supabase/migration_remover_item_numerico.sql
 ```
 
-## Instalar dependências
+## Rodar no Supabase
 
-Normalmente você já tem estas dependências, mas confirme:
+Opcional, mas recomendado:
 
-```bash
-npm install xlsx jszip file-saver
-npm install -D @types/file-saver
+```sql
+supabase/migration_remover_item_numerico.sql
 ```
 
-## Configurar IA gratuita via OpenRouter
+Esse SQL troca itens numéricos antigos pela descrição do produto.
 
-No arquivo `.env.local`, adicione:
+## Depois
 
-```env
-OPENROUTER_API_KEY=SUA_CHAVE_DO_OPENROUTER
-OPENROUTER_MODEL=openai/gpt-oss-20b:free
-```
-
-Depois reinicie:
-
-```bash
-npm run dev
-```
-
-## Importante
-
-A IA é opcional. O sistema funciona sem ela usando a busca local.
-
-Na tela Licitações, deixe:
-
-```text
-Usar IA gratuita como fallback: Não
-```
-
-Se quiser testar IA, mude para:
-
-```text
-Sim
+```powershell
+git add .
+git commit -m "Remove numeracao do banco e melhora modelo de licitacao"
+git push
 ```
