@@ -1,0 +1,25 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #f5f9ff;
+  --foreground: #1a1a1a;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+}
+
+.card {
+  @apply bg-white rounded-2xl shadow-sm border border-blue-100;
+}
+
+.btn-primary {
+  @apply bg-cotamed-600 text-white rounded-xl px-4 py-2 hover:bg-cotamed-700 transition;
+}
+
+.input {
+  @apply w-full rounded-xl border border-blue-100 px-4 py-2 outline-none focus:ring-2 focus:ring-cotamed-500 bg-white;
+}
