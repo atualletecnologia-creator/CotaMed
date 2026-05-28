@@ -1,21 +1,13 @@
-# Correção CotaMed — Login obrigatório
+Correção Dashboard — atualização real dos indicadores
 
-Esta correção faz o sistema exigir login antes de acessar as páginas internas.
+Substitua:
 
-## Arquivos para substituir/adicionar
+app/dashboard/page.tsx
 
-components/AuthGuard.tsx
-components/AppShell.tsx
-app/page.tsx
+Agora o dashboard busca:
+- total de produtos na tabela produtos
+- preços desatualizados pela coluna data_atualizacao_custo
+- registros vencidos comparando produtos e registros_anvisa
+- PDFs disponíveis comparando produtos.pdf_url e registros_anvisa.pdf_path
 
-## Depois rode
-
-npm run build
-
-Se passar, envie para o GitHub:
-
-git add .
-git commit -m "Corrige login obrigatorio"
-git push
-
-Depois faça redeploy na Vercel.
+Também foi adicionado botão Atualizar dados.
