@@ -1,17 +1,21 @@
-Correção Dashboard dados reais
+# Correção CotaMed — Login obrigatório
 
-Substitua:
+Esta correção faz o sistema exigir login antes de acessar as páginas internas.
 
-app/dashboard/page.tsx
+## Arquivos para substituir/adicionar
 
-Agora o dashboard busca no Supabase:
-- total de produtos
-- preços desatualizados há mais de 30 dias
-- registros ANVISA vencidos
-- PDFs disponíveis
+components/AuthGuard.tsx
+components/AppShell.tsx
+app/page.tsx
 
-Depois rode:
+## Depois rode
 
-npm run dev
+npm run build
 
-e atualize com CTRL + F5.
+Se passar, envie para o GitHub:
+
+git add .
+git commit -m "Corrige login obrigatorio"
+git push
+
+Depois faça redeploy na Vercel.
