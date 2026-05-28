@@ -1,16 +1,20 @@
-Correção Licitações — sem barra horizontal e com filtro
+Atualização CotaMed — busca local melhorada e timeout da IA
 
 Substitua:
+lib/buscaInteligente.ts
+app/api/ia/match-produto/route.ts
 
-app/licitacoes/page.tsx
+Depois aplique a instrução em:
+PATCHES/alteracao-necessaria-licitacoes.txt
 
-Mudanças:
-- Remove tabela larga do resultado.
-- Resultado agora aparece em cards responsivos.
-- Adiciona filtro:
-  Todos
-  Somente preenchidos
-  Somente conferir
-  Não encontrados / baixa confiança
-  Com PDF
-  Sem PDF
+Melhorias:
+- Reconhece GENTAMICINA INJ 40MG x Gentamicina, sulfato 40mg/ml 1ml, solução injetável.
+- INJ passa a equivaler a injetável.
+- Sulfato/cloridrato deixam de atrapalhar a busca.
+- Compara 40MG com 40MG/ML.
+- IA agora tem timeout e não deve ficar carregando infinito.
+
+Depois:
+git add .
+git commit -m "Melhora busca local e timeout da IA"
+git push
