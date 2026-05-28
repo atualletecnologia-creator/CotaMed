@@ -85,6 +85,12 @@ function pegarDescricao(linha: Record<string, unknown>) {
   ).trim();
 }
 
+function statusClasse(status: string) {
+  if (status === "Encontrado") return "bg-green-100 text-green-700";
+  if (status === "Conferir match") return "bg-yellow-100 text-yellow-800";
+  return "bg-red-100 text-red-700";
+}
+
 function montarItemCotado(params: {
   index: number;
   descricao: string;
@@ -141,6 +147,7 @@ export default function Licitacoes() {
   const [margem, setMargem] = useState("30");
   const [usarIa, setUsarIa] = useState(false);
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
+  const [filtro, setFiltro] = useState("todos");
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [processando, setProcessando] = useState(false);
@@ -157,6 +164,15 @@ export default function Licitacoes() {
       pdfs: itens.filter((i) => i.pdf_url).length
     };
   }, [itens]);
+
+  const itensFiltrados = useMemo(() => {
+    if (filtro === "preenchidos") return itens.filter((i) => i.status === "Encontrado");
+    if (filtro === "conferir") return itens.filter((i) => i.status === "Conferir match");
+    if (filtro === "nao_encontrados") return itens.filter((i) => i.status !== "Encontrado" && i.status !== "Conferir match");
+    if (filtro === "com_pdf") return itens.filter((i) => !!i.pdf_url);
+    if (filtro === "sem_pdf") return itens.filter((i) => !i.pdf_url);
+    return itens;
+  }, [itens, filtro]);
 
   async function buscarComIa(descricao: string, produtos: Produto[]) {
     const topProdutos = produtos.slice(0, 25);
@@ -189,6 +205,7 @@ export default function Licitacoes() {
       setErro("");
       setMensagem("");
       setItens([]);
+      setFiltro("todos");
 
       if (!file) return;
 
@@ -272,7 +289,7 @@ export default function Licitacoes() {
       }
 
       setItens(itensCotados);
-      setMensagem(`${itensCotados.length} itens processados. O sistema não usa mais o número do item para buscar produto.`);
+      setMensagem(`${itensCotados.length} itens processados. Use o filtro para conferir os itens preenchidos.`);
     } finally {
       setProcessando(false);
     }
@@ -422,73 +439,116 @@ export default function Licitacoes() {
           </section>
 
           <section className="card p-6 mt-6">
-            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <h2 className="font-bold text-xl">Resultado da cotação</h2>
-                <p className="text-sm text-slate-500">Confira os itens com confiança média antes de enviar.</p>
+                <p className="text-sm text-slate-500">
+                  Exibindo {itensFiltrados.length} de {itens.length} itens.
+                </p>
               </div>
 
               <div className="flex flex-col md:flex-row gap-3">
-                <button onClick={baixarPlanilhaPreenchida} className="btn-primary">Baixar planilha preenchida</button>
+                <select
+                  className="input"
+                  value={filtro}
+                  onChange={(e) => setFiltro(e.target.value)}
+                >
+                  <option value="todos">Todos os itens</option>
+                  <option value="preenchidos">Somente preenchidos</option>
+                  <option value="conferir">Somente conferir</option>
+                  <option value="nao_encontrados">Não encontrados / baixa confiança</option>
+                  <option value="com_pdf">Com PDF</option>
+                  <option value="sem_pdf">Sem PDF</option>
+                </select>
+
+                <button onClick={baixarPlanilhaPreenchida} className="btn-primary">
+                  Baixar planilha preenchida
+                </button>
+
                 <button onClick={baixarZipRegistros} className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50">
                   Baixar ZIP dos registros
                 </button>
               </div>
             </div>
 
-            <div className="overflow-x-auto mt-6">
-              <table className="w-full text-sm">
-                <thead className="bg-blue-50 text-slate-600">
-                  <tr>
-                    <th className="text-left p-4">Item</th>
-                    <th className="text-left p-4">Descrição</th>
-                    <th className="text-left p-4">Qtd</th>
-                    <th className="text-left p-4">Unidade</th>
-                    <th className="text-left p-4">Marca</th>
-                    <th className="text-left p-4">Registro</th>
-                    <th className="text-left p-4">Custo</th>
-                    <th className="text-left p-4">Vl. Unit</th>
-                    <th className="text-left p-4">Vl. Total</th>
-                    <th className="text-left p-4">Confiança</th>
-                    <th className="text-left p-4">Origem</th>
-                    <th className="text-left p-4">PDF</th>
-                    <th className="text-left p-4">Status</th>
-                  </tr>
-                </thead>
+            <div className="grid md:grid-cols-2 xl:grid-cols-3 gap-4 mt-6">
+              {itensFiltrados.map((item) => (
+                <div key={item.numero_item} className="rounded-2xl border bg-white p-5 shadow-sm">
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="text-xs text-slate-500">Item {item.numero_item}</p>
+                      <h3 className="font-bold text-slate-900 mt-1 break-words">
+                        {item.descricao}
+                      </h3>
+                    </div>
 
-                <tbody>
-                  {itens.map((item) => (
-                    <tr key={item.numero_item} className="border-t">
-                      <td className="p-4 font-medium">{item.numero_item}</td>
-                      <td className="p-4">{item.descricao}</td>
-                      <td className="p-4">{item.quantidade}</td>
-                      <td className="p-4">{item.unidade}</td>
-                      <td className="p-4">{item.marca || "-"}</td>
-                      <td className="p-4">{item.registro_anvisa || "-"}</td>
-                      <td className="p-4">{dinheiro(item.custo_usado)}</td>
-                      <td className="p-4">{dinheiro(item.valor_unitario)}</td>
-                      <td className="p-4">{dinheiro(item.valor_total)}</td>
-                      <td className="p-4">{item.confianca || 0}%</td>
-                      <td className="p-4">{item.origem_match || "-"}</td>
-                      <td className="p-4">{item.pdf_url ? "Sim" : "Não"}</td>
-                      <td className="p-4">
-                        <span
-                          className={
-                            item.status === "Encontrado"
-                              ? "rounded-full bg-green-100 text-green-700 px-3 py-1"
-                              : item.status === "Conferir match"
-                                ? "rounded-full bg-yellow-100 text-yellow-800 px-3 py-1"
-                                : "rounded-full bg-red-100 text-red-700 px-3 py-1"
-                          }
-                        >
-                          {item.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+                    <span className={`shrink-0 rounded-full px-3 py-1 text-xs ${statusClasse(item.status)}`}>
+                      {item.status}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 mt-4 text-sm">
+                    <div>
+                      <p className="text-slate-500">Qtd</p>
+                      <p className="font-medium">{item.quantidade}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Unidade</p>
+                      <p className="font-medium">{item.unidade}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Marca</p>
+                      <p className="font-medium break-words">{item.marca || "-"}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Registro</p>
+                      <p className="font-medium break-words">{item.registro_anvisa || "-"}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Custo</p>
+                      <p className="font-medium">{dinheiro(item.custo_usado)}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Vl. Unit</p>
+                      <p className="font-medium">{dinheiro(item.valor_unitario)}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Vl. Total</p>
+                      <p className="font-bold">{dinheiro(item.valor_total)}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Confiança</p>
+                      <p className="font-medium">{item.confianca || 0}%</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">Origem</p>
+                      <p className="font-medium">{item.origem_match || "-"}</p>
+                    </div>
+
+                    <div>
+                      <p className="text-slate-500">PDF</p>
+                      <p className={item.pdf_url ? "font-medium text-green-700" : "font-medium text-red-700"}>
+                        {item.pdf_url ? "Sim" : "Não"}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              ))}
             </div>
+
+            {itensFiltrados.length === 0 && (
+              <div className="mt-6 rounded-2xl bg-blue-50 p-5 text-slate-600">
+                Nenhum item encontrado para este filtro.
+              </div>
+            )}
           </section>
         </>
       )}

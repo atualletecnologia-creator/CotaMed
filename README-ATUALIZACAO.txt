@@ -1,13 +1,16 @@
-Correção Dashboard — atualização real dos indicadores
+Correção Licitações — sem barra horizontal e com filtro
 
 Substitua:
 
-app/dashboard/page.tsx
+app/licitacoes/page.tsx
 
-Agora o dashboard busca:
-- total de produtos na tabela produtos
-- preços desatualizados pela coluna data_atualizacao_custo
-- registros vencidos comparando produtos e registros_anvisa
-- PDFs disponíveis comparando produtos.pdf_url e registros_anvisa.pdf_path
-
-Também foi adicionado botão Atualizar dados.
+Mudanças:
+- Remove tabela larga do resultado.
+- Resultado agora aparece em cards responsivos.
+- Adiciona filtro:
+  Todos
+  Somente preenchidos
+  Somente conferir
+  Não encontrados / baixa confiança
+  Com PDF
+  Sem PDF
