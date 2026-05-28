@@ -1,4 +1,4 @@
-\"use client\";
+"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -36,6 +36,7 @@ export default function RegistrosAnvisaPage() {
 
   async function carregar() {
     setCarregando(true);
+    setErro("");
 
     const { data, error } = await supabase
       .from("registros_anvisa")
