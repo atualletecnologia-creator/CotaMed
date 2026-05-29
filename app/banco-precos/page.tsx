@@ -165,6 +165,7 @@ export default function BancoPrecos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [registros, setRegistros] = useState<RegistroAnvisa[]>([]);
   const [busca, setBusca] = useState("");
+  const [filtroPdf, setFiltroPdf] = useState("todos");
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [importando, setImportando] = useState(false);
@@ -180,14 +181,8 @@ export default function BancoPrecos() {
     setErro("");
 
     const [produtosResp, registrosResp] = await Promise.all([
-      supabase
-        .from("produtos")
-        .select("*")
-        .order("descricao", { ascending: true }),
-      supabase
-        .from("registros_anvisa")
-        .select("*")
-        .order("item", { ascending: true })
+      supabase.from("produtos").select("*").order("descricao", { ascending: true }),
+      supabase.from("registros_anvisa").select("*").order("item", { ascending: true })
     ]);
 
     if (produtosResp.error) {
@@ -210,7 +205,7 @@ export default function BancoPrecos() {
   const produtosFiltrados = useMemo(() => {
     const termo = textoBusca(busca);
 
-    const lista = !termo
+    let lista = !termo
       ? produtos
       : produtos.filter((p) =>
           textoBusca([
@@ -223,10 +218,26 @@ export default function BancoPrecos() {
           ].filter(Boolean).join(" ")).includes(termo)
         );
 
+    if (filtroPdf === "com_pdf") {
+      lista = lista.filter((p) => !!p.pdf_url);
+    }
+
+    if (filtroPdf === "sem_pdf") {
+      lista = lista.filter((p) => !p.pdf_url);
+    }
+
     return [...lista].sort((a, b) =>
       String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR")
     );
-  }, [produtos, busca]);
+  }, [produtos, busca, filtroPdf]);
+
+  const resumoPdf = useMemo(() => {
+    return {
+      todos: produtos.length,
+      comPdf: produtos.filter((p) => !!p.pdf_url).length,
+      semPdf: produtos.filter((p) => !p.pdf_url).length,
+    };
+  }, [produtos]);
 
   async function importarPlanilha(file: File | null) {
     try {
@@ -439,16 +450,33 @@ export default function BancoPrecos() {
           <br />
           {colunasModelo.join(", ")}
           <br /><br />
-          O sistema tentará vincular automaticamente o registro ANVISA usando descrição, apresentação, marca e número do registro. Se não conseguir, você poderá selecionar manualmente na tabela.
+          O sistema tentará vincular automaticamente o registro ANVISA. Se não conseguir, filtre por <b>Sem PDF</b> e selecione manualmente.
         </div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>
 
+      <section className="grid md:grid-cols-3 gap-4 mt-6">
+        <div className="card p-5">
+          <p className="text-sm text-slate-500">Total de produtos</p>
+          <h3 className="text-2xl font-bold">{resumoPdf.todos}</h3>
+        </div>
+
+        <div className="card p-5">
+          <p className="text-sm text-slate-500">Com PDF</p>
+          <h3 className="text-2xl font-bold text-green-700">{resumoPdf.comPdf}</h3>
+        </div>
+
+        <div className="card p-5">
+          <p className="text-sm text-slate-500">Sem PDF</p>
+          <h3 className="text-2xl font-bold text-red-700">{resumoPdf.semPdf}</h3>
+        </div>
+      </section>
+
       <section className="card mt-6 overflow-hidden">
         <div className="p-6 border-b">
-          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 className="font-bold text-xl">Produtos cadastrados</h2>
               <p className="text-sm text-slate-500">
@@ -456,12 +484,24 @@ export default function BancoPrecos() {
               </p>
             </div>
 
-            <input
-              className="input md:max-w-md"
-              placeholder="Buscar por descrição, marca, registro, apresentação..."
-              value={busca}
-              onChange={(e) => setBusca(e.target.value)}
-            />
+            <div className="flex flex-col md:flex-row gap-3">
+              <select
+                className="input md:w-48"
+                value={filtroPdf}
+                onChange={(e) => setFiltroPdf(e.target.value)}
+              >
+                <option value="todos">Todos os produtos</option>
+                <option value="com_pdf">Somente com PDF</option>
+                <option value="sem_pdf">Somente sem PDF</option>
+              </select>
+
+              <input
+                className="input md:w-96"
+                placeholder="Buscar por descrição, marca, registro, apresentação..."
+                value={busca}
+                onChange={(e) => setBusca(e.target.value)}
+              />
+            </div>
           </div>
         </div>
 
@@ -501,7 +541,7 @@ export default function BancoPrecos() {
                           Abrir PDF
                         </button>
                       ) : (
-                        <span className="text-red-600">Sem PDF</span>
+                        <span className="text-red-600 font-medium">Sem PDF</span>
                       )}
                     </td>
                     <td className="p-3">{p.quantidade_por_caixa || "-"}</td>
