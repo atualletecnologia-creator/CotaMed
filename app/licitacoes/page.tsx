@@ -142,9 +142,9 @@ function montarItemCotado(params: {
 
   let status = "Produto não encontrado";
 
-  if (score >= 80 && custo > 0) {
+  if (score >= 85 && custo > 0) {
     status = "Encontrado";
-  } else if (score >= 70 && custo > 0) {
+  } else if (score >= 75 && custo > 0) {
     status = "Conferir match";
   }
 
@@ -337,7 +337,7 @@ export default function Licitacoes() {
         let score = melhor?.score || 0;
         let origem = "busca_local";
 
-        if (usarIa && score < 70 && produtos?.length) {
+        if (usarIa && score < 75 && produtos?.length) {
           const ia = await buscarComIa(descricao, produtos || []);
 
           if (ia && ia.score > score) {
@@ -363,7 +363,7 @@ export default function Licitacoes() {
 
       setItens(itensCotados);
       setMensagem(
-        `${itensCotados.length} itens processados. Itens em “Conferir match” não entram na planilha final.`
+        `${itensCotados.length} itens processados. Itens em “Conferir match” aparecem apenas para revisão e não entram na planilha final.`
       );
     } finally {
       setProcessando(false);
@@ -469,7 +469,7 @@ export default function Licitacoes() {
         <div>
           <h1 className="text-3xl font-bold">Licitações</h1>
           <p className="text-slate-500">
-            Envie a planilha da licitação. A busca local reconhece abreviações, dosagens e apresentações.
+            Envie a planilha da licitação. A busca local foi ajustada para evitar falso positivo.
           </p>
         </div>
 
@@ -502,7 +502,7 @@ export default function Licitacoes() {
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          Itens em <b>Conferir match</b> não entram na cotação final. Para retirar qualquer item, use o botão <b>Excluir</b> na linha dele.
+          Itens em <b>Conferir match</b> não preenchem marca, registro, custo ou valor. Eles aparecem apenas para revisão.
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
@@ -580,7 +580,7 @@ export default function Licitacoes() {
                 <thead className="bg-blue-50 text-slate-600">
                   <tr>
                     <th className="text-left p-2 w-[4%]">Item</th>
-                    <th className="text-left p-2 w-[28%]">Descrição</th>
+                    <th className="text-left p-2 w-[29%]">Descrição</th>
                     <th className="text-left p-2 w-[6%]">Qtd</th>
                     <th className="text-left p-2 w-[7%]">Unid</th>
                     <th className="text-left p-2 w-[8%]">Marca</th>
@@ -591,7 +591,7 @@ export default function Licitacoes() {
                     <th className="text-left p-2 w-[5%]">Conf.</th>
                     <th className="text-left p-2 w-[8%]">Status</th>
                     <th className="text-left p-2 w-[4%]">PDF</th>
-                    <th className="text-left p-2 w-[6%]">Ação</th>
+                    <th className="text-left p-2 w-[5%]">Ação</th>
                   </tr>
                 </thead>
 
@@ -606,8 +606,8 @@ export default function Licitacoes() {
                         <td className="p-2 whitespace-normal break-words">{item.descricao}</td>
                         <td className="p-2">{item.quantidade}</td>
                         <td className="p-2 whitespace-normal break-words">{item.unidade}</td>
-                        <td className="p-2 whitespace-normal break-words">{item.status === "Produto não encontrado" || item.excluido ? "-" : item.marca || "-"}</td>
-                        <td className="p-2 whitespace-normal break-words">{item.status === "Produto não encontrado" || item.excluido ? "-" : item.registro_anvisa || "-"}</td>
+                        <td className="p-2 whitespace-normal break-words">{cotar ? item.marca || "-" : "-"}</td>
+                        <td className="p-2 whitespace-normal break-words">{cotar ? item.registro_anvisa || "-" : "-"}</td>
                         <td className="p-2">{cotar ? dinheiro(item.custo_usado) : "-"}</td>
                         <td className="p-2">{cotar ? dinheiro(item.valor_unitario) : "-"}</td>
                         <td className="p-2">{cotar ? dinheiro(item.valor_total) : "-"}</td>
