@@ -70,7 +70,7 @@ function numero(valor: unknown) {
 }
 
 function dinheiro(valor?: number | null) {
-  if (valor === null || valor === undefined) return "-";
+  if (valor === null || valor === undefined || Number.isNaN(valor)) return "-";
 
   return valor.toLocaleString("pt-BR", {
     style: "currency",
@@ -135,10 +135,18 @@ function montarItemCotado(params: {
     };
   }
 
+  const score = confianca || 0;
   const custo = produto.custo_unitario || produto.custo_caixa || 0;
-  const valorUnitario = custo * (1 + margem / 100);
-  const valorTotal = valorUnitario * quantidade;
-  const nivel = classificarConfianca(confianca || 0);
+  const valorUnitario = custo > 0 ? custo * (1 + margem / 100) : null;
+  const valorTotal = valorUnitario ? valorUnitario * quantidade : null;
+
+  let status = "Produto não encontrado";
+
+  if (score >= 80 && custo > 0) {
+    status = "Encontrado";
+  } else if (score >= 70 && custo > 0) {
+    status = "Conferir match";
+  }
 
   return {
     numero_item: String(index + 1).padStart(3, "0"),
@@ -148,18 +156,13 @@ function montarItemCotado(params: {
     marca: produto.marca,
     registro_anvisa: produto.registro_anvisa,
     vencimento_registro: produto.vencimento_registro,
-    custo_usado: custo,
+    custo_usado: custo || null,
     valor_unitario: valorUnitario,
     valor_total: valorTotal,
     pdf_url: produto.pdf_url,
-    confianca: confianca || 0,
+    confianca: score,
     origem_match: origemMatch || "busca_local",
-    status:
-      nivel === "alto"
-        ? "Encontrado"
-        : nivel === "medio"
-          ? "Conferir match"
-          : "Baixa confiança",
+    status,
     excluido: false,
   };
 }
@@ -219,9 +222,9 @@ export default function Licitacoes() {
 
   async function buscarComIa(descricao: string, produtos: Produto[]) {
     const controller = new AbortController();
-    const timeout = setTimeout(() => controller.abort(), 7000);
+    const timeout = setTimeout(() => controller.abort(), 6000);
 
-    const candidatosLocais = encontrarCandidatos(descricao, produtos, 8).map(
+    const candidatosLocais = encontrarCandidatos(descricao, produtos, 6).map(
       (c) => c.produto
     );
 
@@ -334,7 +337,7 @@ export default function Licitacoes() {
         let score = melhor?.score || 0;
         let origem = "busca_local";
 
-        if (usarIa && score < 55 && produtos?.length) {
+        if (usarIa && score < 70 && produtos?.length) {
           const ia = await buscarComIa(descricao, produtos || []);
 
           if (ia && ia.score > score) {
@@ -542,7 +545,7 @@ export default function Licitacoes() {
             </div>
           </section>
 
-          <section className="card p-6 mt-6">
+          <section className="card p-5 mt-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <h2 className="font-bold text-xl">Resultado da cotação</h2>
@@ -552,7 +555,7 @@ export default function Licitacoes() {
               </div>
 
               <div className="flex flex-col md:flex-row gap-3">
-                <select className="input" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
+                <select className="input text-sm" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
                   <option value="todos">Todos os itens</option>
                   <option value="preenchidos">Somente preenchidos</option>
                   <option value="conferir">Somente Conferir match</option>
@@ -562,76 +565,73 @@ export default function Licitacoes() {
                   <option value="excluidos">Excluídos da cotação</option>
                 </select>
 
-                <button onClick={baixarPlanilhaPreenchida} className="btn-primary">
-                  Baixar planilha preenchida
+                <button onClick={baixarPlanilhaPreenchida} className="btn-primary text-sm">
+                  Baixar planilha
                 </button>
 
-                <button onClick={baixarZipRegistros} className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50">
-                  Baixar ZIP dos registros
+                <button onClick={baixarZipRegistros} className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 text-sm">
+                  Baixar ZIP
                 </button>
               </div>
             </div>
 
             <div className="mt-6 rounded-2xl border overflow-hidden">
-              <table className="w-full text-sm">
+              <table className="w-full table-fixed text-[11px] leading-4">
                 <thead className="bg-blue-50 text-slate-600">
                   <tr>
-                    <th className="text-left p-3 w-[70px]">Item</th>
-                    <th className="text-left p-3 min-w-[340px]">Descrição</th>
-                    <th className="text-left p-3 w-[90px]">Qtd</th>
-                    <th className="text-left p-3 w-[100px]">Unid</th>
-                    <th className="text-left p-3 w-[150px]">Marca</th>
-                    <th className="text-left p-3 w-[150px]">Registro</th>
-                    <th className="text-left p-3 w-[110px]">Custo</th>
-                    <th className="text-left p-3 w-[110px]">Vl. Unit</th>
-                    <th className="text-left p-3 w-[110px]">Vl. Total</th>
-                    <th className="text-left p-3 w-[90px]">Conf.</th>
-                    <th className="text-left p-3 w-[140px]">Status</th>
-                    <th className="text-left p-3 w-[90px]">PDF</th>
-                    <th className="text-left p-3 w-[110px]">Ação</th>
+                    <th className="text-left p-2 w-[4%]">Item</th>
+                    <th className="text-left p-2 w-[28%]">Descrição</th>
+                    <th className="text-left p-2 w-[6%]">Qtd</th>
+                    <th className="text-left p-2 w-[7%]">Unid</th>
+                    <th className="text-left p-2 w-[8%]">Marca</th>
+                    <th className="text-left p-2 w-[9%]">Registro</th>
+                    <th className="text-left p-2 w-[7%]">Custo</th>
+                    <th className="text-left p-2 w-[7%]">Vl.Unit</th>
+                    <th className="text-left p-2 w-[7%]">Vl.Total</th>
+                    <th className="text-left p-2 w-[5%]">Conf.</th>
+                    <th className="text-left p-2 w-[8%]">Status</th>
+                    <th className="text-left p-2 w-[4%]">PDF</th>
+                    <th className="text-left p-2 w-[6%]">Ação</th>
                   </tr>
                 </thead>
 
                 <tbody>
                   {itensFiltrados.map((item) => {
                     const cotar = itemPodeCotar(item);
+                    const statusVisivel = item.excluido ? "Excluído" : item.status;
 
                     return (
                       <tr key={item.numero_item} className={item.excluido ? "border-t align-top bg-slate-50 opacity-70" : "border-t align-top"}>
-                        <td className="p-3 font-medium whitespace-nowrap">{item.numero_item}</td>
-                        <td className="p-3">
-                          <div className="max-w-[520px] whitespace-normal break-normal leading-6">
-                            {item.descricao}
-                          </div>
-                        </td>
-                        <td className="p-3 whitespace-nowrap">{item.quantidade}</td>
-                        <td className="p-3 whitespace-nowrap">{item.unidade}</td>
-                        <td className="p-3 whitespace-normal">{cotar ? item.marca || "-" : "-"}</td>
-                        <td className="p-3 whitespace-normal">{cotar ? item.registro_anvisa || "-" : "-"}</td>
-                        <td className="p-3 whitespace-nowrap">{cotar ? dinheiro(item.custo_usado) : "-"}</td>
-                        <td className="p-3 whitespace-nowrap">{cotar ? dinheiro(item.valor_unitario) : "-"}</td>
-                        <td className="p-3 whitespace-nowrap">{cotar ? dinheiro(item.valor_total) : "-"}</td>
-                        <td className="p-3 whitespace-nowrap">{item.confianca || 0}%</td>
-                        <td className="p-3">
-                          <span className={`inline-block rounded-full px-3 py-1 text-xs ${statusClasse(item.excluido ? "Excluído" : item.status)}`}>
-                            {item.excluido ? "Excluído" : item.status}
+                        <td className="p-2 font-medium">{item.numero_item}</td>
+                        <td className="p-2 whitespace-normal break-words">{item.descricao}</td>
+                        <td className="p-2">{item.quantidade}</td>
+                        <td className="p-2 whitespace-normal break-words">{item.unidade}</td>
+                        <td className="p-2 whitespace-normal break-words">{item.status === "Produto não encontrado" || item.excluido ? "-" : item.marca || "-"}</td>
+                        <td className="p-2 whitespace-normal break-words">{item.status === "Produto não encontrado" || item.excluido ? "-" : item.registro_anvisa || "-"}</td>
+                        <td className="p-2">{cotar ? dinheiro(item.custo_usado) : "-"}</td>
+                        <td className="p-2">{cotar ? dinheiro(item.valor_unitario) : "-"}</td>
+                        <td className="p-2">{cotar ? dinheiro(item.valor_total) : "-"}</td>
+                        <td className="p-2">{item.confianca || 0}%</td>
+                        <td className="p-2">
+                          <span className={`inline-block rounded-full px-2 py-1 text-[10px] ${statusClasse(statusVisivel)}`}>
+                            {statusVisivel}
                           </span>
                         </td>
-                        <td className="p-3">
+                        <td className="p-2">
                           <span className={item.pdf_url && cotar ? "text-green-700 font-medium" : "text-red-700 font-medium"}>
                             {item.pdf_url && cotar ? "Sim" : "Não"}
                           </span>
                         </td>
-                        <td className="p-3">
+                        <td className="p-2">
                           <button
                             onClick={() => alternarExcluir(item.numero_item)}
                             className={
                               item.excluido
-                                ? "rounded-lg border px-3 py-1 text-xs text-green-700 hover:bg-green-50"
-                                : "rounded-lg border px-3 py-1 text-xs text-red-700 hover:bg-red-50"
+                                ? "rounded-md border px-2 py-1 text-[10px] text-green-700 hover:bg-green-50"
+                                : "rounded-md border px-2 py-1 text-[10px] text-red-700 hover:bg-red-50"
                             }
                           >
-                            {item.excluido ? "Restaurar" : "Excluir"}
+                            {item.excluido ? "Voltar" : "Excluir"}
                           </button>
                         </td>
                       </tr>
