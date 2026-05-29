@@ -27,9 +27,8 @@ type RegistroAnvisa = {
   item: string | null;
   apresentacao: string | null;
   marca: string | null;
-  vencimento_registro: string | null;
   registro_anvisa: string | null;
-  nome_arquivo: string | null;
+  vencimento_registro: string | null;
   pdf_path: string | null;
 };
 
@@ -52,13 +51,29 @@ function normalizarCabecalho(valor: unknown) {
     .replace(/\s+/g, "_");
 }
 
-function textoBusca(valor: unknown) {
+function normalizarTexto(valor: unknown) {
   return String(valor || "")
     .trim()
     .toLowerCase()
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^a-z0-9]/g, "");
+    .replace(/[^a-z0-9\s]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function textoBusca(valor: unknown) {
+  return normalizarTexto(valor).replace(/[^a-z0-9]/g, "");
+}
+
+function tokens(valor: unknown) {
+  return normalizarTexto(valor)
+    .split(" ")
+    .filter((p) => p.length > 1)
+    .filter((p) => ![
+      "de", "da", "do", "das", "dos", "para", "por", "com", "sem",
+      "sulfato", "cloridrato", "sodico", "base", "solucao", "solução"
+    ].includes(p));
 }
 
 function numero(valor: unknown) {
@@ -80,37 +95,81 @@ function dinheiro(valor?: number | null) {
   return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
-function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: RegistroAnvisa[]) {
-  const produtoDescricao = textoBusca(produto.descricao);
-  const produtoApresentacao = textoBusca(produto.apresentacao);
-  const produtoMarca = textoBusca(produto.marca);
-  const produtoRegistro = textoBusca(produto.registro_anvisa);
+function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
+  let score = 0;
 
-  if (produtoRegistro) {
-    const porRegistro = registros.find((r) => textoBusca(r.registro_anvisa) === produtoRegistro);
-    if (porRegistro) return porRegistro;
+  const produtoRegistro = textoBusca(produto.registro_anvisa);
+  const registroNumero = textoBusca(registro.registro_anvisa);
+
+  if (produtoRegistro && registroNumero && produtoRegistro === registroNumero) {
+    score += 100;
   }
 
-  return registros.find((r) => {
-    const descricaoRegistro = textoBusca(r.item);
-    const marcaIgual = textoBusca(r.marca) === produtoMarca;
-    const apresentacaoIgual = textoBusca(r.apresentacao) === produtoApresentacao;
-    const descricaoIgual =
-      descricaoRegistro === produtoDescricao ||
-      produtoDescricao.includes(descricaoRegistro) ||
-      descricaoRegistro.includes(produtoDescricao);
+  const descProduto = normalizarTexto(produto.descricao);
+  const descRegistro = normalizarTexto(registro.item);
 
-    return descricaoIgual && marcaIgual && apresentacaoIgual;
-  }) || null;
+  const marcaProduto = textoBusca(produto.marca);
+  const marcaRegistro = textoBusca(registro.marca);
+
+  const apresentacaoProduto = textoBusca(produto.apresentacao);
+  const apresentacaoRegistro = textoBusca(registro.apresentacao);
+
+  if (marcaProduto && marcaRegistro && marcaProduto === marcaRegistro) score += 25;
+  if (apresentacaoProduto && apresentacaoRegistro && apresentacaoProduto === apresentacaoRegistro) score += 20;
+
+  if (descProduto && descRegistro) {
+    if (descProduto === descRegistro) score += 50;
+    if (descProduto.includes(descRegistro) || descRegistro.includes(descProduto)) score += 30;
+
+    const tProduto = tokens(descProduto);
+    const tRegistro = tokens(descRegistro);
+    let iguais = 0;
+
+    tProduto.forEach((t) => {
+      if (tRegistro.includes(t) || tRegistro.some((r) => r.includes(t) || t.includes(r))) {
+        iguais++;
+      }
+    });
+
+    if (tProduto.length) {
+      score += Math.round((iguais / tProduto.length) * 40);
+    }
+  }
+
+  return score;
+}
+
+function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: RegistroAnvisa[]) {
+  const candidatos = registros
+    .map((registro) => ({
+      registro,
+      score: scoreRegistro(produto, registro)
+    }))
+    .filter((c) => c.score >= 45)
+    .sort((a, b) => b.score - a.score);
+
+  return candidatos[0]?.registro || null;
+}
+
+function labelRegistro(registro: RegistroAnvisa) {
+  return [
+    registro.item,
+    registro.apresentacao,
+    registro.marca,
+    registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "",
+    registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""
+  ].filter(Boolean).join(" | ");
 }
 
 export default function BancoPrecos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
+  const [registros, setRegistros] = useState<RegistroAnvisa[]>([]);
   const [busca, setBusca] = useState("");
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [importando, setImportando] = useState(false);
   const [carregando, setCarregando] = useState(true);
+  const [vinculando, setVinculando] = useState("");
 
   useEffect(() => {
     carregarDados();
@@ -120,18 +179,31 @@ export default function BancoPrecos() {
     setCarregando(true);
     setErro("");
 
-    const { data, error } = await supabase
-      .from("produtos")
-      .select("*")
-      .order("descricao", { ascending: true });
+    const [produtosResp, registrosResp] = await Promise.all([
+      supabase
+        .from("produtos")
+        .select("*")
+        .order("descricao", { ascending: true }),
+      supabase
+        .from("registros_anvisa")
+        .select("*")
+        .order("item", { ascending: true })
+    ]);
 
-    if (error) {
-      setErro(error.message);
+    if (produtosResp.error) {
+      setErro(produtosResp.error.message);
       setCarregando(false);
       return;
     }
 
-    setProdutos(data || []);
+    if (registrosResp.error) {
+      setErro(registrosResp.error.message);
+      setCarregando(false);
+      return;
+    }
+
+    setProdutos(produtosResp.data || []);
+    setRegistros(registrosResp.data || []);
     setCarregando(false);
   }
 
@@ -264,11 +336,59 @@ export default function BancoPrecos() {
         return;
       }
 
-      setMensagem(`${produtosParaSalvar.length} produtos importados. ${vinculados} vinculados ao registro ANVISA. ${semRegistro} sem registro encontrado.`);
+      setMensagem(`${produtosParaSalvar.length} produtos importados. ${vinculados} vinculados automaticamente ao registro ANVISA. ${semRegistro} sem vínculo automático.`);
       await carregarDados();
     } finally {
       setImportando(false);
     }
+  }
+
+  async function vincularRegistroManual(produto: Produto, registroId: string) {
+    try {
+      setErro("");
+      setMensagem("");
+
+      if (!produto.id || !registroId) return;
+
+      const registro = registros.find((r) => r.id === registroId);
+
+      if (!registro) {
+        setErro("Registro ANVISA não encontrado.");
+        return;
+      }
+
+      setVinculando(produto.id);
+
+      const { error } = await supabase
+        .from("produtos")
+        .update({
+          registro_anvisa: registro.registro_anvisa,
+          vencimento_registro: registro.vencimento_registro,
+          pdf_url: registro.pdf_path
+        })
+        .eq("id", produto.id);
+
+      if (error) {
+        setErro(error.message);
+        return;
+      }
+
+      setMensagem("Registro vinculado ao produto com sucesso.");
+      await carregarDados();
+    } finally {
+      setVinculando("");
+    }
+  }
+
+  async function tentarVincularAutomaticamente(produto: Produto) {
+    const registro = encontrarRegistroAutomatico(produto, registros);
+
+    if (!registro) {
+      setErro("Nenhum registro compatível encontrado automaticamente. Selecione manualmente na lista.");
+      return;
+    }
+
+    await vincularRegistroManual(produto, registro.id);
   }
 
   async function abrirPdf(path?: string | null) {
@@ -285,7 +405,7 @@ export default function BancoPrecos() {
         <div>
           <h1 className="text-3xl font-bold">Banco de Preços</h1>
           <p className="text-slate-500">
-            Banco sem numeração de item. O sistema usa apenas nome/descrição para cotar.
+            Banco de produtos com vínculo automático ou manual dos registros ANVISA.
           </p>
         </div>
 
@@ -319,7 +439,7 @@ export default function BancoPrecos() {
           <br />
           {colunasModelo.join(", ")}
           <br /><br />
-          <b>Preenchimento automático:</b> data_atualizacao_custo, origem_preco, registro_anvisa, vencimento_registro e PDF ANVISA.
+          O sistema tentará vincular automaticamente o registro ANVISA usando descrição, apresentação, marca e número do registro. Se não conseguir, você poderá selecionar manualmente na tabela.
         </div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
@@ -351,30 +471,31 @@ export default function BancoPrecos() {
           <div className="p-6 text-slate-500">Nenhum produto encontrado.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="w-full text-xs">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
-                  <th className="text-left p-4">Descrição</th>
-                  <th className="text-left p-4">Apresentação</th>
-                  <th className="text-left p-4">Marca</th>
-                  <th className="text-left p-4">Registro ANVISA</th>
-                  <th className="text-left p-4">Vencimento</th>
-                  <th className="text-left p-4">PDF</th>
-                  <th className="text-left p-4">Qtd/Caixa</th>
-                  <th className="text-left p-4">Custo Unit.</th>
-                  <th className="text-left p-4">Custo Caixa</th>
+                  <th className="text-left p-3">Descrição</th>
+                  <th className="text-left p-3">Apresentação</th>
+                  <th className="text-left p-3">Marca</th>
+                  <th className="text-left p-3">Registro ANVISA</th>
+                  <th className="text-left p-3">Vencimento</th>
+                  <th className="text-left p-3">PDF</th>
+                  <th className="text-left p-3">Qtd/Caixa</th>
+                  <th className="text-left p-3">Custo Unit.</th>
+                  <th className="text-left p-3">Custo Caixa</th>
+                  <th className="text-left p-3 min-w-[260px]">Vincular registro</th>
                 </tr>
               </thead>
 
               <tbody>
                 {produtosFiltrados.map((p, index) => (
-                  <tr key={p.id || index} className="border-t">
-                    <td className="p-4 font-medium">{p.descricao || "-"}</td>
-                    <td className="p-4">{p.apresentacao || "-"}</td>
-                    <td className="p-4">{p.marca || "-"}</td>
-                    <td className="p-4">{p.registro_anvisa || "Não vinculado"}</td>
-                    <td className="p-4">{p.vencimento_registro || "-"}</td>
-                    <td className="p-4">
+                  <tr key={p.id || index} className="border-t align-top">
+                    <td className="p-3 font-medium">{p.descricao || "-"}</td>
+                    <td className="p-3">{p.apresentacao || "-"}</td>
+                    <td className="p-3">{p.marca || "-"}</td>
+                    <td className="p-3">{p.registro_anvisa || "Não vinculado"}</td>
+                    <td className="p-3">{p.vencimento_registro || "-"}</td>
+                    <td className="p-3">
                       {p.pdf_url ? (
                         <button onClick={() => abrirPdf(p.pdf_url)} className="text-cotamed-700 underline">
                           Abrir PDF
@@ -383,9 +504,34 @@ export default function BancoPrecos() {
                         <span className="text-red-600">Sem PDF</span>
                       )}
                     </td>
-                    <td className="p-4">{p.quantidade_por_caixa || "-"}</td>
-                    <td className="p-4">{dinheiro(p.custo_unitario)}</td>
-                    <td className="p-4">{dinheiro(p.custo_caixa)}</td>
+                    <td className="p-3">{p.quantidade_por_caixa || "-"}</td>
+                    <td className="p-3">{dinheiro(p.custo_unitario)}</td>
+                    <td className="p-3">{dinheiro(p.custo_caixa)}</td>
+                    <td className="p-3">
+                      <div className="flex flex-col gap-2">
+                        <select
+                          className="input text-xs"
+                          disabled={vinculando === p.id}
+                          defaultValue=""
+                          onChange={(e) => vincularRegistroManual(p, e.target.value)}
+                        >
+                          <option value="">Selecionar manualmente...</option>
+                          {registros.map((r) => (
+                            <option key={r.id} value={r.id}>
+                              {labelRegistro(r)}
+                            </option>
+                          ))}
+                        </select>
+
+                        <button
+                          className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
+                          disabled={vinculando === p.id}
+                          onClick={() => tentarVincularAutomaticamente(p)}
+                        >
+                          {vinculando === p.id ? "Vinculando..." : "Tentar automático"}
+                        </button>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>

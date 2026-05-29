@@ -1,10 +1,10 @@
-Atualização Registros ANVISA
+Atualização Banco de Preços
 
 Substitua:
-app/registros-anvisa/page.tsx
+app/banco-precos/page.tsx
 
-Correções:
-- Data de vencimento salva sempre em AAAA-MM-DD.
-- Aceita letras no campo Registro ANVISA.
-- Campo vencimento agora é texto com placeholder AAAA-MM-DD para evitar conversão automática do navegador.
-- Também aceita DD/MM/AAAA ou DD-MM-AAAA e converte para AAAA-MM-DD.
+Melhorias:
+- Vínculo automático ANVISA mais inteligente usando descrição, apresentação, marca e número do registro.
+- Opção manual para selecionar o registro ANVISA em cada produto.
+- Botão "Tentar automático" por produto.
+- Ao vincular, atualiza registro_anvisa, vencimento_registro e pdf_url.
