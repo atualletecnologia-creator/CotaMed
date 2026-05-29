@@ -36,6 +36,32 @@ function limparNomeArquivo(texto: string) {
     .toLowerCase();
 }
 
+function normalizarDataAAAA_MM_DD(valor: string) {
+  const texto = String(valor || "").trim();
+
+  if (!texto) return "";
+
+  // Já está correto: AAAA-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
+    return texto;
+  }
+
+  // Converte DD-MM-AAAA ou DD/MM/AAAA para AAAA-MM-DD
+  const br = texto.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
+  if (br) {
+    return `${br[3]}-${br[2]}-${br[1]}`;
+  }
+
+  // Converte AAAAMMDD para AAAA-MM-DD
+  const compacto = texto.match(/^(\d{4})(\d{2})(\d{2})$/);
+  if (compacto) {
+    return `${compacto[1]}-${compacto[2]}-${compacto[3]}`;
+  }
+
+  // Se não reconhecer, mantém o texto original para não apagar a informação.
+  return texto;
+}
+
 function parseNomeArquivo(fileName: string) {
   const semExtensao = fileName.replace(/\.pdf$/i, "");
   const partes = semExtensao.split("_").map((p) => p.trim()).filter(Boolean);
@@ -44,7 +70,7 @@ function parseNomeArquivo(fileName: string) {
     item: partes[0] || "",
     apresentacao: partes[1] || "",
     marca: partes[2] || "",
-    vencimento_registro: partes[3] || "",
+    vencimento_registro: normalizarDataAAAA_MM_DD(partes[3] || ""),
   };
 }
 
@@ -144,11 +170,20 @@ export default function RegistrosAnvisaPage() {
       const itemFinal = (item || dadosArquivo.item || "").trim();
       const apresentacaoFinal = (apresentacao || dadosArquivo.apresentacao || "").trim();
       const marcaFinal = (marca || dadosArquivo.marca || "").trim();
-      const vencimentoFinal = (vencimentoRegistro || dadosArquivo.vencimento_registro || "").trim();
+      const vencimentoFinal = normalizarDataAAAA_MM_DD(
+        (vencimentoRegistro || dadosArquivo.vencimento_registro || "").trim()
+      );
+
+      // Registro ANVISA agora aceita letras, números, pontos, barras, hífens etc.
       const registroFinal = registroAnvisa.trim();
 
       if (!itemFinal || !apresentacaoFinal || !marcaFinal || !vencimentoFinal) {
-        setErro("Preencha item, apresentação, marca e vencimento do registro.");
+        setErro("Preencha item, apresentação, marca e vencimento do registro no formato AAAA-MM-DD.");
+        return;
+      }
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimentoFinal)) {
+        setErro("O vencimento do registro precisa estar no formato AAAA-MM-DD. Exemplo: 2029-06-01.");
         return;
       }
 
@@ -233,7 +268,7 @@ export default function RegistrosAnvisaPage() {
         <h2 className="font-bold text-xl">Enviar PDF do registro</h2>
 
         <p className="text-sm text-slate-500 mt-1">
-          Padrão recomendado do arquivo: item_apresentacao_marca_vencimento_registro.pdf
+          Padrão recomendado do arquivo: item_apresentacao_marca_2029-06-01.pdf
         </p>
 
         <div className="grid md:grid-cols-5 gap-4 mt-5">
@@ -271,9 +306,11 @@ export default function RegistrosAnvisaPage() {
             <label className="text-sm font-medium">Registro ANVISA</label>
             <input
               className="input mt-2"
+              type="text"
+              inputMode="text"
               value={registroAnvisa}
               onChange={(e) => setRegistroAnvisa(e.target.value)}
-              placeholder="Ex: 1134301670044"
+              placeholder="Ex: MS-1.1343.0167 ou ABC123"
             />
           </div>
 
@@ -281,9 +318,10 @@ export default function RegistrosAnvisaPage() {
             <label className="text-sm font-medium">Vencimento</label>
             <input
               className="input mt-2"
-              type="date"
+              type="text"
               value={vencimentoRegistro}
-              onChange={(e) => setVencimentoRegistro(e.target.value)}
+              onChange={(e) => setVencimentoRegistro(normalizarDataAAAA_MM_DD(e.target.value))}
+              placeholder="AAAA-MM-DD"
             />
           </div>
         </div>
@@ -310,7 +348,7 @@ export default function RegistrosAnvisaPage() {
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          Os PDFs ficam salvos por empresa no Supabase Storage. Uma empresa não acessa arquivos da outra.
+          O vencimento será salvo sempre como <b>AAAA-MM-DD</b>. O campo Registro ANVISA aceita letras e números.
         </div>
 
         {erro && (
