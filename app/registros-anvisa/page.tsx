@@ -41,36 +41,51 @@ function normalizarDataAAAA_MM_DD(valor: string) {
 
   if (!texto) return "";
 
-  // Já está correto: AAAA-MM-DD
   if (/^\d{4}-\d{2}-\d{2}$/.test(texto)) {
     return texto;
   }
 
-  // Converte DD-MM-AAAA ou DD/MM/AAAA para AAAA-MM-DD
   const br = texto.match(/^(\d{2})[-/](\d{2})[-/](\d{4})$/);
   if (br) {
     return `${br[3]}-${br[2]}-${br[1]}`;
   }
 
-  // Converte AAAAMMDD para AAAA-MM-DD
   const compacto = texto.match(/^(\d{4})(\d{2})(\d{2})$/);
   if (compacto) {
     return `${compacto[1]}-${compacto[2]}-${compacto[3]}`;
   }
 
-  // Se não reconhecer, mantém o texto original para não apagar a informação.
   return texto;
+}
+
+function limparCampo(valor: string) {
+  return String(valor || "")
+    .replace(/-/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
 function parseNomeArquivo(fileName: string) {
   const semExtensao = fileName.replace(/\.pdf$/i, "");
-  const partes = semExtensao.split("_").map((p) => p.trim()).filter(Boolean);
+
+  const vencMatch = semExtensao.match(/(?:^|_)venc-([0-9]{4}-[0-9]{2}-[0-9]{2}|[0-9]{2}[-/][0-9]{2}[-/][0-9]{4}|[0-9]{8})(?:_|$)/i);
+  const regMatch = semExtensao.match(/(?:^|_)reg-([^_]+)(?:_|$)/i);
+
+  const vencimento_registro = vencMatch
+    ? normalizarDataAAAA_MM_DD(vencMatch[1])
+    : "";
+
+  const registro_anvisa = regMatch ? regMatch[1].trim() : "";
+
+  const antesDoVenc = semExtensao.split(/_venc-/i)[0] || semExtensao;
+  const partes = antesDoVenc.split("_").map((p) => p.trim()).filter(Boolean);
 
   return {
-    item: partes[0] || "",
-    apresentacao: partes[1] || "",
-    marca: partes[2] || "",
-    vencimento_registro: normalizarDataAAAA_MM_DD(partes[3] || ""),
+    item: limparCampo(partes[0] || ""),
+    apresentacao: limparCampo(partes[1] || ""),
+    marca: limparCampo(partes.slice(2).join(" ") || ""),
+    vencimento_registro,
+    registro_anvisa,
   };
 }
 
@@ -136,12 +151,11 @@ export default function RegistrosAnvisaPage() {
 
     const dados = parseNomeArquivo(file.name);
 
-    if (dados.item && !item) setItem(dados.item.replace(/-/g, " "));
-    if (dados.apresentacao && !apresentacao) setApresentacao(dados.apresentacao.replace(/-/g, " "));
-    if (dados.marca && !marca) setMarca(dados.marca.replace(/-/g, " "));
-    if (dados.vencimento_registro && !vencimentoRegistro) {
-      setVencimentoRegistro(dados.vencimento_registro);
-    }
+    if (dados.item) setItem(dados.item);
+    if (dados.apresentacao) setApresentacao(dados.apresentacao);
+    if (dados.marca) setMarca(dados.marca);
+    if (dados.vencimento_registro) setVencimentoRegistro(dados.vencimento_registro);
+    if (dados.registro_anvisa) setRegistroAnvisa(dados.registro_anvisa);
   }
 
   async function enviarPdf(file: File | null) {
@@ -173,9 +187,7 @@ export default function RegistrosAnvisaPage() {
       const vencimentoFinal = normalizarDataAAAA_MM_DD(
         (vencimentoRegistro || dadosArquivo.vencimento_registro || "").trim()
       );
-
-      // Registro ANVISA agora aceita letras, números, pontos, barras, hífens etc.
-      const registroFinal = registroAnvisa.trim();
+      const registroFinal = (registroAnvisa || dadosArquivo.registro_anvisa || "").trim();
 
       if (!itemFinal || !apresentacaoFinal || !marcaFinal || !vencimentoFinal) {
         setErro("Preencha item, apresentação, marca e vencimento do registro no formato AAAA-MM-DD.");
@@ -183,7 +195,7 @@ export default function RegistrosAnvisaPage() {
       }
 
       if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimentoFinal)) {
-        setErro("O vencimento do registro precisa estar no formato AAAA-MM-DD. Exemplo: 2029-06-01.");
+        setErro("O vencimento do registro precisa estar no formato AAAA-MM-DD. Exemplo: 2028-04-15.");
         return;
       }
 
@@ -191,7 +203,8 @@ export default function RegistrosAnvisaPage() {
         limparNomeArquivo(itemFinal),
         limparNomeArquivo(apresentacaoFinal),
         limparNomeArquivo(marcaFinal),
-        limparNomeArquivo(vencimentoFinal),
+        `venc-${vencimentoFinal}`,
+        registroFinal ? `reg-${limparNomeArquivo(registroFinal)}` : "reg-sem_registro",
       ].join("_");
 
       const path = `${userData.user.id}/${nomeSeguro}.pdf`;
@@ -268,7 +281,7 @@ export default function RegistrosAnvisaPage() {
         <h2 className="font-bold text-xl">Enviar PDF do registro</h2>
 
         <p className="text-sm text-slate-500 mt-1">
-          Padrão recomendado do arquivo: item_apresentacao_marca_2029-06-01.pdf
+          Padrão do arquivo: item_apresentacao_marca_venc-2028-04-15_reg-123456789.pdf
         </p>
 
         <div className="grid md:grid-cols-5 gap-4 mt-5">
@@ -310,7 +323,7 @@ export default function RegistrosAnvisaPage() {
               inputMode="text"
               value={registroAnvisa}
               onChange={(e) => setRegistroAnvisa(e.target.value)}
-              placeholder="Ex: MS-1.1343.0167 ou ABC123"
+              placeholder="Ex: 123456789 ou MS123ABC"
             />
           </div>
 
@@ -348,7 +361,7 @@ export default function RegistrosAnvisaPage() {
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          O vencimento será salvo sempre como <b>AAAA-MM-DD</b>. O campo Registro ANVISA aceita letras e números.
+          O sistema identifica automaticamente <b>venc-AAAA-MM-DD</b> e <b>reg-REGISTRO</b>. O registro aceita letras e números.
         </div>
 
         {erro && (
