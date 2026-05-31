@@ -1,10 +1,12 @@
-Atualização Banco de Preços
+Atualização Licitações
 
 Substitua:
-app/banco-precos/page.tsx
+app/licitacoes/page.tsx
 
-Melhorias:
-- Vínculo automático ANVISA mais inteligente usando descrição, apresentação, marca e número do registro.
-- Opção manual para selecionar o registro ANVISA em cada produto.
-- Botão "Tentar automático" por produto.
-- Ao vincular, atualiza registro_anvisa, vencimento_registro e pdf_url.
+Mudanças:
+- Resultado em lista compacta, não grade.
+- Sem tabela larga com scrollbar horizontal.
+- Fonte reduzida.
+- Opção para selecionar manualmente o produto do banco em cada item.
+- Status Manual quando o usuário selecionar o produto.
+- Itens escolhidos manualmente entram na planilha e no ZIP.
