@@ -1,8 +1,8 @@
 Substitua:
 app/banco-precos/page.tsx
 
-Correção:
-- Vínculo automático com registro ANVISA ficou mais rígido.
-- Se a planilha trouxer número de registro, só vincula se for exatamente igual.
-- Se a planilha não trouxer registro, só vincula quando marca for igual e descrição/apresentação forem muito compatíveis.
-- Caso contrário, o produto fica sem PDF para você vincular manualmente.
+Novidades:
+- Botão "Atualizar vínculos" no topo do Banco de Preços.
+- Ele recalcula todos os vínculos de registros ANVISA de uma vez.
+- Se não encontrar vínculo seguro, limpa registro/vencimento/PDF para evitar vínculo errado.
+- Botão "Desvincular" em cada item para remover registro/PDF manualmente.

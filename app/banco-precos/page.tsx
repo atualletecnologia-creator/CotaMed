@@ -71,14 +71,10 @@ function dinheiro(valor?: number | null) {
 }
 
 function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
+  let score = 0;
   const produtoRegistro = textoBusca(produto.registro_anvisa);
   const registroNumero = textoBusca(registro.registro_anvisa);
-
-  // Se a planilha trouxe o número do registro, só aceita vínculo automático
-  // quando o registro for exatamente igual. Isso evita puxar PDF errado.
-  if (produtoRegistro) {
-    return registroNumero && produtoRegistro === registroNumero ? 100 : 0;
-  }
+  if (produtoRegistro && registroNumero && produtoRegistro === registroNumero) score += 100;
 
   const descProduto = normalizarTexto(produto.descricao);
   const descRegistro = normalizarTexto(registro.item);
@@ -87,35 +83,19 @@ function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
   const apresentacaoProduto = textoBusca(produto.apresentacao);
   const apresentacaoRegistro = textoBusca(registro.apresentacao);
 
-  // Sem marca igual não faz vínculo automático.
-  // Quando não tiver marca, o usuário seleciona manualmente.
-  if (!marcaProduto || !marcaRegistro || marcaProduto !== marcaRegistro) {
-    return 0;
-  }
-
-  let score = 45; // marca igual
-
-  if (apresentacaoProduto && apresentacaoRegistro && apresentacaoProduto === apresentacaoRegistro) {
-    score += 20;
-  }
+  if (marcaProduto && marcaRegistro && marcaProduto === marcaRegistro) score += 25;
+  if (apresentacaoProduto && apresentacaoRegistro && apresentacaoProduto === apresentacaoRegistro) score += 20;
 
   if (descProduto && descRegistro) {
     if (descProduto === descRegistro) score += 50;
-    else if (descProduto.includes(descRegistro) || descRegistro.includes(descProduto)) score += 30;
-
+    if (descProduto.includes(descRegistro) || descRegistro.includes(descProduto)) score += 30;
     const tProduto = tokens(descProduto);
     const tRegistro = tokens(descRegistro);
     let iguais = 0;
-
     tProduto.forEach((t) => {
-      if (tRegistro.includes(t) || tRegistro.some((r) => r.includes(t) || t.includes(r))) {
-        iguais++;
-      }
+      if (tRegistro.includes(t) || tRegistro.some((r) => r.includes(t) || t.includes(r))) iguais++;
     });
-
-    if (tProduto.length) {
-      score += Math.round((iguais / tProduto.length) * 40);
-    }
+    if (tProduto.length) score += Math.round((iguais / tProduto.length) * 40);
   }
 
   return score;
@@ -124,16 +104,13 @@ function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
 function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: RegistroAnvisa[]) {
   const candidatos = registros
     .map((registro) => ({ registro, score: scoreRegistro(produto, registro) }))
-    // Agora ficou mais rígido: só vincula automaticamente com score alto.
-    // Caso contrário, fica sem PDF para selecionar manualmente.
-    .filter((c) => c.score >= 90)
+    .filter((c) => c.score >= 45)
     .sort((a, b) => b.score - a.score);
-
   return candidatos[0]?.registro || null;
 }
 
 function labelRegistro(registro: RegistroAnvisa) {
-  return maiusculo([registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | "));
+  return [registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | ");
 }
 
 export default function BancoPrecos() {
@@ -147,6 +124,8 @@ export default function BancoPrecos() {
   const [carregando, setCarregando] = useState(true);
   const [vinculando, setVinculando] = useState("");
   const [excluindo, setExcluindo] = useState("");
+  const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
+  const [desvinculando, setDesvinculando] = useState("");
 
   useEffect(() => {
     carregarDados();
@@ -332,6 +311,98 @@ export default function BancoPrecos() {
     await vincularRegistroManual(produto, registro.id);
   }
 
+  async function atualizarTodosVinculos() {
+    try {
+      setErro("");
+      setMensagem("");
+
+      const confirmar = window.confirm(
+        "Atualizar todos os vínculos de registros ANVISA? Produtos sem vínculo seguro ficarão sem PDF para seleção manual."
+      );
+
+      if (!confirmar) return;
+
+      setAtualizandoVinculos(true);
+
+      let vinculados = 0;
+      let desvinculados = 0;
+      let erros = 0;
+
+      for (const produto of produtos) {
+        if (!produto.id) continue;
+
+        const registro = encontrarRegistroAutomatico(produto, registros);
+
+        const atualizacao = registro
+          ? {
+              registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
+              vencimento_registro: registro.vencimento_registro,
+              pdf_url: registro.pdf_path,
+            }
+          : {
+              registro_anvisa: null,
+              vencimento_registro: null,
+              pdf_url: null,
+            };
+
+        const { error } = await supabase
+          .from("produtos")
+          .update(atualizacao)
+          .eq("id", produto.id);
+
+        if (error) {
+          erros++;
+          continue;
+        }
+
+        if (registro) vinculados++;
+        else desvinculados++;
+      }
+
+      setMensagem(
+        `Vínculos atualizados. ${vinculados} produtos vinculados automaticamente. ${desvinculados} ficaram sem vínculo seguro. ${erros} erros.`
+      );
+
+      await carregarDados();
+    } finally {
+      setAtualizandoVinculos(false);
+    }
+  }
+
+  async function desvincularRegistroProduto(produto: Produto) {
+    try {
+      setErro("");
+      setMensagem("");
+
+      if (!produto.id) return;
+
+      const confirmar = window.confirm(`Desvincular registro ANVISA de ${produto.descricao || "produto"}?`);
+
+      if (!confirmar) return;
+
+      setDesvinculando(produto.id);
+
+      const { error } = await supabase
+        .from("produtos")
+        .update({
+          registro_anvisa: null,
+          vencimento_registro: null,
+          pdf_url: null,
+        })
+        .eq("id", produto.id);
+
+      if (error) {
+        setErro(error.message);
+        return;
+      }
+
+      setMensagem("Registro desvinculado do produto com sucesso.");
+      await carregarDados();
+    } finally {
+      setDesvinculando("");
+    }
+  }
+
   async function excluirProduto(produto: Produto) {
     try {
       setErro("");
@@ -371,7 +442,20 @@ export default function BancoPrecos() {
           <p className="text-slate-500">Banco de produtos com vínculo automático ou manual dos registros ANVISA.</p>
         </div>
 
-        <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">Baixar planilha modelo</a>
+        <div className="flex flex-col md:flex-row gap-3">
+          <button
+            type="button"
+            disabled={atualizandoVinculos || carregando}
+            onClick={atualizarTodosVinculos}
+            className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
+          >
+            {atualizandoVinculos ? "Atualizando vínculos..." : "Atualizar vínculos"}
+          </button>
+
+          <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">
+            Baixar planilha modelo
+          </a>
+        </div>
       </div>
 
       <section className="card p-6 mt-6">
@@ -382,7 +466,7 @@ export default function BancoPrecos() {
           <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. O vínculo automático agora só acontece com registro exato ou marca + descrição muito compatíveis.</div>
+        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. Use <b>Atualizar vínculos</b> para recalcular todos os registros de uma vez.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
@@ -428,6 +512,7 @@ export default function BancoPrecos() {
                   <th className="text-left p-3">Registro ANVISA</th>
                   <th className="text-left p-3">Vencimento</th>
                   <th className="text-left p-3">PDF</th>
+                  <th className="text-left p-3">Desvincular</th>
                   <th className="text-left p-3">Qtd/Caixa</th>
                   <th className="text-left p-3">Custo Unit.</th>
                   <th className="text-left p-3">Custo Caixa</th>
@@ -445,6 +530,19 @@ export default function BancoPrecos() {
                     <td className="p-3">{p.registro_anvisa || "Não vinculado"}</td>
                     <td className="p-3">{p.vencimento_registro || "-"}</td>
                     <td className="p-3">{p.pdf_url ? <button onClick={() => abrirPdf(p.pdf_url)} className="text-cotamed-700 underline">Abrir PDF</button> : <span className="text-red-600 font-medium">Sem PDF</span>}</td>
+                    <td className="p-3">
+                      {(p.registro_anvisa || p.pdf_url) ? (
+                        <button
+                          disabled={desvinculando === p.id}
+                          onClick={() => desvincularRegistroProduto(p)}
+                          className="rounded-lg border px-3 py-2 text-yellow-700 hover:bg-yellow-50 disabled:opacity-60"
+                        >
+                          {desvinculando === p.id ? "Desvinculando..." : "Desvincular"}
+                        </button>
+                      ) : (
+                        <span className="text-slate-400">-</span>
+                      )}
+                    </td>
                     <td className="p-3">{p.quantidade_por_caixa || "-"}</td>
                     <td className="p-3">{dinheiro(p.custo_unitario)}</td>
                     <td className="p-3">{dinheiro(p.custo_caixa)}</td>
