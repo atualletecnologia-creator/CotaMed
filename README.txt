@@ -1,17 +1,9 @@
-Adicionar rodapé Atualle Tecnologia
+Substitua:
+app/licitacoes/page.tsx
 
-1. Adicione o arquivo:
-components/Footer.tsx
-
-2. Depois abra:
-app/layout.tsx
-
-3. Importe:
-import { Footer } from "@/components/Footer";
-
-4. Coloque antes do </body>:
-
-<Footer />
-
-5. Rode:
-npm run dev
+Correções:
+- Remove travamento ao não renderizar todos os produtos em todas as linhas.
+- Adiciona busca por produto dentro de cada item.
+- Usa Map para encontrar produto manual rapidamente.
+- Mantém textos em maiúsculo na licitação e exportação.
+- Inclui SQL para atualizar produtos/registros já cadastrados para maiúsculo.

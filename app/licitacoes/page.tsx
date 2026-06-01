@@ -104,14 +104,33 @@ function itemPodeCotar(item: ItemLicitacao) {
 }
 
 function labelProduto(produto: Produto) {
-  return [
+  return maiusculo([
     produto.descricao,
     produto.apresentacao,
     produto.marca,
     produto.registro_anvisa ? `REG ${produto.registro_anvisa}` : "",
     produto.custo_unitario ? `UNIT ${dinheiro(produto.custo_unitario)}` : "",
     produto.custo_caixa ? `CX ${dinheiro(produto.custo_caixa)}` : "",
-  ].filter(Boolean).join(" | ");
+  ].filter(Boolean).join(" | "));
+}
+
+function textoProdutoBusca(produto: Produto) {
+  return maiusculo([
+    produto.descricao,
+    produto.apresentacao,
+    produto.marca,
+    produto.registro_anvisa,
+  ].filter(Boolean).join(" "));
+}
+
+function filtrarProdutosParaItem(produtos: Produto[], busca: string) {
+  const termo = maiusculo(busca);
+
+  if (!termo) return produtos.slice(0, 30);
+
+  return produtos
+    .filter((produto) => textoProdutoBusca(produto).includes(termo))
+    .slice(0, 30);
 }
 
 function custoPorTipo(produto: Produto, tipoPreco: TipoPreco) {
@@ -162,8 +181,8 @@ function montarItemCotado(params: {
     quantidade,
     unidade,
     produto_id: produto.id || null,
-    marca: produto.marca,
-    registro_anvisa: produto.registro_anvisa,
+    marca: maiusculo(produto.marca),
+    registro_anvisa: maiusculo(produto.registro_anvisa),
     vencimento_registro: produto.vencimento_registro,
     custo_usado: custo || null,
     tipo_preco: tipoPreco,
@@ -191,6 +210,8 @@ export default function Licitacoes() {
   const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<TipoPreco>("unitario");
   const [usarIa, setUsarIa] = useState(false);
   const [produtosBanco, setProdutosBanco] = useState<Produto[]>([]);
+  const produtosMap = useMemo(() => new Map(produtosBanco.map((p) => [p.id, p])), [produtosBanco]);
+  const [buscaProdutoPorItem, setBuscaProdutoPorItem] = useState<Record<string, string>>({});
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [erro, setErro] = useState("");
@@ -254,7 +275,7 @@ export default function Licitacoes() {
 
   function selecionarProdutoManual(numeroItem: string, produtoId: string) {
     if (!produtoId) return;
-    const produto = produtosBanco.find((p) => p.id === produtoId);
+    const produto = produtosMap.get(produtoId);
     if (!produto) return;
 
     setItens((atuais) =>
@@ -266,7 +287,7 @@ export default function Licitacoes() {
     setItens((atuais) =>
       atuais.map((item) => {
         if (item.numero_item !== numeroItem) return item;
-        const produto = produtosBanco.find((p) => p.id === item.produto_id);
+        const produto = produtosMap.get(item.produto_id);
         if (!produto) return { ...item, tipo_preco: tipoPreco };
         return recalcularItem(item, produto, tipoPreco, item.status);
       })
@@ -312,6 +333,7 @@ export default function Licitacoes() {
       setErro("");
       setMensagem("");
       setItens([]);
+      setBuscaProdutoPorItem({});
       setFiltro("todos");
 
       if (!file) return;
@@ -326,7 +348,13 @@ export default function Licitacoes() {
         return;
       }
 
-      const produtosValidos = (produtos || []) as Produto[];
+      const produtosValidos = ((produtos || []) as Produto[]).map((produto) => ({
+        ...produto,
+        descricao: maiusculo(produto.descricao),
+        apresentacao: maiusculo(produto.apresentacao),
+        marca: maiusculo(produto.marca),
+        registro_anvisa: maiusculo(produto.registro_anvisa),
+      }));
       setProdutosBanco(produtosValidos);
 
       const buffer = await file.arrayBuffer();
@@ -405,12 +433,12 @@ export default function Licitacoes() {
       const cotar = itemPodeCotar(item);
       return {
         ITEM: item.numero_item,
-        "DESCRIÇÃO DOS PRODUTOS": item.descricao,
-        UNID: item.unidade,
+        "DESCRIÇÃO DOS PRODUTOS": maiusculo(item.descricao),
+        UNID: maiusculo(item.unidade),
         QUANT: item.quantidade,
         "TIPO PREÇO": cotar ? (item.tipo_preco === "caixa" ? "CAIXA" : "UNITÁRIO") : "",
-        REGISTRO: cotar ? item.registro_anvisa || "" : "",
-        MARCA: cotar ? item.marca || "" : "",
+        REGISTRO: cotar ? maiusculo(item.registro_anvisa) || "" : "",
+        MARCA: cotar ? maiusculo(item.marca) || "" : "",
         CUSTO: cotar ? item.custo_usado || "" : "",
         "VL. UNIT": cotar ? item.valor_unitario || "" : "",
         "VL. TOTAL": cotar ? item.valor_total || "" : "",
@@ -556,9 +584,30 @@ export default function Licitacoes() {
 
                       <div className="min-w-[260px] flex-1">
                         <Campo label="Descrição" value={item.descricao} />
-                        <select className="input mt-2 text-[11px] h-8 py-1" value={item.produto_id || ""} onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}>
-                          <option value="">Selecionar produto manualmente...</option>
-                          {produtosBanco.map((p) => (<option key={p.id} value={p.id}>{labelProduto(p)}</option>))}
+                        <input
+                          className="input mt-2 text-[11px] h-8 py-1"
+                          placeholder="DIGITE PARA BUSCAR NO BANCO..."
+                          value={buscaProdutoPorItem[item.numero_item] || ""}
+                          onChange={(e) =>
+                            setBuscaProdutoPorItem((atual) => ({
+                              ...atual,
+                              [item.numero_item]: e.target.value.toUpperCase(),
+                            }))
+                          }
+                        />
+
+                        <select
+                          className="input mt-2 text-[11px] h-8 py-1"
+                          value={item.produto_id || ""}
+                          onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
+                        >
+                          <option value="">Selecionar produto...</option>
+                          {filtrarProdutosParaItem(
+                            produtosBanco,
+                            buscaProdutoPorItem[item.numero_item] || item.descricao
+                          ).map((p) => (
+                            <option key={p.id} value={p.id}>{labelProduto(p)}</option>
+                          ))}
                         </select>
                       </div>
 
