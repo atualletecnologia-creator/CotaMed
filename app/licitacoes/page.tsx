@@ -123,19 +123,89 @@ function textoProdutoBusca(produto: Produto) {
   ].filter(Boolean).join(" "));
 }
 
-function filtrarProdutosParaItem(produtos: Produto[], busca: string) {
+function filtrarProdutosParaBusca(produtos: Produto[], busca: string) {
   const termo = maiusculo(busca);
 
-  if (!termo) return produtos.slice(0, 30);
+  if (!termo) return produtos.slice(0, 20);
 
   return produtos
     .filter((produto) => textoProdutoBusca(produto).includes(termo))
-    .slice(0, 30);
+    .slice(0, 20);
 }
 
 function custoPorTipo(produto: Produto, tipoPreco: TipoPreco) {
   if (tipoPreco === "caixa") return produto.custo_caixa || produto.custo_unitario || 0;
   return produto.custo_unitario || produto.custo_caixa || 0;
+}
+
+function detectarTipoPrecoAutomatico(descricao: string, unidade: string): TipoPreco {
+  const desc = maiusculo(descricao)
+    .replace(/[()\[\].,;:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const unid = maiusculo(unidade)
+    .replace(/[()\[\].,;:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Quando a descrição informa conteúdo de embalagem, normalmente a cotação é por caixa/pacote.
+  // Exemplos: DIPIRONA C/100, DIPIRONA C 100, DIPIRONA COM 100 COMP, CX 50, CAIXA 100.
+  const indicaCaixaNaDescricao =
+    /\bC\s*\/\s*\d+\b/.test(desc) ||
+    /\bC\s+\d+\b/.test(desc) ||
+    /\bCOM\s+\d+\b/.test(desc) ||
+    /\bCX\s*\d+\b/.test(desc) ||
+    /\bCAIXA\s*\d+\b/.test(desc) ||
+    /\bC\/\s*\d+/.test(desc) ||
+    /\b\d+\s*(UN|UND|UNID|UNIDADE|COMP|COMPR|COMPRIMIDOS|CAP|CAPS|AMP|AMPOLA|ML)\b/.test(desc);
+
+  const indicaCaixaNaUnidade =
+    /\b(CX|CAIXA|PCT|PACOTE|EMBALAGEM|FRASCO\s*C|CARTELA)\b/.test(unid);
+
+  const indicaUnidadeNaUnidade =
+    /\b(UN|UND|UNID|UNIDADE|AMP|AMPOLA|FR|FRASCO|COMP|COMPRIMIDO|CAP|CAPSULA|ML|L)\b/.test(unid);
+
+  if (indicaCaixaNaDescricao || indicaCaixaNaUnidade) return "caixa";
+
+  if (indicaUnidadeNaUnidade) return "unitario";
+
+  return "unitario";
+}
+
+function resolverTipoPrecoPadrao(tipoPadrao: TipoPreco | "auto", descricao: string, unidade: string): TipoPreco {
+  if (tipoPadrao === "auto") return detectarTipoPrecoAutomatico(descricao, unidade);
+  return tipoPadrao;
+}
+
+function explicarTipoPreco(descricao: string, unidade: string, tipoPreco: TipoPreco) {
+  const automatico = detectarTipoPrecoAutomatico(descricao, unidade);
+
+  if (automatico === tipoPreco) {
+    return tipoPreco === "caixa" ? "AUTO: CAIXA" : "AUTO: UNITÁRIO";
+  }
+
+  return tipoPreco === "caixa" ? "MANUAL: CAIXA" : "MANUAL: UNITÁRIO";
+}
+
+function encontrarProdutoMenorCusto(
+  descricao: string,
+  produtos: Produto[],
+  tipoPreco: TipoPreco
+) {
+  const candidatos = encontrarCandidatos(descricao, produtos, 30)
+    .filter((candidato) => classificarConfianca(candidato.score) !== "baixo")
+    .map((candidato) => ({
+      ...candidato,
+      custo: custoPorTipo(candidato.produto, tipoPreco),
+    }))
+    .filter((candidato) => candidato.custo > 0)
+    .sort((a, b) => {
+      if (a.custo !== b.custo) return a.custo - b.custo;
+      return b.score - a.score;
+    });
+
+  return candidatos[0] || null;
 }
 
 function montarItemCotado(params: {
@@ -207,11 +277,12 @@ function Campo({ label, value }: { label: string; value: React.ReactNode }) {
 
 export default function Licitacoes() {
   const [margem, setMargem] = useState("30");
-  const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<TipoPreco>("unitario");
+  const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<TipoPreco | "auto">("auto");
   const [usarIa, setUsarIa] = useState(false);
   const [produtosBanco, setProdutosBanco] = useState<Produto[]>([]);
   const produtosMap = useMemo(() => new Map(produtosBanco.map((p) => [p.id, p])), [produtosBanco]);
-  const [buscaProdutoPorItem, setBuscaProdutoPorItem] = useState<Record<string, string>>({});
+  const [itemSelecionando, setItemSelecionando] = useState("");
+  const [buscaProdutoManual, setBuscaProdutoManual] = useState("");
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [erro, setErro] = useState("");
@@ -279,8 +350,11 @@ export default function Licitacoes() {
     if (!produto) return;
 
     setItens((atuais) =>
-      atuais.map((item) => item.numero_item === numeroItem ? recalcularItem(item, produto, item.tipo_preco || tipoPrecoPadrao, "Manual") : item)
+      atuais.map((item) => item.numero_item === numeroItem ? recalcularItem(item, produto, item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade), "Manual") : item)
     );
+
+    setItemSelecionando("");
+    setBuscaProdutoManual("");
   }
 
   function alterarTipoPrecoItem(numeroItem: string, tipoPreco: TipoPreco) {
@@ -333,7 +407,8 @@ export default function Licitacoes() {
       setErro("");
       setMensagem("");
       setItens([]);
-      setBuscaProdutoPorItem({});
+      setItemSelecionando("");
+      setBuscaProdutoManual("");
       setFiltro("todos");
 
       if (!file) return;
@@ -392,10 +467,16 @@ export default function Licitacoes() {
         const quantidade = numero(linha.quantidade || linha.quant || linha.qtd) || 1;
         const unidade = maiusculo(linha.unidade || linha.unid || linha.und || "UNIDADE");
 
-        const melhor = encontrarMelhorProduto(descricao, produtosValidos);
+        const tipoPrecoItem = resolverTipoPrecoPadrao(tipoPrecoPadrao, descricao, unidade);
+
+        // Busca todos os produtos compatíveis e escolhe o de menor custo.
+        // Assim, se o mesmo item existir em várias marcas, o sistema cota a marca mais barata.
+        const melhorMenorCusto = encontrarProdutoMenorCusto(descricao, produtosValidos, tipoPrecoItem);
+        const melhor = melhorMenorCusto || encontrarMelhorProduto(descricao, produtosValidos);
+
         let produto = melhor?.produto || null;
         let score = melhor?.score || 0;
-        let origem = "busca_local";
+        let origem = melhorMenorCusto ? "menor_custo" : "busca_local";
 
         if (usarIa && score < 70 && produtosValidos.length) {
           const ia = await buscarComIa(descricao, produtosValidos);
@@ -407,12 +488,22 @@ export default function Licitacoes() {
         }
 
         itensCotados.push(
-          montarItemCotado({ index, descricao, quantidade, unidade, produto, margem: margemNumero, confianca: score, origemMatch: origem, tipoPreco: tipoPrecoPadrao })
+          montarItemCotado({
+            index,
+            descricao,
+            quantidade,
+            unidade,
+            produto,
+            margem: margemNumero,
+            confianca: score,
+            origemMatch: origem,
+            tipoPreco: tipoPrecoItem,
+          })
         );
       }
 
       setItens(itensCotados);
-      setMensagem(`${itensCotados.length} itens processados. Você pode escolher UNITÁRIO ou CAIXA por item.`);
+      setMensagem(`${itensCotados.length} itens processados. O sistema identificou UNITÁRIO ou CAIXA e escolheu a marca de menor custo quando havia mais de uma opção. Você pode ajustar manualmente quando precisar.`);
     } finally {
       setProcessando(false);
     }
@@ -487,7 +578,7 @@ export default function Licitacoes() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Licitações</h1>
-          <p className="text-slate-500">Resultado em lista compacta, com seleção manual e escolha de preço por item.</p>
+          <p className="text-slate-500">Resultado em lista compacta, com seleção manual e identificação automática de caixa ou unidade.</p>
         </div>
 
         <a href="/modelos/modelo-licitacao-cotamed.xlsx" download className="btn-primary text-center">
@@ -506,9 +597,10 @@ export default function Licitacoes() {
 
           <div>
             <label className="text-sm font-medium">Tipo de preço padrão</label>
-            <select className="input mt-2" value={tipoPrecoPadrao} onChange={(e) => setTipoPrecoPadrao(e.target.value as TipoPreco)}>
-              <option value="unitario">Preço unitário</option>
-              <option value="caixa">Preço por caixa</option>
+            <select className="input mt-2" value={tipoPrecoPadrao} onChange={(e) => setTipoPrecoPadrao(e.target.value as TipoPreco | "auto")}>
+              <option value="auto">Automático por item</option>
+              <option value="unitario">Forçar preço unitário</option>
+              <option value="caixa">Forçar preço por caixa</option>
             </select>
           </div>
 
@@ -527,7 +619,7 @@ export default function Licitacoes() {
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          Todos os textos cadastrados/exportados ficam em maiúsculo. Você pode alterar cada item entre <b>Unitário</b> e <b>Caixa</b>.
+          O sistema identifica automaticamente <b>CAIXA</b> ou <b>UNITÁRIO</b> e, quando houver o mesmo item em várias marcas, escolhe automaticamente a <b>marca com menor custo</b>. Você ainda pode alterar item por item.
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
@@ -584,42 +676,67 @@ export default function Licitacoes() {
 
                       <div className="min-w-[260px] flex-1">
                         <Campo label="Descrição" value={item.descricao} />
-                        <input
-                          className="input mt-2 text-[11px] h-8 py-1"
-                          placeholder="DIGITE PARA BUSCAR NO BANCO..."
-                          value={buscaProdutoPorItem[item.numero_item] || ""}
-                          onChange={(e) =>
-                            setBuscaProdutoPorItem((atual) => ({
-                              ...atual,
-                              [item.numero_item]: e.target.value.toUpperCase(),
-                            }))
-                          }
-                        />
-
-                        <select
-                          className="input mt-2 text-[11px] h-8 py-1"
-                          value={item.produto_id || ""}
-                          onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
+                        <button
+                          type="button"
+                          className="mt-2 rounded-lg border border-blue-200 px-3 py-2 text-[11px] text-cotamed-700 hover:bg-blue-50"
+                          onClick={() => {
+                            setItemSelecionando(itemSelecionando === item.numero_item ? "" : item.numero_item);
+                            setBuscaProdutoManual("");
+                          }}
                         >
-                          <option value="">Selecionar produto...</option>
-                          {filtrarProdutosParaItem(
-                            produtosBanco,
-                            buscaProdutoPorItem[item.numero_item] || item.descricao
-                          ).map((p) => (
-                            <option key={p.id} value={p.id}>{labelProduto(p)}</option>
-                          ))}
-                        </select>
+                          {itemSelecionando === item.numero_item ? "Fechar seleção" : "Selecionar produto"}
+                        </button>
+
+                        {itemSelecionando === item.numero_item && (
+                          <div className="mt-2 rounded-xl border bg-blue-50 p-3">
+                            <input
+                              className="input text-[11px] h-8 py-1"
+                              placeholder="DIGITE PARA BUSCAR NO BANCO..."
+                              value={buscaProdutoManual}
+                              onChange={(e) => setBuscaProdutoManual(e.target.value.toUpperCase())}
+                              autoFocus
+                            />
+
+                            <div className="mt-2 max-h-52 overflow-y-auto space-y-1">
+                              {filtrarProdutosParaBusca(
+                                produtosBanco,
+                                buscaProdutoManual || item.descricao
+                              ).map((p) => (
+                                <button
+                                  key={p.id}
+                                  type="button"
+                                  onClick={() => selecionarProdutoManual(item.numero_item, String(p.id))}
+                                  className="block w-full rounded-lg bg-white px-3 py-2 text-left text-[11px] hover:bg-blue-100"
+                                >
+                                  {labelProduto(p)}
+                                </button>
+                              ))}
+
+                              {filtrarProdutosParaBusca(
+                                produtosBanco,
+                                buscaProdutoManual || item.descricao
+                              ).length === 0 && (
+                                <p className="text-[11px] text-slate-500">
+                                  Nenhum produto encontrado.
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        )}
                       </div>
 
                       <div className="w-16"><Campo label="Qtd" value={item.quantidade} /></div>
                       <div className="w-16"><Campo label="Unid" value={item.unidade} /></div>
 
-                      <div className="w-24">
+                      <div className="w-28">
                         <p className="text-[10px] text-slate-500">Tipo preço</p>
-                        <select className="input text-[11px] h-8 py-1" value={item.tipo_preco || tipoPrecoPadrao} onChange={(e) => alterarTipoPrecoItem(item.numero_item, e.target.value as TipoPreco)}>
+                        <select className="input text-[11px] h-8 py-1" value={item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)} onChange={(e) => alterarTipoPrecoItem(item.numero_item, e.target.value as TipoPreco)}>
                           <option value="unitario">Unit.</option>
                           <option value="caixa">Caixa</option>
                         </select>
+                        <p className="mt-1 text-[9px] text-slate-500">
+                          {explicarTipoPreco(item.descricao, item.unidade, item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade))}
+                        </p>
                       </div>
 
                       <div className="w-28"><Campo label="Marca" value={preencher ? item.marca || "-" : "-"} /></div>

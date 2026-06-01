@@ -1,8 +1,10 @@
 Substitua:
-app/banco-precos/page.tsx
+app/licitacoes/page.tsx
 
-Novidades:
-- Botão "Atualizar vínculos" no topo do Banco de Preços.
-- Ele recalcula todos os vínculos de registros ANVISA de uma vez.
-- Se não encontrar vínculo seguro, limpa registro/vencimento/PDF para evitar vínculo errado.
-- Botão "Desvincular" em cada item para remover registro/PDF manualmente.
+Melhorias:
+- Identifica automaticamente CAIXA ou UNITÁRIO.
+- Se o mesmo item existir em várias marcas no banco, escolhe a marca com menor custo.
+- O menor custo respeita o tipo de preço detectado:
+  - Se for CAIXA, compara custo_caixa.
+  - Se for UNITÁRIO, compara custo_unitario.
+- Mantém a seleção manual por item.
