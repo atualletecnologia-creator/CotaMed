@@ -71,10 +71,14 @@ function dinheiro(valor?: number | null) {
 }
 
 function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
-  let score = 0;
   const produtoRegistro = textoBusca(produto.registro_anvisa);
   const registroNumero = textoBusca(registro.registro_anvisa);
-  if (produtoRegistro && registroNumero && produtoRegistro === registroNumero) score += 100;
+
+  // Se a planilha trouxe o número do registro, só aceita vínculo automático
+  // quando o registro for exatamente igual. Isso evita puxar PDF errado.
+  if (produtoRegistro) {
+    return registroNumero && produtoRegistro === registroNumero ? 100 : 0;
+  }
 
   const descProduto = normalizarTexto(produto.descricao);
   const descRegistro = normalizarTexto(registro.item);
@@ -83,19 +87,35 @@ function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
   const apresentacaoProduto = textoBusca(produto.apresentacao);
   const apresentacaoRegistro = textoBusca(registro.apresentacao);
 
-  if (marcaProduto && marcaRegistro && marcaProduto === marcaRegistro) score += 25;
-  if (apresentacaoProduto && apresentacaoRegistro && apresentacaoProduto === apresentacaoRegistro) score += 20;
+  // Sem marca igual não faz vínculo automático.
+  // Quando não tiver marca, o usuário seleciona manualmente.
+  if (!marcaProduto || !marcaRegistro || marcaProduto !== marcaRegistro) {
+    return 0;
+  }
+
+  let score = 45; // marca igual
+
+  if (apresentacaoProduto && apresentacaoRegistro && apresentacaoProduto === apresentacaoRegistro) {
+    score += 20;
+  }
 
   if (descProduto && descRegistro) {
     if (descProduto === descRegistro) score += 50;
-    if (descProduto.includes(descRegistro) || descRegistro.includes(descProduto)) score += 30;
+    else if (descProduto.includes(descRegistro) || descRegistro.includes(descProduto)) score += 30;
+
     const tProduto = tokens(descProduto);
     const tRegistro = tokens(descRegistro);
     let iguais = 0;
+
     tProduto.forEach((t) => {
-      if (tRegistro.includes(t) || tRegistro.some((r) => r.includes(t) || t.includes(r))) iguais++;
+      if (tRegistro.includes(t) || tRegistro.some((r) => r.includes(t) || t.includes(r))) {
+        iguais++;
+      }
     });
-    if (tProduto.length) score += Math.round((iguais / tProduto.length) * 40);
+
+    if (tProduto.length) {
+      score += Math.round((iguais / tProduto.length) * 40);
+    }
   }
 
   return score;
@@ -104,13 +124,16 @@ function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
 function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: RegistroAnvisa[]) {
   const candidatos = registros
     .map((registro) => ({ registro, score: scoreRegistro(produto, registro) }))
-    .filter((c) => c.score >= 45)
+    // Agora ficou mais rígido: só vincula automaticamente com score alto.
+    // Caso contrário, fica sem PDF para selecionar manualmente.
+    .filter((c) => c.score >= 90)
     .sort((a, b) => b.score - a.score);
+
   return candidatos[0]?.registro || null;
 }
 
 function labelRegistro(registro: RegistroAnvisa) {
-  return [registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | ");
+  return maiusculo([registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | "));
 }
 
 export default function BancoPrecos() {
@@ -359,7 +382,7 @@ export default function BancoPrecos() {
           <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>.</div>
+        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. O vínculo automático agora só acontece com registro exato ou marca + descrição muito compatíveis.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}

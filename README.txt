@@ -1,9 +1,8 @@
 Substitua:
-app/licitacoes/page.tsx
+app/banco-precos/page.tsx
 
-Correções:
-- Remove travamento ao não renderizar todos os produtos em todas as linhas.
-- Adiciona busca por produto dentro de cada item.
-- Usa Map para encontrar produto manual rapidamente.
-- Mantém textos em maiúsculo na licitação e exportação.
-- Inclui SQL para atualizar produtos/registros já cadastrados para maiúsculo.
+Correção:
+- Vínculo automático com registro ANVISA ficou mais rígido.
+- Se a planilha trouxer número de registro, só vincula se for exatamente igual.
+- Se a planilha não trouxer registro, só vincula quando marca for igual e descrição/apresentação forem muito compatíveis.
+- Caso contrário, o produto fica sem PDF para você vincular manualmente.
