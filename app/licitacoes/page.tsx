@@ -168,6 +168,69 @@ function explicarTipoPreco(descricao: string, unidade: string, tipoPreco: TipoPr
   return tipoPreco === "caixa" ? "MANUAL: CAIXA" : "MANUAL: UNITÁRIO";
 }
 
+
+function montarItemCotado(params: {
+  index: number;
+  descricao: string;
+  quantidade: number;
+  unidade: string;
+  produto: Produto | null;
+  margem: number;
+  confianca?: number;
+  origemMatch?: string;
+  tipoPreco: TipoPreco;
+}) {
+  const { index, descricao, quantidade, unidade, produto, margem, confianca, origemMatch, tipoPreco } = params;
+
+  if (!produto) {
+    return {
+      numero_item: String(index + 1).padStart(3, "0"),
+      descricao,
+      quantidade,
+      unidade,
+      status: "Produto não encontrado",
+      confianca: 0,
+      origem_match: "sem_match",
+      tipo_preco: tipoPreco,
+      excluido: false,
+    };
+  }
+
+  const score = confianca || 0;
+  const custo = custoPorTipo(produto, tipoPreco);
+  const valorUnitario = custo > 0 ? custo * (1 + margem / 100) : null;
+  const valorTotal = valorUnitario ? valorUnitario * quantidade : null;
+  const nivel = classificarConfianca(score);
+
+  let status = "Produto não encontrado";
+
+  if (nivel === "alto" && custo > 0) {
+    status = "Encontrado";
+  } else if (nivel === "medio" && custo > 0) {
+    status = "Conferir match";
+  }
+
+  return {
+    numero_item: String(index + 1).padStart(3, "0"),
+    descricao,
+    quantidade,
+    unidade,
+    produto_id: produto.id || null,
+    marca: maiusculo(produto.marca),
+    registro_anvisa: maiusculo(produto.registro_anvisa),
+    vencimento_registro: produto.vencimento_registro,
+    custo_usado: custo || null,
+    tipo_preco: tipoPreco,
+    valor_unitario: valorUnitario,
+    valor_total: valorTotal,
+    pdf_url: produto.pdf_url,
+    confianca: score,
+    origem_match: origemMatch || "busca_local",
+    status,
+    excluido: false,
+  };
+}
+
 function encontrarProdutoMenorCusto(
   descricao: string,
   produtos: Produto[],
