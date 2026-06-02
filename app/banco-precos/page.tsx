@@ -124,6 +124,7 @@ export default function BancoPrecos() {
   const [carregando, setCarregando] = useState(true);
   const [vinculando, setVinculando] = useState("");
   const [excluindo, setExcluindo] = useState("");
+  const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
   const [vinculosEmMassa, setVinculosEmMassa] = useState<Record<string, string>>({});
   const [aplicandoMassa, setAplicandoMassa] = useState(false);
 
@@ -315,6 +316,66 @@ export default function BancoPrecos() {
     await vincularRegistroManual(produto, registro.id);
   }
 
+  async function atualizarTodosVinculos() {
+    try {
+      setErro("");
+      setMensagem("");
+
+      const confirmar = window.confirm(
+        "Atualizar vínculos somente dos produtos que ainda estão sem registro/PDF? Produtos já vinculados serão mantidos."
+      );
+
+      if (!confirmar) return;
+
+      setAtualizandoVinculos(true);
+
+      let vinculados = 0;
+      let semVinculoSeguro = 0;
+      let mantidos = 0;
+      let erros = 0;
+
+      for (const produto of produtos) {
+        if (!produto.id) continue;
+
+        if (produto.registro_anvisa || produto.pdf_url) {
+          mantidos++;
+          continue;
+        }
+
+        const registro = encontrarRegistroAutomatico(produto, registros);
+
+        if (!registro) {
+          semVinculoSeguro++;
+          continue;
+        }
+
+        const { error } = await supabase
+          .from("produtos")
+          .update({
+            registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
+            vencimento_registro: registro.vencimento_registro,
+            pdf_url: registro.pdf_path,
+          })
+          .eq("id", produto.id);
+
+        if (error) {
+          erros++;
+          continue;
+        }
+
+        vinculados++;
+      }
+
+      setMensagem(
+        `Vínculos atualizados. ${vinculados} novos vínculos aplicados. ${mantidos} produtos já vinculados foram mantidos. ${semVinculoSeguro} ficaram sem vínculo seguro. ${erros} erros.`
+      );
+
+      await carregarDados();
+    } finally {
+      setAtualizandoVinculos(false);
+    }
+  }
+
   function selecionarVinculoEmMassa(produtoId: string | undefined, registroId: string) {
     if (!produtoId) return;
 
@@ -429,7 +490,20 @@ export default function BancoPrecos() {
           <p className="text-slate-500">Banco de produtos com vínculo automático ou manual dos registros ANVISA.</p>
         </div>
 
-        <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">Baixar planilha modelo</a>
+        <div className="flex flex-col md:flex-row gap-3">
+          <button
+            type="button"
+            disabled={atualizandoVinculos || carregando}
+            onClick={atualizarTodosVinculos}
+            className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
+          >
+            {atualizandoVinculos ? "Atualizando..." : "Atualizar vínculos pendentes"}
+          </button>
+
+          <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">
+            Baixar planilha modelo
+          </a>
+        </div>
       </div>
 
       <section className="card p-6 mt-6">
