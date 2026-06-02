@@ -124,8 +124,8 @@ export default function BancoPrecos() {
   const [carregando, setCarregando] = useState(true);
   const [vinculando, setVinculando] = useState("");
   const [excluindo, setExcluindo] = useState("");
-  const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
-  const [desvinculando, setDesvinculando] = useState("");
+  const [vinculosEmMassa, setVinculosEmMassa] = useState<Record<string, string>>({});
+  const [aplicandoMassa, setAplicandoMassa] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -174,6 +174,10 @@ export default function BancoPrecos() {
     comPdf: produtos.filter((p) => !!p.pdf_url).length,
     semPdf: produtos.filter((p) => !p.pdf_url).length,
   }), [produtos]);
+
+  const totalVinculosEmMassa = useMemo(() => {
+    return Object.values(vinculosEmMassa).filter(Boolean).length;
+  }, [vinculosEmMassa]);
 
   async function importarPlanilha(file: File | null) {
     try {
@@ -311,96 +315,79 @@ export default function BancoPrecos() {
     await vincularRegistroManual(produto, registro.id);
   }
 
-  async function atualizarTodosVinculos() {
+  function selecionarVinculoEmMassa(produtoId: string | undefined, registroId: string) {
+    if (!produtoId) return;
+
+    setVinculosEmMassa((atual) => {
+      const novo = { ...atual };
+
+      if (!registroId) {
+        delete novo[produtoId];
+      } else {
+        novo[produtoId] = registroId;
+      }
+
+      return novo;
+    });
+  }
+
+  async function aplicarVinculosEmMassa() {
     try {
       setErro("");
       setMensagem("");
 
-      const confirmar = window.confirm(
-        "Atualizar todos os vínculos de registros ANVISA? Produtos sem vínculo seguro ficarão sem PDF para seleção manual."
-      );
+      const entradas = Object.entries(vinculosEmMassa).filter(([, registroId]) => !!registroId);
+
+      if (!entradas.length) {
+        setErro("Selecione pelo menos um vínculo manual em massa.");
+        return;
+      }
+
+      const confirmar = window.confirm(`Aplicar ${entradas.length} vínculos manuais em massa?`);
 
       if (!confirmar) return;
 
-      setAtualizandoVinculos(true);
+      setAplicandoMassa(true);
 
-      let vinculados = 0;
-      let desvinculados = 0;
+      let atualizados = 0;
       let erros = 0;
 
-      for (const produto of produtos) {
-        if (!produto.id) continue;
+      for (const [produtoId, registroId] of entradas) {
+        const registro = registros.find((r) => r.id === registroId);
 
-        const registro = encontrarRegistroAutomatico(produto, registros);
-
-        const atualizacao = registro
-          ? {
-              registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
-              vencimento_registro: registro.vencimento_registro,
-              pdf_url: registro.pdf_path,
-            }
-          : {
-              registro_anvisa: null,
-              vencimento_registro: null,
-              pdf_url: null,
-            };
-
-        const { error } = await supabase
-          .from("produtos")
-          .update(atualizacao)
-          .eq("id", produto.id);
-
-        if (error) {
+        if (!registro) {
           erros++;
           continue;
         }
 
-        if (registro) vinculados++;
-        else desvinculados++;
+        const { error } = await supabase
+          .from("produtos")
+          .update({
+            registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
+            vencimento_registro: registro.vencimento_registro,
+            pdf_url: registro.pdf_path,
+          })
+          .eq("id", produtoId);
+
+        if (error) {
+          erros++;
+        } else {
+          atualizados++;
+        }
       }
 
-      setMensagem(
-        `Vínculos atualizados. ${vinculados} produtos vinculados automaticamente. ${desvinculados} ficaram sem vínculo seguro. ${erros} erros.`
-      );
+      setMensagem(`${atualizados} produtos vinculados em massa. ${erros} erros.`);
 
+      setVinculosEmMassa({});
       await carregarDados();
     } finally {
-      setAtualizandoVinculos(false);
+      setAplicandoMassa(false);
     }
   }
 
-  async function desvincularRegistroProduto(produto: Produto) {
-    try {
-      setErro("");
-      setMensagem("");
-
-      if (!produto.id) return;
-
-      const confirmar = window.confirm(`Desvincular registro ANVISA de ${produto.descricao || "produto"}?`);
-
-      if (!confirmar) return;
-
-      setDesvinculando(produto.id);
-
-      const { error } = await supabase
-        .from("produtos")
-        .update({
-          registro_anvisa: null,
-          vencimento_registro: null,
-          pdf_url: null,
-        })
-        .eq("id", produto.id);
-
-      if (error) {
-        setErro(error.message);
-        return;
-      }
-
-      setMensagem("Registro desvinculado do produto com sucesso.");
-      await carregarDados();
-    } finally {
-      setDesvinculando("");
-    }
+  function limparVinculosEmMassa() {
+    setVinculosEmMassa({});
+    setMensagem("Seleção de vínculos em massa limpa.");
   }
 
   async function excluirProduto(produto: Produto) {
@@ -442,20 +429,7 @@ export default function BancoPrecos() {
           <p className="text-slate-500">Banco de produtos com vínculo automático ou manual dos registros ANVISA.</p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-3">
-          <button
-            type="button"
-            disabled={atualizandoVinculos || carregando}
-            onClick={atualizarTodosVinculos}
-            className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
-          >
-            {atualizandoVinculos ? "Atualizando vínculos..." : "Atualizar vínculos"}
-          </button>
-
-          <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">
-            Baixar planilha modelo
-          </a>
-        </div>
+        <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">Baixar planilha modelo</a>
       </div>
 
       <section className="card p-6 mt-6">
@@ -466,7 +440,7 @@ export default function BancoPrecos() {
           <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. Use <b>Atualizar vínculos</b> para recalcular todos os registros de uma vez.</div>
+        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. Para vincular muitos produtos manualmente, escolha os registros na coluna <b>Vínculo em massa</b> e clique em <b>Aplicar vínculos em massa</b>.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
@@ -494,6 +468,26 @@ export default function BancoPrecos() {
               </select>
               <input className="input md:w-96 uppercase" placeholder="Buscar por descrição, marca, registro, apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
+              <button
+                type="button"
+                disabled={aplicandoMassa || totalVinculosEmMassa === 0}
+                onClick={aplicarVinculosEmMassa}
+                className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
+              >
+                {aplicandoMassa ? "Aplicando..." : `Aplicar vínculos em massa (${totalVinculosEmMassa})`}
+              </button>
+
+              <button
+                type="button"
+                disabled={aplicandoMassa || totalVinculosEmMassa === 0}
+                onClick={limparVinculosEmMassa}
+                className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Limpar seleção
+              </button>
+            </div>
           </div>
         </div>
 
@@ -512,11 +506,11 @@ export default function BancoPrecos() {
                   <th className="text-left p-3">Registro ANVISA</th>
                   <th className="text-left p-3">Vencimento</th>
                   <th className="text-left p-3">PDF</th>
-                  <th className="text-left p-3">Desvincular</th>
                   <th className="text-left p-3">Qtd/Caixa</th>
                   <th className="text-left p-3">Custo Unit.</th>
                   <th className="text-left p-3">Custo Caixa</th>
                   <th className="text-left p-3 min-w-[260px]">Vincular registro</th>
+                  <th className="text-left p-3 min-w-[260px]">Vínculo em massa</th>
                   <th className="text-left p-3">Excluir</th>
                 </tr>
               </thead>
@@ -530,19 +524,6 @@ export default function BancoPrecos() {
                     <td className="p-3">{p.registro_anvisa || "Não vinculado"}</td>
                     <td className="p-3">{p.vencimento_registro || "-"}</td>
                     <td className="p-3">{p.pdf_url ? <button onClick={() => abrirPdf(p.pdf_url)} className="text-cotamed-700 underline">Abrir PDF</button> : <span className="text-red-600 font-medium">Sem PDF</span>}</td>
-                    <td className="p-3">
-                      {(p.registro_anvisa || p.pdf_url) ? (
-                        <button
-                          disabled={desvinculando === p.id}
-                          onClick={() => desvincularRegistroProduto(p)}
-                          className="rounded-lg border px-3 py-2 text-yellow-700 hover:bg-yellow-50 disabled:opacity-60"
-                        >
-                          {desvinculando === p.id ? "Desvinculando..." : "Desvincular"}
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
                     <td className="p-3">{p.quantidade_por_caixa || "-"}</td>
                     <td className="p-3">{dinheiro(p.custo_unitario)}</td>
                     <td className="p-3">{dinheiro(p.custo_caixa)}</td>
@@ -554,6 +535,21 @@ export default function BancoPrecos() {
                         </select>
                         <button className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60" disabled={vinculando === p.id} onClick={() => tentarVincularAutomaticamente(p)}>{vinculando === p.id ? "Vinculando..." : "Tentar automático"}</button>
                       </div>
+                    </td>
+                    <td className="p-3">
+                      <select
+                        className="input text-xs"
+                        disabled={aplicandoMassa || !p.id}
+                        value={p.id ? vinculosEmMassa[p.id] || "" : ""}
+                        onChange={(e) => selecionarVinculoEmMassa(p.id, e.target.value)}
+                      >
+                        <option value="">Preparar vínculo em massa...</option>
+                        {registros.map((r) => <option key={r.id} value={r.id}>{labelRegistro(r)}</option>)}
+                      </select>
+
+                      {p.id && vinculosEmMassa[p.id] && (
+                        <p className="mt-1 text-[11px] text-blue-700">Pronto para aplicar em massa</p>
+                      )}
                     </td>
                     <td className="p-3"><button disabled={excluindo === p.id} onClick={() => excluirProduto(p)} className="rounded-lg border px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60">{excluindo === p.id ? "Excluindo..." : "Excluir"}</button></td>
                   </tr>
