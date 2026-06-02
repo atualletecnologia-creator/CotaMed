@@ -1,10 +1,9 @@
 Substitua:
 app/licitacoes/page.tsx
 
-Melhorias:
-- Identifica automaticamente CAIXA ou UNITÁRIO.
-- Se o mesmo item existir em várias marcas no banco, escolhe a marca com menor custo.
-- O menor custo respeita o tipo de preço detectado:
-  - Se for CAIXA, compara custo_caixa.
-  - Se for UNITÁRIO, compara custo_unitario.
-- Mantém a seleção manual por item.
+Correções:
+- Evita cotar como CAIXA quando o item é unitário.
+- Agora só marca CAIXA quando há indicação clara: C/100, CX, CAIXA, EMBALAGEM, PACOTE, PCT, CARTELA.
+- Não força CAIXA apenas por "100 COMP", "100MG", "100ML".
+- Melhor custo agora só compara produtos com match confiável e próximos do melhor resultado.
+- Aumenta a busca de candidatos para identificar mais itens cadastrados.

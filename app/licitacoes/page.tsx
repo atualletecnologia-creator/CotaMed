@@ -104,33 +104,14 @@ function itemPodeCotar(item: ItemLicitacao) {
 }
 
 function labelProduto(produto: Produto) {
-  return maiusculo([
+  return [
     produto.descricao,
     produto.apresentacao,
     produto.marca,
     produto.registro_anvisa ? `REG ${produto.registro_anvisa}` : "",
     produto.custo_unitario ? `UNIT ${dinheiro(produto.custo_unitario)}` : "",
     produto.custo_caixa ? `CX ${dinheiro(produto.custo_caixa)}` : "",
-  ].filter(Boolean).join(" | "));
-}
-
-function textoProdutoBusca(produto: Produto) {
-  return maiusculo([
-    produto.descricao,
-    produto.apresentacao,
-    produto.marca,
-    produto.registro_anvisa,
-  ].filter(Boolean).join(" "));
-}
-
-function filtrarProdutosParaBusca(produtos: Produto[], busca: string) {
-  const termo = maiusculo(busca);
-
-  if (!termo) return produtos.slice(0, 20);
-
-  return produtos
-    .filter((produto) => textoProdutoBusca(produto).includes(termo))
-    .slice(0, 20);
+  ].filter(Boolean).join(" | ");
 }
 
 function custoPorTipo(produto: Produto, tipoPreco: TipoPreco) {
@@ -139,34 +120,39 @@ function custoPorTipo(produto: Produto, tipoPreco: TipoPreco) {
 }
 
 function detectarTipoPrecoAutomatico(descricao: string, unidade: string): TipoPreco {
-  const desc = maiusculo(descricao)
+  const descOriginal = maiusculo(descricao);
+  const unidOriginal = maiusculo(unidade);
+
+  const desc = descOriginal
     .replace(/[()\[\].,;:]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  const unid = maiusculo(unidade)
+  const unid = unidOriginal
     .replace(/[()\[\].,;:]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
 
-  // Quando a descrição informa conteúdo de embalagem, normalmente a cotação é por caixa/pacote.
-  // Exemplos: DIPIRONA C/100, DIPIRONA C 100, DIPIRONA COM 100 COMP, CX 50, CAIXA 100.
+  // Regra mais segura:
+  // Só considera CAIXA quando houver indicação clara de embalagem.
+  // Isso evita que item unitário com "100MG", "100ML" ou "100 COMP" vire caixa por engano.
   const indicaCaixaNaDescricao =
-    /\bC\s*\/\s*\d+\b/.test(desc) ||
-    /\bC\s+\d+\b/.test(desc) ||
-    /\bCOM\s+\d+\b/.test(desc) ||
-    /\bCX\s*\d+\b/.test(desc) ||
-    /\bCAIXA\s*\d+\b/.test(desc) ||
-    /\bC\/\s*\d+/.test(desc) ||
-    /\b\d+\s*(UN|UND|UNID|UNIDADE|COMP|COMPR|COMPRIMIDOS|CAP|CAPS|AMP|AMPOLA|ML)\b/.test(desc);
+    /\bC\s*\/\s*\d+\b/.test(descOriginal) ||      // C/100
+    /\bC\/\d+\b/.test(descOriginal) ||            // C/100 sem espaço
+    /\bCX\s*\d+\b/.test(desc) ||                  // CX 100
+    /\bCAIXA\s*(COM\s*)?\d+\b/.test(desc) ||      // CAIXA 100 / CAIXA COM 100
+    /\bEMBALAGEM\s*(COM\s*)?\d+\b/.test(desc) ||  // EMBALAGEM COM 100
+    /\bPACOTE\s*(COM\s*)?\d+\b/.test(desc) ||     // PACOTE COM 100
+    /\bPCT\s*\d+\b/.test(desc) ||                 // PCT 100
+    /\bCARTELA\s*(COM\s*)?\d+\b/.test(desc);      // CARTELA COM 10
 
   const indicaCaixaNaUnidade =
-    /\b(CX|CAIXA|PCT|PACOTE|EMBALAGEM|FRASCO\s*C|CARTELA)\b/.test(unid);
+    /\b(CX|CAIXA|PCT|PACOTE|EMBALAGEM|CARTELA)\b/.test(unid);
+
+  if (indicaCaixaNaDescricao || indicaCaixaNaUnidade) return "caixa";
 
   const indicaUnidadeNaUnidade =
     /\b(UN|UND|UNID|UNIDADE|AMP|AMPOLA|FR|FRASCO|COMP|COMPRIMIDO|CAP|CAPSULA|ML|L)\b/.test(unid);
-
-  if (indicaCaixaNaDescricao || indicaCaixaNaUnidade) return "caixa";
 
   if (indicaUnidadeNaUnidade) return "unitario";
 
@@ -188,25 +174,6 @@ function explicarTipoPreco(descricao: string, unidade: string, tipoPreco: TipoPr
   return tipoPreco === "caixa" ? "MANUAL: CAIXA" : "MANUAL: UNITÁRIO";
 }
 
-function encontrarProdutoMenorCusto(
-  descricao: string,
-  produtos: Produto[],
-  tipoPreco: TipoPreco
-) {
-  const candidatos = encontrarCandidatos(descricao, produtos, 30)
-    .filter((candidato) => classificarConfianca(candidato.score) !== "baixo")
-    .map((candidato) => ({
-      ...candidato,
-      custo: custoPorTipo(candidato.produto, tipoPreco),
-    }))
-    .filter((candidato) => candidato.custo > 0)
-    .sort((a, b) => {
-      if (a.custo !== b.custo) return a.custo - b.custo;
-      return b.score - a.score;
-    });
-
-  return candidatos[0] || null;
-}
 
 function montarItemCotado(params: {
   index: number;
@@ -251,8 +218,8 @@ function montarItemCotado(params: {
     quantidade,
     unidade,
     produto_id: produto.id || null,
-    marca: maiusculo(produto.marca),
-    registro_anvisa: maiusculo(produto.registro_anvisa),
+    marca: produto.marca,
+    registro_anvisa: produto.registro_anvisa,
     vencimento_registro: produto.vencimento_registro,
     custo_usado: custo || null,
     tipo_preco: tipoPreco,
@@ -265,6 +232,36 @@ function montarItemCotado(params: {
     excluido: false,
   };
 }
+
+function encontrarProdutoMenorCusto(
+  descricao: string,
+  produtos: Produto[],
+  tipoPreco: TipoPreco
+) {
+  const candidatosOrdenados = encontrarCandidatos(descricao, produtos, 80);
+
+  if (!candidatosOrdenados.length) return null;
+
+  const maiorScore = candidatosOrdenados[0].score;
+
+  // Só compara menor custo entre produtos realmente próximos do melhor match.
+  // Isso evita pegar uma marca barata de outro item parecido, mas errado.
+  const candidatosConfiaveis = candidatosOrdenados
+    .filter((candidato) => candidato.score >= 50)
+    .filter((candidato) => candidato.score >= maiorScore - 12)
+    .map((candidato) => ({
+      ...candidato,
+      custo: custoPorTipo(candidato.produto, tipoPreco),
+    }))
+    .filter((candidato) => candidato.custo > 0)
+    .sort((a, b) => {
+      if (a.custo !== b.custo) return a.custo - b.custo;
+      return b.score - a.score;
+    });
+
+  return candidatosConfiaveis[0] || candidatosOrdenados[0] || null;
+}
+
 
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
@@ -280,9 +277,6 @@ export default function Licitacoes() {
   const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<TipoPreco | "auto">("auto");
   const [usarIa, setUsarIa] = useState(false);
   const [produtosBanco, setProdutosBanco] = useState<Produto[]>([]);
-  const produtosMap = useMemo(() => new Map(produtosBanco.map((p) => [p.id, p])), [produtosBanco]);
-  const [itemSelecionando, setItemSelecionando] = useState("");
-  const [buscaProdutoManual, setBuscaProdutoManual] = useState("");
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [erro, setErro] = useState("");
@@ -346,22 +340,19 @@ export default function Licitacoes() {
 
   function selecionarProdutoManual(numeroItem: string, produtoId: string) {
     if (!produtoId) return;
-    const produto = produtosMap.get(produtoId);
+    const produto = produtosBanco.find((p) => p.id === produtoId);
     if (!produto) return;
 
     setItens((atuais) =>
       atuais.map((item) => item.numero_item === numeroItem ? recalcularItem(item, produto, item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade), "Manual") : item)
     );
-
-    setItemSelecionando("");
-    setBuscaProdutoManual("");
   }
 
   function alterarTipoPrecoItem(numeroItem: string, tipoPreco: TipoPreco) {
     setItens((atuais) =>
       atuais.map((item) => {
         if (item.numero_item !== numeroItem) return item;
-        const produto = produtosMap.get(item.produto_id);
+        const produto = produtosBanco.find((p) => p.id === item.produto_id);
         if (!produto) return { ...item, tipo_preco: tipoPreco };
         return recalcularItem(item, produto, tipoPreco, item.status);
       })
@@ -407,8 +398,6 @@ export default function Licitacoes() {
       setErro("");
       setMensagem("");
       setItens([]);
-      setItemSelecionando("");
-      setBuscaProdutoManual("");
       setFiltro("todos");
 
       if (!file) return;
@@ -423,13 +412,7 @@ export default function Licitacoes() {
         return;
       }
 
-      const produtosValidos = ((produtos || []) as Produto[]).map((produto) => ({
-        ...produto,
-        descricao: maiusculo(produto.descricao),
-        apresentacao: maiusculo(produto.apresentacao),
-        marca: maiusculo(produto.marca),
-        registro_anvisa: maiusculo(produto.registro_anvisa),
-      }));
+      const produtosValidos = (produtos || []) as Produto[];
       setProdutosBanco(produtosValidos);
 
       const buffer = await file.arrayBuffer();
@@ -467,16 +450,10 @@ export default function Licitacoes() {
         const quantidade = numero(linha.quantidade || linha.quant || linha.qtd) || 1;
         const unidade = maiusculo(linha.unidade || linha.unid || linha.und || "UNIDADE");
 
-        const tipoPrecoItem = resolverTipoPrecoPadrao(tipoPrecoPadrao, descricao, unidade);
-
-        // Busca todos os produtos compatíveis e escolhe o de menor custo.
-        // Assim, se o mesmo item existir em várias marcas, o sistema cota a marca mais barata.
-        const melhorMenorCusto = encontrarProdutoMenorCusto(descricao, produtosValidos, tipoPrecoItem);
-        const melhor = melhorMenorCusto || encontrarMelhorProduto(descricao, produtosValidos);
-
+        const melhor = encontrarMelhorProduto(descricao, produtosValidos);
         let produto = melhor?.produto || null;
         let score = melhor?.score || 0;
-        let origem = melhorMenorCusto ? "menor_custo" : "busca_local";
+        let origem = "busca_local";
 
         if (usarIa && score < 70 && produtosValidos.length) {
           const ia = await buscarComIa(descricao, produtosValidos);
@@ -488,22 +465,12 @@ export default function Licitacoes() {
         }
 
         itensCotados.push(
-          montarItemCotado({
-            index,
-            descricao,
-            quantidade,
-            unidade,
-            produto,
-            margem: margemNumero,
-            confianca: score,
-            origemMatch: origem,
-            tipoPreco: tipoPrecoItem,
-          })
+          montarItemCotado({ index, descricao, quantidade, unidade, produto, margem: margemNumero, confianca: score, origemMatch: origem, tipoPreco: tipoPrecoPadrao })
         );
       }
 
       setItens(itensCotados);
-      setMensagem(`${itensCotados.length} itens processados. O sistema identificou UNITÁRIO ou CAIXA e escolheu a marca de menor custo quando havia mais de uma opção. Você pode ajustar manualmente quando precisar.`);
+      setMensagem(`${itensCotados.length} itens processados. Você pode escolher UNITÁRIO ou CAIXA por item.`);
     } finally {
       setProcessando(false);
     }
@@ -524,12 +491,12 @@ export default function Licitacoes() {
       const cotar = itemPodeCotar(item);
       return {
         ITEM: item.numero_item,
-        "DESCRIÇÃO DOS PRODUTOS": maiusculo(item.descricao),
-        UNID: maiusculo(item.unidade),
+        "DESCRIÇÃO DOS PRODUTOS": item.descricao,
+        UNID: item.unidade,
         QUANT: item.quantidade,
         "TIPO PREÇO": cotar ? (item.tipo_preco === "caixa" ? "CAIXA" : "UNITÁRIO") : "",
-        REGISTRO: cotar ? maiusculo(item.registro_anvisa) || "" : "",
-        MARCA: cotar ? maiusculo(item.marca) || "" : "",
+        REGISTRO: cotar ? item.registro_anvisa || "" : "",
+        MARCA: cotar ? item.marca || "" : "",
         CUSTO: cotar ? item.custo_usado || "" : "",
         "VL. UNIT": cotar ? item.valor_unitario || "" : "",
         "VL. TOTAL": cotar ? item.valor_total || "" : "",
@@ -578,7 +545,7 @@ export default function Licitacoes() {
       <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Licitações</h1>
-          <p className="text-slate-500">Resultado em lista compacta, com seleção manual e identificação automática de caixa ou unidade.</p>
+          <p className="text-slate-500">Resultado em lista compacta, com seleção manual e escolha de preço por item.</p>
         </div>
 
         <a href="/modelos/modelo-licitacao-cotamed.xlsx" download className="btn-primary text-center">
@@ -619,7 +586,7 @@ export default function Licitacoes() {
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          O sistema identifica automaticamente <b>CAIXA</b> ou <b>UNITÁRIO</b> e, quando houver o mesmo item em várias marcas, escolhe automaticamente a <b>marca com menor custo</b>. Você ainda pode alterar item por item.
+          O sistema identifica <b>CAIXA</b> somente quando houver indicação clara de embalagem, como <b>C/100</b>, <b>CX</b> ou <b>CAIXA</b>. Para itens unitários, mantém <b>UNITÁRIO</b>. Quando houver várias marcas do mesmo item, escolhe a de menor custo entre matches confiáveis.
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
@@ -676,53 +643,10 @@ export default function Licitacoes() {
 
                       <div className="min-w-[260px] flex-1">
                         <Campo label="Descrição" value={item.descricao} />
-                        <button
-                          type="button"
-                          className="mt-2 rounded-lg border border-blue-200 px-3 py-2 text-[11px] text-cotamed-700 hover:bg-blue-50"
-                          onClick={() => {
-                            setItemSelecionando(itemSelecionando === item.numero_item ? "" : item.numero_item);
-                            setBuscaProdutoManual("");
-                          }}
-                        >
-                          {itemSelecionando === item.numero_item ? "Fechar seleção" : "Selecionar produto"}
-                        </button>
-
-                        {itemSelecionando === item.numero_item && (
-                          <div className="mt-2 rounded-xl border bg-blue-50 p-3">
-                            <input
-                              className="input text-[11px] h-8 py-1"
-                              placeholder="DIGITE PARA BUSCAR NO BANCO..."
-                              value={buscaProdutoManual}
-                              onChange={(e) => setBuscaProdutoManual(e.target.value.toUpperCase())}
-                              autoFocus
-                            />
-
-                            <div className="mt-2 max-h-52 overflow-y-auto space-y-1">
-                              {filtrarProdutosParaBusca(
-                                produtosBanco,
-                                buscaProdutoManual || item.descricao
-                              ).map((p) => (
-                                <button
-                                  key={p.id}
-                                  type="button"
-                                  onClick={() => selecionarProdutoManual(item.numero_item, String(p.id))}
-                                  className="block w-full rounded-lg bg-white px-3 py-2 text-left text-[11px] hover:bg-blue-100"
-                                >
-                                  {labelProduto(p)}
-                                </button>
-                              ))}
-
-                              {filtrarProdutosParaBusca(
-                                produtosBanco,
-                                buscaProdutoManual || item.descricao
-                              ).length === 0 && (
-                                <p className="text-[11px] text-slate-500">
-                                  Nenhum produto encontrado.
-                                </p>
-                              )}
-                            </div>
-                          </div>
-                        )}
+                        <select className="input mt-2 text-[11px] h-8 py-1" value={item.produto_id || ""} onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}>
+                          <option value="">Selecionar produto manualmente...</option>
+                          {produtosBanco.map((p) => (<option key={p.id} value={p.id}>{labelProduto(p)}</option>))}
+                        </select>
                       </div>
 
                       <div className="w-16"><Campo label="Qtd" value={item.quantidade} /></div>
