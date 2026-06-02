@@ -125,7 +125,8 @@ export default function BancoPrecos() {
   const [vinculando, setVinculando] = useState("");
   const [excluindo, setExcluindo] = useState("");
   const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
-  const [vinculosEmMassa, setVinculosEmMassa] = useState<Record<string, string>>({});
+  const [registroMassaId, setRegistroMassaId] = useState("");
+  const [produtosSelecionadosMassa, setProdutosSelecionadosMassa] = useState<Record<string, boolean>>({});
   const [aplicandoMassa, setAplicandoMassa] = useState(false);
 
   useEffect(() => {
@@ -176,9 +177,9 @@ export default function BancoPrecos() {
     semPdf: produtos.filter((p) => !p.pdf_url).length,
   }), [produtos]);
 
-  const totalVinculosEmMassa = useMemo(() => {
-    return Object.values(vinculosEmMassa).filter(Boolean).length;
-  }, [vinculosEmMassa]);
+  const totalSelecionadosMassa = useMemo(() => {
+    return Object.values(produtosSelecionadosMassa).filter(Boolean).length;
+  }, [produtosSelecionadosMassa]);
 
   async function importarPlanilha(file: File | null) {
     try {
@@ -316,6 +317,90 @@ export default function BancoPrecos() {
     await vincularRegistroManual(produto, registro.id);
   }
 
+  function alternarProdutoMassa(produtoId: string | undefined, marcado: boolean) {
+    if (!produtoId) return;
+
+    setProdutosSelecionadosMassa((atual) => ({
+      ...atual,
+      [produtoId]: marcado,
+    }));
+  }
+
+  function selecionarTodosFiltradosMassa() {
+    const novos: Record<string, boolean> = {};
+
+    produtosFiltrados.forEach((produto) => {
+      if (produto.id) novos[produto.id] = true;
+    });
+
+    setProdutosSelecionadosMassa(novos);
+    setMensagem(`${Object.keys(novos).length} produtos filtrados selecionados para vínculo em massa.`);
+  }
+
+  function limparSelecaoMassa() {
+    setProdutosSelecionadosMassa({});
+    setRegistroMassaId("");
+    setMensagem("Seleção de vínculo em massa limpa.");
+  }
+
+  async function aplicarRegistroEmMassa() {
+    try {
+      setErro("");
+      setMensagem("");
+
+      const produtoIds = Object.entries(produtosSelecionadosMassa)
+        .filter(([, marcado]) => marcado)
+        .map(([produtoId]) => produtoId);
+
+      if (!registroMassaId) {
+        setErro("Selecione o registro ANVISA que será aplicado em massa.");
+        return;
+      }
+
+      if (!produtoIds.length) {
+        setErro("Selecione pelo menos um produto para receber o registro.");
+        return;
+      }
+
+      const registro = registros.find((r) => r.id === registroMassaId);
+
+      if (!registro) {
+        setErro("Registro ANVISA não encontrado.");
+        return;
+      }
+
+      const confirmar = window.confirm(
+        `Vincular o registro ${registro.registro_anvisa || ""} a ${produtoIds.length} produtos selecionados?`
+      );
+
+      if (!confirmar) return;
+
+      setAplicandoMassa(true);
+
+      const { error } = await supabase
+        .from("produtos")
+        .update({
+          registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
+          vencimento_registro: registro.vencimento_registro,
+          pdf_url: registro.pdf_path,
+        })
+        .in("id", produtoIds);
+
+      if (error) {
+        setErro(error.message);
+        return;
+      }
+
+      setMensagem(`${produtoIds.length} produtos vinculados ao registro selecionado.`);
+      setProdutosSelecionadosMassa({});
+      setRegistroMassaId("");
+
+      await carregarDados();
+    } finally {
+      setAplicandoMassa(false);
+    }
+  }
+
   async function atualizarTodosVinculos() {
     try {
       setErro("");
@@ -374,81 +459,6 @@ export default function BancoPrecos() {
     } finally {
       setAtualizandoVinculos(false);
     }
-  }
-
-  function selecionarVinculoEmMassa(produtoId: string | undefined, registroId: string) {
-    if (!produtoId) return;
-
-    setVinculosEmMassa((atual) => {
-      const novo = { ...atual };
-
-      if (!registroId) {
-        delete novo[produtoId];
-      } else {
-        novo[produtoId] = registroId;
-      }
-
-      return novo;
-    });
-  }
-
-  async function aplicarVinculosEmMassa() {
-    try {
-      setErro("");
-      setMensagem("");
-
-      const entradas = Object.entries(vinculosEmMassa).filter(([, registroId]) => !!registroId);
-
-      if (!entradas.length) {
-        setErro("Selecione pelo menos um vínculo manual em massa.");
-        return;
-      }
-
-      const confirmar = window.confirm(`Aplicar ${entradas.length} vínculos manuais em massa?`);
-
-      if (!confirmar) return;
-
-      setAplicandoMassa(true);
-
-      let atualizados = 0;
-      let erros = 0;
-
-      for (const [produtoId, registroId] of entradas) {
-        const registro = registros.find((r) => r.id === registroId);
-
-        if (!registro) {
-          erros++;
-          continue;
-        }
-
-        const { error } = await supabase
-          .from("produtos")
-          .update({
-            registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
-            vencimento_registro: registro.vencimento_registro,
-            pdf_url: registro.pdf_path,
-          })
-          .eq("id", produtoId);
-
-        if (error) {
-          erros++;
-        } else {
-          atualizados++;
-        }
-      }
-
-      setMensagem(`${atualizados} produtos vinculados em massa. ${erros} erros.`);
-
-      setVinculosEmMassa({});
-      await carregarDados();
-    } finally {
-      setAplicandoMassa(false);
-    }
-  }
-
-  function limparVinculosEmMassa() {
-    setVinculosEmMassa({});
-    setMensagem("Seleção de vínculos em massa limpa.");
   }
 
   async function excluirProduto(produto: Produto) {
@@ -514,7 +524,7 @@ export default function BancoPrecos() {
           <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. Para vincular muitos produtos manualmente, escolha os registros na coluna <b>Vínculo em massa</b> e clique em <b>Aplicar vínculos em massa</b>.</div>
+        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. Para vincular muitos produtos manualmente, escolha um registro no bloco <b>Vincular um registro a vários produtos</b>, marque os produtos na tabela e clique em <b>Aplicar</b>.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
@@ -543,24 +553,51 @@ export default function BancoPrecos() {
               <input className="input md:w-96 uppercase" placeholder="Buscar por descrição, marca, registro, apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3">
-              <button
-                type="button"
-                disabled={aplicandoMassa || totalVinculosEmMassa === 0}
-                onClick={aplicarVinculosEmMassa}
-                className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
-              >
-                {aplicandoMassa ? "Aplicando..." : `Aplicar vínculos em massa (${totalVinculosEmMassa})`}
-              </button>
+            <div className="rounded-2xl border bg-blue-50 p-4">
+              <p className="text-sm font-semibold text-slate-700 mb-3">
+                Vincular um registro a vários produtos
+              </p>
 
-              <button
-                type="button"
-                disabled={aplicandoMassa || totalVinculosEmMassa === 0}
-                onClick={limparVinculosEmMassa}
-                className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-              >
-                Limpar seleção
-              </button>
+              <div className="grid md:grid-cols-[1fr_160px_160px_160px] gap-3">
+                <select
+                  className="input text-sm"
+                  value={registroMassaId}
+                  onChange={(e) => setRegistroMassaId(e.target.value)}
+                  disabled={aplicandoMassa}
+                >
+                  <option value="">Escolha o registro ANVISA...</option>
+                  {registros.map((r) => (
+                    <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  disabled={aplicandoMassa || produtosFiltrados.length === 0}
+                  onClick={selecionarTodosFiltradosMassa}
+                  className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-100 disabled:opacity-60"
+                >
+                  Selecionar filtrados
+                </button>
+
+                <button
+                  type="button"
+                  disabled={aplicandoMassa || !registroMassaId || totalSelecionadosMassa === 0}
+                  onClick={aplicarRegistroEmMassa}
+                  className="rounded-xl bg-cotamed-700 px-4 py-2 text-white hover:bg-cotamed-800 disabled:opacity-60"
+                >
+                  {aplicandoMassa ? "Aplicando..." : `Aplicar (${totalSelecionadosMassa})`}
+                </button>
+
+                <button
+                  type="button"
+                  disabled={aplicandoMassa || (!registroMassaId && totalSelecionadosMassa === 0)}
+                  onClick={limparSelecaoMassa}
+                  className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-white disabled:opacity-60"
+                >
+                  Limpar
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -574,6 +611,7 @@ export default function BancoPrecos() {
             <table className="w-full text-xs">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
+                  <th className="text-left p-3">Sel.</th>
                   <th className="text-left p-3">Descrição</th>
                   <th className="text-left p-3">Apresentação</th>
                   <th className="text-left p-3">Marca</th>
@@ -584,7 +622,6 @@ export default function BancoPrecos() {
                   <th className="text-left p-3">Custo Unit.</th>
                   <th className="text-left p-3">Custo Caixa</th>
                   <th className="text-left p-3 min-w-[260px]">Vincular registro</th>
-                  <th className="text-left p-3 min-w-[260px]">Vínculo em massa</th>
                   <th className="text-left p-3">Excluir</th>
                 </tr>
               </thead>
@@ -592,6 +629,14 @@ export default function BancoPrecos() {
               <tbody>
                 {produtosFiltrados.map((p, index) => (
                   <tr key={p.id || index} className="border-t align-top">
+                    <td className="p-3">
+                      <input
+                        type="checkbox"
+                        disabled={!p.id || aplicandoMassa}
+                        checked={p.id ? !!produtosSelecionadosMassa[p.id] : false}
+                        onChange={(e) => alternarProdutoMassa(p.id, e.target.checked)}
+                      />
+                    </td>
                     <td className="p-3 font-medium">{p.descricao || "-"}</td>
                     <td className="p-3">{p.apresentacao || "-"}</td>
                     <td className="p-3">{p.marca || "-"}</td>
@@ -609,21 +654,6 @@ export default function BancoPrecos() {
                         </select>
                         <button className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60" disabled={vinculando === p.id} onClick={() => tentarVincularAutomaticamente(p)}>{vinculando === p.id ? "Vinculando..." : "Tentar automático"}</button>
                       </div>
-                    </td>
-                    <td className="p-3">
-                      <select
-                        className="input text-xs"
-                        disabled={aplicandoMassa || !p.id}
-                        value={p.id ? vinculosEmMassa[p.id] || "" : ""}
-                        onChange={(e) => selecionarVinculoEmMassa(p.id, e.target.value)}
-                      >
-                        <option value="">Preparar vínculo em massa...</option>
-                        {registros.map((r) => <option key={r.id} value={r.id}>{labelRegistro(r)}</option>)}
-                      </select>
-
-                      {p.id && vinculosEmMassa[p.id] && (
-                        <p className="mt-1 text-[11px] text-blue-700">Pronto para aplicar em massa</p>
-                      )}
                     </td>
                     <td className="p-3"><button disabled={excluindo === p.id} onClick={() => excluirProduto(p)} className="rounded-lg border px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60">{excluindo === p.id ? "Excluindo..." : "Excluir"}</button></td>
                   </tr>
