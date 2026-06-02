@@ -121,19 +121,32 @@ function custoPorTipo(produto: Produto, tipoPreco: TipoPreco) {
 
 function detectarTipoPrecoAutomatico(descricao: string, unidade: string): TipoPreco {
   const descOriginal = maiusculo(descricao);
-  const unid = maiusculo(unidade);
+  const unidOriginal = maiusculo(unidade);
 
+  const desc = descOriginal
+    .replace(/[()\[\].,;:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const unid = unidOriginal
+    .replace(/[()\[\].,;:]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  // Regra segura: só considera CAIXA quando houver indicação clara de embalagem.
+  // Evita que 100MG, 100ML ou 100 COMP virem caixa por engano.
   const indicaCaixaNaDescricao =
     /\bC\s*\/\s*\d+\b/.test(descOriginal) ||
     /\bC\/\d+\b/.test(descOriginal) ||
-    /\bCX\s*\d+\b/.test(descOriginal) ||
-    /\bCAIXA\b/.test(descOriginal) ||
-    /\bEMBALAGEM\b/.test(descOriginal) ||
-    /\bPACOTE\b/.test(descOriginal) ||
-    /\bPCT\b/.test(descOriginal) ||
-    /\bCARTELA\b/.test(descOriginal);
+    /\bCX\s*\d+\b/.test(desc) ||
+    /\bCAIXA\s*(COM\s*)?\d*\b/.test(desc) ||
+    /\bEMBALAGEM\s*(COM\s*)?\d*\b/.test(desc) ||
+    /\bPACOTE\s*(COM\s*)?\d*\b/.test(desc) ||
+    /\bPCT\s*\d*\b/.test(desc) ||
+    /\bCARTELA\s*(COM\s*)?\d*\b/.test(desc);
 
-  const indicaCaixaNaUnidade = /\b(CX|CAIXA|PCT|PACOTE|EMBALAGEM|CARTELA)\b/.test(unid);
+  const indicaCaixaNaUnidade =
+    /\b(CX|CAIXA|PCT|PACOTE|EMBALAGEM|CARTELA)\b/.test(unid);
 
   if (indicaCaixaNaDescricao || indicaCaixaNaUnidade) return "caixa";
 
@@ -145,62 +158,41 @@ function resolverTipoPrecoPadrao(tipoPadrao: TipoPreco | "auto", descricao: stri
   return tipoPadrao;
 }
 
-function montarItemCotado(params: {
-  index: number;
-  descricao: string;
-  quantidade: number;
-  unidade: string;
-  produto: Produto | null;
-  margem: number;
-  confianca?: number;
-  origemMatch?: string;
-  tipoPreco: TipoPreco;
-}) {
-  const { index, descricao, quantidade, unidade, produto, margem, confianca, origemMatch, tipoPreco } = params;
+function explicarTipoPreco(descricao: string, unidade: string, tipoPreco: TipoPreco) {
+  const automatico = detectarTipoPrecoAutomatico(descricao, unidade);
 
-  if (!produto) {
-    return {
-      numero_item: String(index + 1).padStart(3, "0"),
-      descricao,
-      quantidade,
-      unidade,
-      status: "Produto não encontrado",
-      confianca: 0,
-      origem_match: "sem_match",
-      tipo_preco: tipoPreco,
-      excluido: false,
-    };
+  if (automatico === tipoPreco) {
+    return tipoPreco === "caixa" ? "AUTO: CAIXA" : "AUTO: UNITÁRIO";
   }
 
-  const score = confianca || 0;
-  const custo = custoPorTipo(produto, tipoPreco);
-  const valorUnitario = custo > 0 ? custo * (1 + margem / 100) : null;
-  const valorTotal = valorUnitario ? valorUnitario * quantidade : null;
-  const nivel = classificarConfianca(score);
+  return tipoPreco === "caixa" ? "MANUAL: CAIXA" : "MANUAL: UNITÁRIO";
+}
 
-  let status = "Produto não encontrado";
-  if (nivel === "alto" && custo > 0) status = "Encontrado";
-  else if (nivel === "medio" && custo > 0) status = "Conferir match";
+function encontrarProdutoMenorCusto(
+  descricao: string,
+  produtos: Produto[],
+  tipoPreco: TipoPreco
+) {
+  const candidatosOrdenados = encontrarCandidatos(descricao, produtos, 80);
 
-  return {
-    numero_item: String(index + 1).padStart(3, "0"),
-    descricao,
-    quantidade,
-    unidade,
-    produto_id: produto.id || null,
-    marca: produto.marca,
-    registro_anvisa: produto.registro_anvisa,
-    vencimento_registro: produto.vencimento_registro,
-    custo_usado: custo || null,
-    tipo_preco: tipoPreco,
-    valor_unitario: valorUnitario,
-    valor_total: valorTotal,
-    pdf_url: produto.pdf_url,
-    confianca: score,
-    origem_match: origemMatch || "busca_local",
-    status,
-    excluido: false,
-  };
+  if (!candidatosOrdenados.length) return null;
+
+  const maiorScore = candidatosOrdenados[0].score;
+
+  const candidatosConfiaveis = candidatosOrdenados
+    .filter((candidato) => candidato.score >= 50)
+    .filter((candidato) => candidato.score >= maiorScore - 12)
+    .map((candidato) => ({
+      ...candidato,
+      custo: custoPorTipo(candidato.produto, tipoPreco),
+    }))
+    .filter((candidato) => candidato.custo > 0)
+    .sort((a, b) => {
+      if (a.custo !== b.custo) return a.custo - b.custo;
+      return b.score - a.score;
+    });
+
+  return candidatosConfiaveis[0] || candidatosOrdenados[0] || null;
 }
 
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
@@ -592,12 +584,15 @@ export default function Licitacoes() {
                       <div className="w-16"><Campo label="Qtd" value={item.quantidade} /></div>
                       <div className="w-16"><Campo label="Unid" value={item.unidade} /></div>
 
-                      <div className="w-24">
+                      <div className="w-28">
                         <p className="text-[10px] text-slate-500">Tipo preço</p>
                         <select className="input text-[11px] h-8 py-1" value={item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)} onChange={(e) => alterarTipoPrecoItem(item.numero_item, e.target.value as TipoPreco)}>
                           <option value="unitario">Unit.</option>
                           <option value="caixa">Caixa</option>
                         </select>
+                        <p className="mt-1 text-[9px] text-slate-500">
+                          {explicarTipoPreco(item.descricao, item.unidade, item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade))}
+                        </p>
                       </div>
 
                       <div className="w-28"><Campo label="Marca" value={preencher ? item.marca || "-" : "-"} /></div>
