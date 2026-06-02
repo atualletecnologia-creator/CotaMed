@@ -1,8 +1,6 @@
 Substitua:
-app/banco-precos/page.tsx
+app/licitacoes/page.tsx
 
-Novidade:
-- Coluna "Vínculo em massa" para preparar vários vínculos manualmente.
-- Botão "Aplicar vínculos em massa" aplica todos de uma só vez.
-- Botão "Limpar seleção" limpa vínculos preparados.
-- Mantém o vínculo manual individual e o "Tentar automático".
+Correção:
+- Corrige erro de build: Type '"auto" | TipoPreco' is not assignable to type 'TipoPreco'.
+- Quando o tipo padrão for "auto", resolve automaticamente para "unitario" ou "caixa" antes de chamar montarItemCotado.
