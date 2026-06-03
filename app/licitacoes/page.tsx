@@ -212,6 +212,11 @@ function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   );
 }
 
+function esperarInterface() {
+  return new Promise((resolve) => setTimeout(resolve, 0));
+}
+
+
 export default function Licitacoes() {
   const [margem, setMargem] = useState("30");
   const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<TipoPreco | "auto">("auto");
@@ -223,6 +228,7 @@ export default function Licitacoes() {
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [processando, setProcessando] = useState(false);
+  const [progressoProcessamento, setProgressoProcessamento] = useState("");
   const [arquivoNome, setArquivoNome] = useState("");
 
   const resumo = useMemo(() => {
@@ -318,7 +324,7 @@ export default function Licitacoes() {
   async function buscarComIa(descricao: string, produtos: Produto[]) {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    const candidatosLocais = encontrarCandidatos(descricao, produtos, 6).map((c) => c.produto);
+    const candidatosLocais = encontrarCandidatos(descricao, produtos, 5).map((c) => c.produto);
 
     if (!candidatosLocais.length) {
       clearTimeout(timeout);
@@ -401,6 +407,11 @@ export default function Licitacoes() {
       const itensCotados: ItemLicitacao[] = [];
 
       for (let index = 0; index < linhasNormalizadas.length; index++) {
+        if (index % 25 === 0) {
+          setProgressoProcessamento(`Processando ${index + 1} de ${linhasNormalizadas.length} itens...`);
+          await esperarInterface();
+        }
+
         const linha = linhasNormalizadas[index];
         const descricao = pegarDescricao(linha);
         const quantidade = numero(linha.quantidade || linha.quant || linha.qtd) || 1;
@@ -429,6 +440,7 @@ export default function Licitacoes() {
       setMensagem(`${itensCotados.length} itens processados. Você pode escolher UNITÁRIO ou CAIXA por item.`);
     } finally {
       setProcessando(false);
+      setProgressoProcessamento("");
     }
   }
 
@@ -546,7 +558,7 @@ export default function Licitacoes() {
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
-        {processando && <p className="text-cotamed-700 text-sm mt-4">Processando planilha...</p>}
+        {processando && <p className="text-cotamed-700 text-sm mt-4">{progressoProcessamento || "Processando planilha..."}</p>}
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>

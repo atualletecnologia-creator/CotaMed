@@ -109,6 +109,16 @@ function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: Regis
   return candidatos[0]?.registro || null;
 }
 
+function filtrarRegistrosParaVinculo(registros: RegistroAnvisa[], busca: string) {
+  const termo = textoBusca(busca);
+
+  if (!termo) return registros.slice(0, 25);
+
+  return registros
+    .filter((r) => textoBusca([r.item, r.apresentacao, r.marca, r.registro_anvisa].filter(Boolean).join(" ")).includes(termo))
+    .slice(0, 25);
+}
+
 function labelRegistro(registro: RegistroAnvisa) {
   return [registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | ");
 }
@@ -124,6 +134,8 @@ export default function BancoPrecos() {
   const [importando, setImportando] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [vinculando, setVinculando] = useState("");
+  const [produtoVinculoAberto, setProdutoVinculoAberto] = useState("");
+  const [buscaRegistroVinculo, setBuscaRegistroVinculo] = useState("");
   const [excluindo, setExcluindo] = useState("");
   const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
   const [registroMassaId, setRegistroMassaId] = useState("");
@@ -172,7 +184,7 @@ export default function BancoPrecos() {
     return [...lista].sort((a, b) => String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR"));
   }, [produtos, busca, filtroPdf]);
 
-  const produtosPorPagina = 50;
+  const produtosPorPagina = 30;
 
   const totalPaginasProdutos = Math.max(1, Math.ceil(produtosFiltrados.length / produtosPorPagina));
 
@@ -691,11 +703,48 @@ export default function BancoPrecos() {
                     <td className="p-3">{dinheiro(p.custo_caixa)}</td>
                     <td className="p-3">
                       <div className="flex flex-col gap-2">
-                        <select className="input text-xs" disabled={vinculando === p.id} defaultValue="" onChange={(e) => vincularRegistroManual(p, e.target.value)}>
-                          <option value="">Selecionar manualmente...</option>
-                          {registros.map((r) => <option key={r.id} value={r.id}>{labelRegistro(r)}</option>)}
-                        </select>
+                        <button
+                          type="button"
+                          className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
+                          disabled={vinculando === p.id}
+                          onClick={() => {
+                            setProdutoVinculoAberto(produtoVinculoAberto === p.id ? "" : String(p.id || ""));
+                            setBuscaRegistroVinculo("");
+                          }}
+                        >
+                          {produtoVinculoAberto === p.id ? "Fechar vínculos" : "Vincular manual"}
+                        </button>
+
                         <button className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60" disabled={vinculando === p.id} onClick={() => tentarVincularAutomaticamente(p)}>{vinculando === p.id ? "Vinculando..." : "Tentar automático"}</button>
+
+                        {produtoVinculoAberto === p.id && (
+                          <div className="rounded-xl border bg-blue-50 p-3">
+                            <input
+                              className="input text-xs"
+                              placeholder="Buscar registro..."
+                              value={buscaRegistroVinculo}
+                              onChange={(e) => setBuscaRegistroVinculo(e.target.value)}
+                              autoFocus
+                            />
+
+                            <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                              {filtrarRegistrosParaVinculo(registros, buscaRegistroVinculo).map((r) => (
+                                <button
+                                  key={r.id}
+                                  type="button"
+                                  onClick={() => {
+                                    vincularRegistroManual(p, r.id);
+                                    setProdutoVinculoAberto("");
+                                    setBuscaRegistroVinculo("");
+                                  }}
+                                  className="block w-full rounded-lg bg-white px-3 py-2 text-left text-[11px] hover:bg-blue-100"
+                                >
+                                  {labelRegistro(r)}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </td>
                     <td className="p-3"><button disabled={excluindo === p.id} onClick={() => excluirProduto(p)} className="rounded-lg border px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60">{excluindo === p.id ? "Excluindo..." : "Excluir"}</button></td>
