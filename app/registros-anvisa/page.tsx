@@ -83,6 +83,7 @@ export default function RegistrosAnvisaPage() {
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(true);
   const [enviando, setEnviando] = useState(false);
+  const [progressoMassa, setProgressoMassa] = useState("");
   const [excluindoRegistro, setExcluindoRegistro] = useState("");
 
   const [item, setItem] = useState("");
@@ -128,6 +129,107 @@ export default function RegistrosAnvisaPage() {
     if (dados.marca) setMarca(dados.marca);
     if (dados.vencimento_registro) setVencimentoRegistro(dados.vencimento_registro);
     if (dados.registro_anvisa) setRegistroAnvisa(dados.registro_anvisa);
+  }
+
+  async function enviarPdfsEmMassa(files: FileList | null) {
+    try {
+      setErro("");
+      setMensagem("");
+      setProgressoMassa("");
+
+      if (!files || files.length === 0) return;
+
+      setEnviando(true);
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        setErro("Usuário não autenticado.");
+        return;
+      }
+
+      let enviados = 0;
+      let ignorados = 0;
+      let erros = 0;
+
+      const lista = Array.from(files).filter((file) => file.name.toLowerCase().endsWith(".pdf"));
+
+      if (!lista.length) {
+        setErro("Selecione apenas arquivos PDF.");
+        return;
+      }
+
+      for (let i = 0; i < lista.length; i++) {
+        const file = lista[i];
+
+        setProgressoMassa(`Enviando ${i + 1} de ${lista.length}: ${file.name}`);
+
+        try {
+          const dadosArquivo = parseNomeArquivo(file.name);
+
+          const itemFinal = (dadosArquivo.item || "").trim();
+          const apresentacaoFinal = (dadosArquivo.apresentacao || "").trim();
+          const marcaFinal = (dadosArquivo.marca || "").trim();
+          const vencimentoFinal = normalizarDataAAAA_MM_DD((dadosArquivo.vencimento_registro || "").trim());
+          const registroFinal = (dadosArquivo.registro_anvisa || "").trim();
+
+          if (!itemFinal || !apresentacaoFinal || !marcaFinal || !vencimentoFinal) {
+            ignorados++;
+            continue;
+          }
+
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(vencimentoFinal)) {
+            ignorados++;
+            continue;
+          }
+
+          const nomeSeguro = [
+            limparNomeArquivo(itemFinal),
+            limparNomeArquivo(apresentacaoFinal),
+            limparNomeArquivo(marcaFinal),
+            `venc-${vencimentoFinal}`,
+            registroFinal ? `reg-${limparNomeArquivo(registroFinal)}` : "reg-sem_registro",
+          ].join("_");
+
+          const path = `${userData.user.id}/${nomeSeguro}.pdf`;
+
+          const { error: uploadError } = await supabase.storage
+            .from("registros-anvisa")
+            .upload(path, file, { contentType: "application/pdf", upsert: true });
+
+          if (uploadError) {
+            erros++;
+            continue;
+          }
+
+          const { error: insertError } = await supabase.from("registros_anvisa").upsert({
+            user_id: userData.user.id,
+            item: itemFinal.toUpperCase(),
+            apresentacao: apresentacaoFinal.toUpperCase(),
+            marca: marcaFinal.toUpperCase(),
+            registro_anvisa: registroFinal ? registroFinal.toUpperCase() : null,
+            vencimento_registro: vencimentoFinal,
+            nome_arquivo: file.name.toUpperCase(),
+            pdf_path: path,
+          });
+
+          if (insertError) {
+            erros++;
+            continue;
+          }
+
+          enviados++;
+        } catch {
+          erros++;
+        }
+      }
+
+      setMensagem(`${enviados} registros enviados em massa. ${ignorados} ignorados por nome inválido. ${erros} erros.`);
+      setProgressoMassa("");
+      await carregar();
+    } finally {
+      setEnviando(false);
+    }
   }
 
   async function enviarPdf(file: File | null) {
@@ -267,6 +369,27 @@ export default function RegistrosAnvisaPage() {
       <section className="card p-6 mt-6">
         <h2 className="font-bold text-xl">Enviar PDF do registro</h2>
         <p className="text-sm text-slate-500 mt-1">Padrão do arquivo: item_apresentacao_marca_venc-2028-04-15_reg-123456789.pdf</p>
+
+        <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+          <h3 className="font-semibold text-slate-800">Enviar vários PDFs de uma vez</h3>
+          <p className="text-sm text-slate-600 mt-1">
+            Selecione vários PDFs. O sistema vai ler os dados pelo nome do arquivo.
+          </p>
+
+          <input
+            type="file"
+            accept="application/pdf,.pdf"
+            multiple
+            className="input mt-4"
+            disabled={enviando}
+            onChange={(e) => enviarPdfsEmMassa(e.target.files)}
+          />
+
+          {progressoMassa && (
+            <p className="text-sm text-cotamed-700 mt-3">{progressoMassa}</p>
+          )}
+        </div>
+
 
         <div className="grid md:grid-cols-5 gap-4 mt-5">
           <div><label className="text-sm font-medium">Item</label><input className="input mt-2 uppercase" value={item} onChange={(e) => setItem(maiusculo(e.target.value))} placeholder="EX: CARBONATO DE LÍTIO 300MG" /></div>
