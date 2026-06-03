@@ -121,32 +121,19 @@ function custoPorTipo(produto: Produto, tipoPreco: TipoPreco) {
 
 function detectarTipoPrecoAutomatico(descricao: string, unidade: string): TipoPreco {
   const descOriginal = maiusculo(descricao);
-  const unidOriginal = maiusculo(unidade);
+  const unid = maiusculo(unidade);
 
-  const desc = descOriginal
-    .replace(/[()\[\].,;:]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  const unid = unidOriginal
-    .replace(/[()\[\].,;:]/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-
-  // Regra segura: só considera CAIXA quando houver indicação clara de embalagem.
-  // Evita que 100MG, 100ML ou 100 COMP virem caixa por engano.
   const indicaCaixaNaDescricao =
     /\bC\s*\/\s*\d+\b/.test(descOriginal) ||
     /\bC\/\d+\b/.test(descOriginal) ||
-    /\bCX\s*\d+\b/.test(desc) ||
-    /\bCAIXA\s*(COM\s*)?\d*\b/.test(desc) ||
-    /\bEMBALAGEM\s*(COM\s*)?\d*\b/.test(desc) ||
-    /\bPACOTE\s*(COM\s*)?\d*\b/.test(desc) ||
-    /\bPCT\s*\d*\b/.test(desc) ||
-    /\bCARTELA\s*(COM\s*)?\d*\b/.test(desc);
+    /\bCX\s*\d+\b/.test(descOriginal) ||
+    /\bCAIXA\b/.test(descOriginal) ||
+    /\bEMBALAGEM\b/.test(descOriginal) ||
+    /\bPACOTE\b/.test(descOriginal) ||
+    /\bPCT\b/.test(descOriginal) ||
+    /\bCARTELA\b/.test(descOriginal);
 
-  const indicaCaixaNaUnidade =
-    /\b(CX|CAIXA|PCT|PACOTE|EMBALAGEM|CARTELA)\b/.test(unid);
+  const indicaCaixaNaUnidade = /\b(CX|CAIXA|PCT|PACOTE|EMBALAGEM|CARTELA)\b/.test(unid);
 
   if (indicaCaixaNaDescricao || indicaCaixaNaUnidade) return "caixa";
 
@@ -157,17 +144,6 @@ function resolverTipoPrecoPadrao(tipoPadrao: TipoPreco | "auto", descricao: stri
   if (tipoPadrao === "auto") return detectarTipoPrecoAutomatico(descricao, unidade);
   return tipoPadrao;
 }
-
-function explicarTipoPreco(descricao: string, unidade: string, tipoPreco: TipoPreco) {
-  const automatico = detectarTipoPrecoAutomatico(descricao, unidade);
-
-  if (automatico === tipoPreco) {
-    return tipoPreco === "caixa" ? "AUTO: CAIXA" : "AUTO: UNITÁRIO";
-  }
-
-  return tipoPreco === "caixa" ? "MANUAL: CAIXA" : "MANUAL: UNITÁRIO";
-}
-
 
 function montarItemCotado(params: {
   index: number;
@@ -203,12 +179,8 @@ function montarItemCotado(params: {
   const nivel = classificarConfianca(score);
 
   let status = "Produto não encontrado";
-
-  if (nivel === "alto" && custo > 0) {
-    status = "Encontrado";
-  } else if (nivel === "medio" && custo > 0) {
-    status = "Conferir match";
-  }
+  if (nivel === "alto" && custo > 0) status = "Encontrado";
+  else if (nivel === "medio" && custo > 0) status = "Conferir match";
 
   return {
     numero_item: String(index + 1).padStart(3, "0"),
@@ -216,8 +188,8 @@ function montarItemCotado(params: {
     quantidade,
     unidade,
     produto_id: produto.id || null,
-    marca: maiusculo(produto.marca),
-    registro_anvisa: maiusculo(produto.registro_anvisa),
+    marca: produto.marca,
+    registro_anvisa: produto.registro_anvisa,
     vencimento_registro: produto.vencimento_registro,
     custo_usado: custo || null,
     tipo_preco: tipoPreco,
@@ -229,33 +201,6 @@ function montarItemCotado(params: {
     status,
     excluido: false,
   };
-}
-
-function encontrarProdutoMenorCusto(
-  descricao: string,
-  produtos: Produto[],
-  tipoPreco: TipoPreco
-) {
-  const candidatosOrdenados = encontrarCandidatos(descricao, produtos, 80);
-
-  if (!candidatosOrdenados.length) return null;
-
-  const maiorScore = candidatosOrdenados[0].score;
-
-  const candidatosConfiaveis = candidatosOrdenados
-    .filter((candidato) => candidato.score >= 50)
-    .filter((candidato) => candidato.score >= maiorScore - 12)
-    .map((candidato) => ({
-      ...candidato,
-      custo: custoPorTipo(candidato.produto, tipoPreco),
-    }))
-    .filter((candidato) => candidato.custo > 0)
-    .sort((a, b) => {
-      if (a.custo !== b.custo) return a.custo - b.custo;
-      return b.score - a.score;
-    });
-
-  return candidatosConfiaveis[0] || candidatosOrdenados[0] || null;
 }
 
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
@@ -274,6 +219,7 @@ export default function Licitacoes() {
   const [produtosBanco, setProdutosBanco] = useState<Produto[]>([]);
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
+  const [paginaItens, setPaginaItens] = useState(1);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [processando, setProcessando] = useState(false);
@@ -302,6 +248,21 @@ export default function Licitacoes() {
     if (filtro === "excluidos") return itens.filter((i) => i.excluido);
     return itens;
   }, [itens, filtro]);
+
+  const itensPorPagina = 50;
+
+  const totalPaginasItens = Math.max(1, Math.ceil(itensFiltrados.length / itensPorPagina));
+
+  const itensPaginados = useMemo(() => {
+    const paginaSegura = Math.min(Math.max(paginaItens, 1), totalPaginasItens);
+    const inicio = (paginaSegura - 1) * itensPorPagina;
+
+    return itensFiltrados.slice(inicio, inicio + itensPorPagina);
+  }, [itensFiltrados, paginaItens, totalPaginasItens]);
+
+  useEffect(() => {
+    setPaginaItens(1);
+  }, [filtro, itens.length]);
 
   const itensParaExportar = useMemo(() => itens.filter(itemPodeCotar), [itens]);
 
@@ -605,7 +566,7 @@ export default function Licitacoes() {
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <h2 className="font-bold text-xl">Resultado da cotação</h2>
-                <p className="text-sm text-slate-500">Exibindo {itensFiltrados.length} de {itens.length} itens.</p>
+                <p className="text-sm text-slate-500">Exibindo {itensPaginados.length} de {itensFiltrados.length} itens filtrados. Total da licitação: {itens.length}.</p>
               </div>
 
               <div className="flex flex-col md:flex-row gap-3">
@@ -625,8 +586,34 @@ export default function Licitacoes() {
               </div>
             </div>
 
+            <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-2xl bg-blue-50 p-3 text-sm">
+              <span>
+                Página <b>{Math.min(paginaItens, totalPaginasItens)}</b> de <b>{totalPaginasItens}</b> — mostrando até {itensPorPagina} itens por vez para não travar.
+              </span>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-2 hover:bg-white disabled:opacity-50"
+                  disabled={paginaItens <= 1}
+                  onClick={() => setPaginaItens((p) => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-2 hover:bg-white disabled:opacity-50"
+                  disabled={paginaItens >= totalPaginasItens}
+                  onClick={() => setPaginaItens((p) => Math.min(totalPaginasItens, p + 1))}
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
+
             <div className="mt-5 space-y-2">
-              {itensFiltrados.map((item) => {
+              {itensPaginados.map((item) => {
                 const cotar = itemPodeCotar(item);
                 const statusVisivel = item.excluido ? "Excluído" : item.status;
                 const preencher = !item.excluido && (item.status === "Encontrado" || item.status === "Manual" || item.status === "Conferir match");
@@ -647,15 +634,12 @@ export default function Licitacoes() {
                       <div className="w-16"><Campo label="Qtd" value={item.quantidade} /></div>
                       <div className="w-16"><Campo label="Unid" value={item.unidade} /></div>
 
-                      <div className="w-28">
+                      <div className="w-24">
                         <p className="text-[10px] text-slate-500">Tipo preço</p>
                         <select className="input text-[11px] h-8 py-1" value={item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)} onChange={(e) => alterarTipoPrecoItem(item.numero_item, e.target.value as TipoPreco)}>
                           <option value="unitario">Unit.</option>
                           <option value="caixa">Caixa</option>
                         </select>
-                        <p className="mt-1 text-[9px] text-slate-500">
-                          {explicarTipoPreco(item.descricao, item.unidade, item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade))}
-                        </p>
                       </div>
 
                       <div className="w-28"><Campo label="Marca" value={preencher ? item.marca || "-" : "-"} /></div>
