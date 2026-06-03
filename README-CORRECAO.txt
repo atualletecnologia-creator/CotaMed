@@ -3,8 +3,12 @@ Correção Banco de Preços
 Substitua:
 app/banco-precos/page.tsx
 
-Corrige:
-- Volta o botão Desvincular PDF/Registro em cada produto.
-- Cadastro/importação não vincula registro automaticamente quando a marca for diferente.
-- Se tiver nome igual mas marca diferente, fica sem PDF para selecionar manualmente.
-- Vínculo automático exige marca igual + score seguro, ou registro ANVISA exato.
+Correção:
+- Vínculo automático ficou super rígido.
+- Se a planilha tiver registro ANVISA, só vincula se o número for exatamente igual.
+- Se a planilha não tiver registro, só vincula se:
+  1. Marca for exatamente igual.
+  2. Nome do produto bater forte.
+- Acentos, barras /, vírgulas e caracteres especiais são normalizados antes da comparação.
+- Nome igual com marca diferente NÃO vincula.
+- Nome parecido mas não forte NÃO vincula.

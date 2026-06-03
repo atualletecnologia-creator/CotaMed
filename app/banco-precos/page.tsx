@@ -50,6 +50,71 @@ function textoBusca(valor: unknown) {
   return normalizarTexto(valor).replace(/[^a-z0-9]/g, "");
 }
 
+function normalizarParaMatchForte(valor: unknown) {
+  return String(valor || "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\/\\|,.;:()[\]{}_-]+/g, " ")
+    .replace(/\b(c\/|c|com)\s*(\d+)\b/g, " caixa $2 ")
+    .replace(/\b(cx|caixa|pct|pacote|embalagem|cartela)\b/g, " caixa ")
+    .replace(/\b(comp|compr|comprimido|comprimidos)\b/g, " comprimido ")
+    .replace(/\b(cap|caps|capsula|capsulas)\b/g, " capsula ")
+    .replace(/\b(amp|ampola|ampolas)\b/g, " ampola ")
+    .replace(/\b(un|und|unid|unidade|unidades)\b/g, " unidade ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function palavrasFortes(valor: unknown) {
+  const ignorar = new Set([
+    "de", "da", "do", "das", "dos", "para", "por", "com", "sem",
+    "sulfato", "cloridrato", "sodico", "sodica", "base", "solucao", "solução",
+    "caixa", "unidade", "comprimido", "capsula", "ampola", "ml", "mg", "g"
+  ]);
+
+  return normalizarParaMatchForte(valor)
+    .split(" ")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 1)
+    .filter((p) => !ignorar.has(p));
+}
+
+function marcaIgualObrigatoria(produto: Partial<Produto>, registro: RegistroAnvisa) {
+  const marcaProduto = textoBusca(produto.marca);
+  const marcaRegistro = textoBusca(registro.marca);
+
+  if (!marcaProduto || !marcaRegistro) return false;
+
+  return marcaProduto === marcaRegistro;
+}
+
+function nomeProdutoBateForte(produto: Partial<Produto>, registro: RegistroAnvisa) {
+  const descProduto = normalizarParaMatchForte(produto.descricao);
+  const descRegistro = normalizarParaMatchForte(registro.item);
+
+  if (!descProduto || !descRegistro) return false;
+
+  if (descProduto === descRegistro) return true;
+
+  const pProduto = palavrasFortes(descProduto);
+  const pRegistro = palavrasFortes(descRegistro);
+
+  if (!pProduto.length || !pRegistro.length) return false;
+
+  let iguais = 0;
+
+  pProduto.forEach((p) => {
+    if (pRegistro.includes(p)) iguais++;
+  });
+
+  const percentualProduto = iguais / pProduto.length;
+  const percentualRegistro = iguais / pRegistro.length;
+
+  return percentualProduto >= 0.75 && percentualRegistro >= 0.60;
+}
+
 function tokens(valor: unknown) {
   return normalizarTexto(valor)
     .split(" ")
@@ -74,54 +139,28 @@ function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
   const produtoRegistro = textoBusca(produto.registro_anvisa);
   const registroNumero = textoBusca(registro.registro_anvisa);
 
-  // Se a planilha trouxe número de registro, só aceita se for exatamente igual.
+  // Caso mais seguro: número de registro exatamente igual.
   if (produtoRegistro) {
     return registroNumero && produtoRegistro === registroNumero ? 100 : 0;
   }
 
-  const descProduto = normalizarTexto(produto.descricao);
-  const descRegistro = normalizarTexto(registro.item);
-  const marcaProduto = textoBusca(produto.marca);
-  const marcaRegistro = textoBusca(registro.marca);
+  // Sem registro na planilha, só vincula automaticamente se a marca for igual.
+  if (!marcaIgualObrigatoria(produto, registro)) {
+    return 0;
+  }
+
+  // Mesmo com marca igual, o nome também precisa bater forte.
+  if (!nomeProdutoBateForte(produto, registro)) {
+    return 0;
+  }
+
   const apresentacaoProduto = textoBusca(produto.apresentacao);
   const apresentacaoRegistro = textoBusca(registro.apresentacao);
 
-  // Nome igual com marca diferente NÃO vincula automaticamente.
-  if (marcaProduto && marcaRegistro && marcaProduto !== marcaRegistro) {
-    return 0;
-  }
-
-  // Quando faltar marca em qualquer lado, não arrisca vínculo automático.
-  if (!marcaProduto || !marcaRegistro) {
-    return 0;
-  }
-
-  let score = 45; // marca igual obrigatória
+  let score = 90;
 
   if (apresentacaoProduto && apresentacaoRegistro && apresentacaoProduto === apresentacaoRegistro) {
-    score += 20;
-  }
-
-  if (descProduto && descRegistro) {
-    if (descProduto === descRegistro) {
-      score += 50;
-    } else if (descProduto.includes(descRegistro) || descRegistro.includes(descProduto)) {
-      score += 30;
-    }
-
-    const tProduto = tokens(descProduto);
-    const tRegistro = tokens(descRegistro);
-    let iguais = 0;
-
-    tProduto.forEach((t) => {
-      if (tRegistro.includes(t) || tRegistro.some((r) => r.includes(t) || t.includes(r))) {
-        iguais++;
-      }
-    });
-
-    if (tProduto.length) {
-      score += Math.round((iguais / tProduto.length) * 40);
-    }
+    score += 10;
   }
 
   return score;
@@ -132,6 +171,7 @@ function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: Regis
     .map((registro) => ({ registro, score: scoreRegistro(produto, registro) }))
     .filter((c) => c.score >= 90)
     .sort((a, b) => b.score - a.score);
+
   return candidatos[0]?.registro || null;
 }
 
@@ -150,11 +190,6 @@ export default function BancoPrecos() {
   const [carregando, setCarregando] = useState(true);
   const [vinculando, setVinculando] = useState("");
   const [excluindo, setExcluindo] = useState("");
-  const [desvinculando, setDesvinculando] = useState("");
-  const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
-  const [registroMassaId, setRegistroMassaId] = useState("");
-  const [produtosSelecionadosMassa, setProdutosSelecionadosMassa] = useState<Record<string, boolean>>({});
-  const [aplicandoMassa, setAplicandoMassa] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -203,10 +238,6 @@ export default function BancoPrecos() {
     comPdf: produtos.filter((p) => !!p.pdf_url).length,
     semPdf: produtos.filter((p) => !p.pdf_url).length,
   }), [produtos]);
-
-  const totalSelecionadosMassa = useMemo(() => {
-    return Object.values(produtosSelecionadosMassa).filter(Boolean).length;
-  }, [produtosSelecionadosMassa]);
 
   async function importarPlanilha(file: File | null) {
     try {
@@ -344,184 +375,6 @@ export default function BancoPrecos() {
     await vincularRegistroManual(produto, registro.id);
   }
 
-  function alternarProdutoMassa(produtoId: string | undefined, marcado: boolean) {
-    if (!produtoId) return;
-
-    setProdutosSelecionadosMassa((atual) => ({
-      ...atual,
-      [produtoId]: marcado,
-    }));
-  }
-
-  function selecionarTodosFiltradosMassa() {
-    const novos: Record<string, boolean> = {};
-
-    produtosFiltrados.forEach((produto) => {
-      if (produto.id) novos[produto.id] = true;
-    });
-
-    setProdutosSelecionadosMassa(novos);
-    setMensagem(`${Object.keys(novos).length} produtos filtrados selecionados para vínculo em massa.`);
-  }
-
-  function limparSelecaoMassa() {
-    setProdutosSelecionadosMassa({});
-    setRegistroMassaId("");
-    setMensagem("Seleção de vínculo em massa limpa.");
-  }
-
-  async function aplicarRegistroEmMassa() {
-    try {
-      setErro("");
-      setMensagem("");
-
-      const produtoIds = Object.entries(produtosSelecionadosMassa)
-        .filter(([, marcado]) => marcado)
-        .map(([produtoId]) => produtoId);
-
-      if (!registroMassaId) {
-        setErro("Selecione o registro ANVISA que será aplicado em massa.");
-        return;
-      }
-
-      if (!produtoIds.length) {
-        setErro("Selecione pelo menos um produto para receber o registro.");
-        return;
-      }
-
-      const registro = registros.find((r) => r.id === registroMassaId);
-
-      if (!registro) {
-        setErro("Registro ANVISA não encontrado.");
-        return;
-      }
-
-      const confirmar = window.confirm(
-        `Vincular o registro ${registro.registro_anvisa || ""} a ${produtoIds.length} produtos selecionados?`
-      );
-
-      if (!confirmar) return;
-
-      setAplicandoMassa(true);
-
-      const { error } = await supabase
-        .from("produtos")
-        .update({
-          registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
-          vencimento_registro: registro.vencimento_registro,
-          pdf_url: registro.pdf_path,
-        })
-        .in("id", produtoIds);
-
-      if (error) {
-        setErro(error.message);
-        return;
-      }
-
-      setMensagem(`${produtoIds.length} produtos vinculados ao registro selecionado.`);
-      setProdutosSelecionadosMassa({});
-      setRegistroMassaId("");
-
-      await carregarDados();
-    } finally {
-      setAplicandoMassa(false);
-    }
-  }
-
-  async function atualizarTodosVinculos() {
-    try {
-      setErro("");
-      setMensagem("");
-
-      const confirmar = window.confirm(
-        "Atualizar vínculos somente dos produtos que ainda estão sem registro/PDF? Produtos já vinculados serão mantidos."
-      );
-
-      if (!confirmar) return;
-
-      setAtualizandoVinculos(true);
-
-      let vinculados = 0;
-      let semVinculoSeguro = 0;
-      let mantidos = 0;
-      let erros = 0;
-
-      for (const produto of produtos) {
-        if (!produto.id) continue;
-
-        if (produto.registro_anvisa || produto.pdf_url) {
-          mantidos++;
-          continue;
-        }
-
-        const registro = encontrarRegistroAutomatico(produto, registros);
-
-        if (!registro) {
-          semVinculoSeguro++;
-          continue;
-        }
-
-        const { error } = await supabase
-          .from("produtos")
-          .update({
-            registro_anvisa: registro.registro_anvisa ? maiusculo(registro.registro_anvisa) : null,
-            vencimento_registro: registro.vencimento_registro,
-            pdf_url: registro.pdf_path,
-          })
-          .eq("id", produto.id);
-
-        if (error) {
-          erros++;
-          continue;
-        }
-
-        vinculados++;
-      }
-
-      setMensagem(
-        `Vínculos atualizados. ${vinculados} novos vínculos aplicados. ${mantidos} produtos já vinculados foram mantidos. ${semVinculoSeguro} ficaram sem vínculo seguro. ${erros} erros.`
-      );
-
-      await carregarDados();
-    } finally {
-      setAtualizandoVinculos(false);
-    }
-  }
-
-  async function desvincularRegistroProduto(produto: Produto) {
-    try {
-      setErro("");
-      setMensagem("");
-
-      if (!produto.id) return;
-
-      const confirmar = window.confirm(`Desvincular PDF/registro de ${produto.descricao || "produto"}?`);
-
-      if (!confirmar) return;
-
-      setDesvinculando(produto.id);
-
-      const { error } = await supabase
-        .from("produtos")
-        .update({
-          registro_anvisa: null,
-          vencimento_registro: null,
-          pdf_url: null,
-        })
-        .eq("id", produto.id);
-
-      if (error) {
-        setErro(error.message);
-        return;
-      }
-
-      setMensagem("PDF/registro desvinculado do produto com sucesso.");
-      await carregarDados();
-    } finally {
-      setDesvinculando("");
-    }
-  }
-
   async function excluirProduto(produto: Produto) {
     try {
       setErro("");
@@ -561,20 +414,7 @@ export default function BancoPrecos() {
           <p className="text-slate-500">Banco de produtos com vínculo automático ou manual dos registros ANVISA.</p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-3">
-          <button
-            type="button"
-            disabled={atualizandoVinculos || carregando}
-            onClick={atualizarTodosVinculos}
-            className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
-          >
-            {atualizandoVinculos ? "Atualizando..." : "Atualizar vínculos pendentes"}
-          </button>
-
-          <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">
-            Baixar planilha modelo
-          </a>
-        </div>
+        <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">Baixar planilha modelo</a>
       </div>
 
       <section className="card p-6 mt-6">
@@ -585,7 +425,7 @@ export default function BancoPrecos() {
           <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. O vínculo automático só acontece quando a <b>marca é igual</b> e o match é seguro. Se o registro estiver errado, use <b>Desvincular</b>. Para vincular muitos produtos manualmente, escolha um registro no bloco <b>Vincular um registro a vários produtos</b>, marque os produtos na tabela e clique em <b>Aplicar</b>.</div>
+        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. O vínculo automático só acontece quando a <b>marca é exatamente igual</b> e o <b>nome bate forte</b>. Se não tiver certeza, fica sem PDF para vínculo manual.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
@@ -613,53 +453,6 @@ export default function BancoPrecos() {
               </select>
               <input className="input md:w-96 uppercase" placeholder="Buscar por descrição, marca, registro, apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
-
-            <div className="rounded-2xl border bg-blue-50 p-4">
-              <p className="text-sm font-semibold text-slate-700 mb-3">
-                Vincular um registro a vários produtos
-              </p>
-
-              <div className="grid md:grid-cols-[1fr_160px_160px_160px] gap-3">
-                <select
-                  className="input text-sm"
-                  value={registroMassaId}
-                  onChange={(e) => setRegistroMassaId(e.target.value)}
-                  disabled={aplicandoMassa}
-                >
-                  <option value="">Escolha o registro ANVISA...</option>
-                  {registros.map((r) => (
-                    <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
-                  ))}
-                </select>
-
-                <button
-                  type="button"
-                  disabled={aplicandoMassa || produtosFiltrados.length === 0}
-                  onClick={selecionarTodosFiltradosMassa}
-                  className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-100 disabled:opacity-60"
-                >
-                  Selecionar filtrados
-                </button>
-
-                <button
-                  type="button"
-                  disabled={aplicandoMassa || !registroMassaId || totalSelecionadosMassa === 0}
-                  onClick={aplicarRegistroEmMassa}
-                  className="rounded-xl bg-cotamed-700 px-4 py-2 text-white hover:bg-cotamed-800 disabled:opacity-60"
-                >
-                  {aplicandoMassa ? "Aplicando..." : `Aplicar (${totalSelecionadosMassa})`}
-                </button>
-
-                <button
-                  type="button"
-                  disabled={aplicandoMassa || (!registroMassaId && totalSelecionadosMassa === 0)}
-                  onClick={limparSelecaoMassa}
-                  className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-white disabled:opacity-60"
-                >
-                  Limpar
-                </button>
-              </div>
-            </div>
           </div>
         </div>
 
@@ -672,14 +465,12 @@ export default function BancoPrecos() {
             <table className="w-full text-xs">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
-                  <th className="text-left p-3">Sel.</th>
                   <th className="text-left p-3">Descrição</th>
                   <th className="text-left p-3">Apresentação</th>
                   <th className="text-left p-3">Marca</th>
                   <th className="text-left p-3">Registro ANVISA</th>
                   <th className="text-left p-3">Vencimento</th>
                   <th className="text-left p-3">PDF</th>
-                  <th className="text-left p-3">Desvincular</th>
                   <th className="text-left p-3">Qtd/Caixa</th>
                   <th className="text-left p-3">Custo Unit.</th>
                   <th className="text-left p-3">Custo Caixa</th>
@@ -691,33 +482,12 @@ export default function BancoPrecos() {
               <tbody>
                 {produtosFiltrados.map((p, index) => (
                   <tr key={p.id || index} className="border-t align-top">
-                    <td className="p-3">
-                      <input
-                        type="checkbox"
-                        disabled={!p.id || aplicandoMassa}
-                        checked={p.id ? !!produtosSelecionadosMassa[p.id] : false}
-                        onChange={(e) => alternarProdutoMassa(p.id, e.target.checked)}
-                      />
-                    </td>
                     <td className="p-3 font-medium">{p.descricao || "-"}</td>
                     <td className="p-3">{p.apresentacao || "-"}</td>
                     <td className="p-3">{p.marca || "-"}</td>
                     <td className="p-3">{p.registro_anvisa || "Não vinculado"}</td>
                     <td className="p-3">{p.vencimento_registro || "-"}</td>
                     <td className="p-3">{p.pdf_url ? <button onClick={() => abrirPdf(p.pdf_url)} className="text-cotamed-700 underline">Abrir PDF</button> : <span className="text-red-600 font-medium">Sem PDF</span>}</td>
-                    <td className="p-3">
-                      {(p.registro_anvisa || p.pdf_url) ? (
-                        <button
-                          disabled={desvinculando === p.id}
-                          onClick={() => desvincularRegistroProduto(p)}
-                          className="rounded-lg border px-3 py-2 text-yellow-700 hover:bg-yellow-50 disabled:opacity-60"
-                        >
-                          {desvinculando === p.id ? "Desvinculando..." : "Desvincular"}
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
                     <td className="p-3">{p.quantidade_por_caixa || "-"}</td>
                     <td className="p-3">{dinheiro(p.custo_unitario)}</td>
                     <td className="p-3">{dinheiro(p.custo_caixa)}</td>
