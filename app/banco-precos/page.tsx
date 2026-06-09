@@ -154,6 +154,23 @@ function encontrarRegistroAutomatico(produto: Partial<Produto>, registros: Regis
   return candidatos[0]?.registro || null;
 }
 
+function filtrarRegistrosParaVinculo(registros: RegistroAnvisa[], busca: string) {
+  const termo = textoBusca(busca);
+
+  if (!termo) return registros.slice(0, 25);
+
+  return registros
+    .filter((registro) =>
+      textoBusca([
+        registro.item,
+        registro.apresentacao,
+        registro.marca,
+        registro.registro_anvisa,
+      ].filter(Boolean).join(" ")).includes(termo)
+    )
+    .slice(0, 25);
+}
+
 function labelRegistro(registro: RegistroAnvisa) {
   return [registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | ");
 }
