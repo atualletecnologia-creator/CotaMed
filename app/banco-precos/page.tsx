@@ -173,6 +173,7 @@ export default function BancoPrecos() {
   const [buscaRegistroVinculo, setBuscaRegistroVinculo] = useState("");
   const [excluindo, setExcluindo] = useState("");
   const [desvinculando, setDesvinculando] = useState("");
+  const [desvinculandoMassa, setDesvinculandoMassa] = useState(false);
   const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
   const [registroMassaId, setRegistroMassaId] = useState("");
   const [produtosSelecionadosMassa, setProdutosSelecionadosMassa] = useState<Record<string, boolean>>({});
@@ -525,6 +526,51 @@ export default function BancoPrecos() {
     }
   }
 
+  async function desvincularRegistrosEmMassa() {
+    try {
+      setErro("");
+      setMensagem("");
+
+      const produtoIds = Object.entries(produtosSelecionadosMassa)
+        .filter(([, marcado]) => marcado)
+        .map(([produtoId]) => produtoId);
+
+      if (!produtoIds.length) {
+        setErro("Selecione pelo menos um produto para desvincular.");
+        return;
+      }
+
+      const confirmar = window.confirm(
+        `Desvincular registro/PDF de ${produtoIds.length} produtos selecionados?`
+      );
+
+      if (!confirmar) return;
+
+      setDesvinculandoMassa(true);
+
+      const { error } = await supabase
+        .from("produtos")
+        .update({
+          registro_anvisa: null,
+          vencimento_registro: null,
+          pdf_url: null,
+        })
+        .in("id", produtoIds);
+
+      if (error) {
+        setErro(error.message);
+        return;
+      }
+
+      setMensagem(`${produtoIds.length} produtos desvinculados com sucesso.`);
+      setProdutosSelecionadosMassa({});
+
+      await carregarDados();
+    } finally {
+      setDesvinculandoMassa(false);
+    }
+  }
+
   async function desvincularRegistroProduto(produto: Produto) {
     try {
       setErro("");
@@ -649,6 +695,26 @@ export default function BancoPrecos() {
                 <option value="sem_pdf">Somente sem PDF</option>
               </select>
               <input className="input md:w-96 uppercase" placeholder="Buscar por descrição, marca, registro, apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
+              <button
+                type="button"
+                disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
+                onClick={desvincularRegistrosEmMassa}
+                className="rounded-xl border border-yellow-300 px-4 py-2 text-yellow-800 hover:bg-yellow-50 disabled:opacity-60"
+              >
+                {desvinculandoMassa ? "Desvinculando..." : `Desvincular selecionados (${totalSelecionadosMassa})`}
+              </button>
+
+              <button
+                type="button"
+                disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
+                onClick={limparSelecaoMassa}
+                className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Limpar seleção
+              </button>
             </div>
 
             <div className="rounded-2xl border bg-blue-50 p-4">
