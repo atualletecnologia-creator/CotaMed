@@ -203,6 +203,74 @@ function montarItemCotado(params: {
   };
 }
 
+function normalizarBuscaProduto(valor: unknown) {
+  return String(valor || "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\/\\|,.;:()[\]{}_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function chaveProdutoSemMarca(produto: Produto) {
+  return normalizarBuscaProduto([
+    produto.descricao,
+    produto.apresentacao,
+  ].filter(Boolean).join(" | "));
+}
+
+function produtosManuaisMenorCusto(
+  produtos: Produto[],
+  descricaoBusca: string,
+  tipoPreco: TipoPreco
+) {
+  const termo = normalizarBuscaProduto(descricaoBusca);
+
+  const candidatos = produtos
+    .filter((produto) => {
+      const texto = normalizarBuscaProduto([
+        produto.descricao,
+        produto.apresentacao,
+        produto.marca,
+        produto.registro_anvisa,
+      ].filter(Boolean).join(" "));
+
+      return !termo || texto.includes(termo) || termo.includes(normalizarBuscaProduto(produto.descricao));
+    });
+
+  const melhorPorProduto = new Map<string, Produto>();
+
+  candidatos.forEach((produto) => {
+    const chave = chaveProdutoSemMarca(produto) || String(produto.id || "");
+    const atual = melhorPorProduto.get(chave);
+
+    if (!atual) {
+      melhorPorProduto.set(chave, produto);
+      return;
+    }
+
+    const custoAtual = custoPorTipo(atual, tipoPreco) || Number.MAX_SAFE_INTEGER;
+    const custoNovo = custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER;
+
+    if (custoNovo < custoAtual) {
+      melhorPorProduto.set(chave, produto);
+    }
+  });
+
+  return Array.from(melhorPorProduto.values())
+    .sort((a, b) => {
+      const custoA = custoPorTipo(a, tipoPreco) || Number.MAX_SAFE_INTEGER;
+      const custoB = custoPorTipo(b, tipoPreco) || Number.MAX_SAFE_INTEGER;
+
+      if (custoA !== custoB) return custoA - custoB;
+
+      return String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR");
+    })
+    .slice(0, 30);
+}
+
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
@@ -222,6 +290,7 @@ export default function Licitacoes() {
   const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<TipoPreco | "auto">("auto");
   const [usarIa, setUsarIa] = useState(false);
   const [produtosBanco, setProdutosBanco] = useState<Produto[]>([]);
+  const [buscaManualPorItem, setBuscaManualPorItem] = useState<Record<string, string>>({});
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [paginaItens, setPaginaItens] = useState(1);
@@ -360,6 +429,7 @@ export default function Licitacoes() {
       setErro("");
       setMensagem("");
       setItens([]);
+      setBuscaManualPorItem({});
       setFiltro("todos");
 
       if (!file) return;
@@ -637,9 +707,31 @@ export default function Licitacoes() {
 
                       <div className="min-w-[260px] flex-1">
                         <Campo label="Descrição" value={item.descricao} />
-                        <select className="input mt-2 text-[11px] h-8 py-1" value={item.produto_id || ""} onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}>
-                          <option value="">Selecionar produto manualmente...</option>
-                          {produtosBanco.map((p) => (<option key={p.id} value={p.id}>{labelProduto(p)}</option>))}
+                        <input
+                          className="input mt-2 text-[11px] h-8 py-1"
+                          placeholder="BUSCAR PRODUTO MANUAL..."
+                          value={buscaManualPorItem[item.numero_item] || ""}
+                          onChange={(e) =>
+                            setBuscaManualPorItem((atual) => ({
+                              ...atual,
+                              [item.numero_item]: e.target.value.toUpperCase(),
+                            }))
+                          }
+                        />
+
+                        <select
+                          className="input mt-2 text-[11px] h-8 py-1"
+                          value={item.produto_id || ""}
+                          onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
+                        >
+                          <option value="">Selecionar menor custo...</option>
+                          {produtosManuaisMenorCusto(
+                            produtosBanco,
+                            buscaManualPorItem[item.numero_item] || item.descricao,
+                            item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)
+                          ).map((p) => (
+                            <option key={p.id} value={p.id}>{labelProduto(p)}</option>
+                          ))}
                         </select>
                       </div>
 
