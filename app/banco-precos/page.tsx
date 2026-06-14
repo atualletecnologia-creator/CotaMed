@@ -171,6 +171,41 @@ function filtrarRegistrosParaVinculo(registros: RegistroAnvisa[], busca: string)
     .slice(0, 25);
 }
 
+async function buscarTodosSupabase<T>(
+  tabela: string,
+  ordenarPor: string,
+  ascendente = true
+) {
+  const tamanhoLote = 1000;
+  let inicio = 0;
+  let todos: T[] = [];
+
+  while (true) {
+    const fim = inicio + tamanhoLote - 1;
+
+    const { data, error } = await supabase
+      .from(tabela)
+      .select("*")
+      .order(ordenarPor, { ascending: ascendente })
+      .range(inicio, fim);
+
+    if (error) {
+      throw error;
+    }
+
+    const lote = (data || []) as T[];
+    todos = todos.concat(lote);
+
+    if (lote.length < tamanhoLote) {
+      break;
+    }
+
+    inicio += tamanhoLote;
+  }
+
+  return todos;
+}
+
 function labelRegistro(registro: RegistroAnvisa) {
   return [registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | ");
 }
@@ -224,26 +259,19 @@ export default function BancoPrecos() {
     setCarregando(true);
     setErro("");
 
-    const [produtosResp, registrosResp] = await Promise.all([
-      supabase.from("produtos").select("*").range(0, 5000).order("descricao", { ascending: true }),
-      supabase.from("registros_anvisa").select("*").range(0, 5000).order("item", { ascending: true }),
-    ]);
+    try {
+      const [produtosTodos, registrosTodos] = await Promise.all([
+        buscarTodosSupabase<Produto>("produtos", "descricao", true),
+        buscarTodosSupabase<RegistroAnvisa>("registros_anvisa", "item", true),
+      ]);
 
-    if (produtosResp.error) {
-      setErro(produtosResp.error.message);
+      setProdutos(produtosTodos);
+      setRegistros(registrosTodos);
+    } catch (e: any) {
+      setErro(e.message || "Erro ao carregar dados.");
+    } finally {
       setCarregando(false);
-      return;
     }
-
-    if (registrosResp.error) {
-      setErro(registrosResp.error.message);
-      setCarregando(false);
-      return;
-    }
-
-    setProdutos(produtosResp.data || []);
-    setRegistros(registrosResp.data || []);
-    setCarregando(false);
   }
 
   const produtosFiltrados = useMemo(() => {
@@ -875,7 +903,7 @@ export default function BancoPrecos() {
       </section>
 
       <section className="grid md:grid-cols-3 gap-4 mt-6">
-        <div className="card p-5"><p className="text-sm text-slate-500">Total de produtos</p><h3 className="text-2xl font-bold">{resumoPdf.todos}</h3></div>
+        <div className="card p-5"><p className="text-sm text-slate-500">Total de produtos carregados</p><h3 className="text-2xl font-bold">{resumoPdf.todos}</h3></div>
         <div className="card p-5"><p className="text-sm text-slate-500">Com PDF</p><h3 className="text-2xl font-bold text-green-700">{resumoPdf.comPdf}</h3></div>
         <div className="card p-5"><p className="text-sm text-slate-500">Sem PDF</p><h3 className="text-2xl font-bold text-red-700">{resumoPdf.semPdf}</h3></div>
       </section>
