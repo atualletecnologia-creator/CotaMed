@@ -195,10 +195,30 @@ export default function BancoPrecos() {
   const [registroMassaId, setRegistroMassaId] = useState("");
   const [produtosSelecionadosMassa, setProdutosSelecionadosMassa] = useState<Record<string, boolean>>({});
   const [aplicandoMassa, setAplicandoMassa] = useState(false);
+  const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
   useEffect(() => {
     carregarDados();
   }, []);
+
+  function atualizarCampoEdicao(campo: keyof Produto, valor: string) {
+    setProdutoEditando((atual) => {
+      if (!atual) return atual;
+
+      if (campo === "quantidade_por_caixa" || campo === "custo_unitario" || campo === "custo_caixa") {
+        return {
+          ...atual,
+          [campo]: valor === "" ? null : Number(String(valor).replace(",", ".")),
+        };
+      }
+
+      return {
+        ...atual,
+        [campo]: valor.toUpperCase(),
+      };
+    });
+  }
 
   async function carregarDados() {
     setCarregando(true);
@@ -622,6 +642,144 @@ export default function BancoPrecos() {
     }
   }
 
+  function baixarPlanilhaProdutosCadastrados() {
+    const dados = produtosFiltrados.map((produto) => ({
+      id: produto.id || "",
+      descricao: produto.descricao || "",
+      apresentacao: produto.apresentacao || "",
+      marca: produto.marca || "",
+      registro_anvisa: produto.registro_anvisa || "",
+      vencimento_registro: produto.vencimento_registro || "",
+      unidade: produto.unidade || "",
+      quantidade_por_caixa: produto.quantidade_por_caixa || "",
+      custo_unitario: produto.custo_unitario || "",
+      custo_caixa: produto.custo_caixa || "",
+      origem_preco: produto.origem_preco || "",
+      pdf_url: produto.pdf_url || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dados);
+    const wb = XLSX.utils.book_new();
+
+    XLSX.utils.book_append_sheet(wb, ws, "Banco de Preços");
+    XLSX.writeFile(wb, `banco-precos-cotamed-${new Date().toISOString().slice(0, 10)}.xlsx`);
+  }
+
+  async function atualizarProdutosPorPlanilha(file: File | null) {
+    try {
+      setErro("");
+      setMensagem("");
+
+      if (!file) return;
+
+      setImportando(true);
+
+      const buffer = await file.arrayBuffer();
+      const workbook = XLSX.read(buffer, { type: "array" });
+      const primeiraAba = workbook.SheetNames[0];
+      const sheet = workbook.Sheets[primeiraAba];
+      const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
+
+      const atualizacoes = linhas
+        .map((linha) => {
+          const normalizada: Record<string, unknown> = {};
+
+          Object.entries(linha).forEach(([chave, valor]) => {
+            normalizada[normalizarCabecalho(chave)] = valor;
+          });
+
+          return normalizada;
+        })
+        .filter((linha) => String(linha.id || "").trim());
+
+      if (!atualizacoes.length) {
+        setErro("Nenhum produto com ID encontrado na planilha. Baixe a planilha do sistema, edite e envie novamente.");
+        return;
+      }
+
+      let atualizados = 0;
+      let erros = 0;
+
+      for (const linha of atualizacoes) {
+        const id = String(linha.id || "").trim();
+
+        const payload = {
+          descricao: maiusculo(linha.descricao),
+          item: maiusculo(linha.descricao),
+          apresentacao: maiusculo(linha.apresentacao) || null,
+          marca: maiusculo(linha.marca) || null,
+          registro_anvisa: maiusculo(linha.registro_anvisa) || null,
+          vencimento_registro: String(linha.vencimento_registro || "").trim() || null,
+          unidade: maiusculo(linha.unidade) || null,
+          quantidade_por_caixa: numero(linha.quantidade_por_caixa),
+          custo_unitario: numero(linha.custo_unitario),
+          custo_caixa: numero(linha.custo_caixa),
+          origem_preco: maiusculo(linha.origem_preco) || "ATUALIZAÇÃO EM MASSA",
+          data_atualizacao_custo: new Date().toISOString(),
+          pdf_url: String(linha.pdf_url || "").trim() || null,
+        };
+
+        const { error } = await supabase
+          .from("produtos")
+          .update(payload)
+          .eq("id", id);
+
+        if (error) {
+          erros++;
+        } else {
+          atualizados++;
+        }
+      }
+
+      setMensagem(`${atualizados} produtos atualizados pela planilha. ${erros} erros.`);
+      await carregarDados();
+    } finally {
+      setImportando(false);
+    }
+  }
+
+  async function salvarEdicaoProduto() {
+    try {
+      setErro("");
+      setMensagem("");
+
+      if (!produtoEditando?.id) return;
+
+      setSalvandoEdicao(true);
+
+      const payload = {
+        descricao: maiusculo(produtoEditando.descricao),
+        item: maiusculo(produtoEditando.descricao),
+        apresentacao: maiusculo(produtoEditando.apresentacao) || null,
+        marca: maiusculo(produtoEditando.marca) || null,
+        registro_anvisa: maiusculo(produtoEditando.registro_anvisa) || null,
+        vencimento_registro: produtoEditando.vencimento_registro || null,
+        unidade: maiusculo(produtoEditando.unidade) || null,
+        quantidade_por_caixa: produtoEditando.quantidade_por_caixa || null,
+        custo_unitario: produtoEditando.custo_unitario || null,
+        custo_caixa: produtoEditando.custo_caixa || null,
+        origem_preco: maiusculo(produtoEditando.origem_preco) || "EDIÇÃO MANUAL",
+        data_atualizacao_custo: new Date().toISOString(),
+      };
+
+      const { error } = await supabase
+        .from("produtos")
+        .update(payload)
+        .eq("id", produtoEditando.id);
+
+      if (error) {
+        setErro(error.message);
+        return;
+      }
+
+      setMensagem("Produto atualizado com sucesso.");
+      setProdutoEditando(null);
+      await carregarDados();
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  }
+
   async function excluirProduto(produto: Produto) {
     try {
       setErro("");
@@ -683,6 +841,31 @@ export default function BancoPrecos() {
         <div className="grid md:grid-cols-[1fr_180px] gap-4 mt-5">
           <input type="file" accept=".xlsx,.xls" className="input" onChange={(e) => importarPlanilha(e.target.files?.[0] || null)} />
           <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
+        </div>
+
+        <div className="mt-5 rounded-2xl border bg-blue-50 p-4">
+          <h3 className="font-semibold">Editar produtos em massa</h3>
+          <p className="text-sm text-slate-600 mt-1">
+            Baixe a planilha cadastrada, edite os itens e envie novamente para atualizar em massa.
+          </p>
+
+          <div className="grid md:grid-cols-[220px_1fr] gap-3 mt-4">
+            <button
+              type="button"
+              className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-white"
+              onClick={baixarPlanilhaProdutosCadastrados}
+            >
+              Baixar planilha cadastrada
+            </button>
+
+            <input
+              type="file"
+              accept=".xlsx,.xls"
+              className="input"
+              disabled={importando}
+              onChange={(e) => atualizarProdutosPorPlanilha(e.target.files?.[0] || null)}
+            />
+          </div>
         </div>
 
         <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. O vínculo automático só acontece se o <b>registro for exatamente igual</b> ou se a <b>marca for exatamente igual</b> e o <b>nome bater com muita segurança</b>. Caso contrário, fica sem PDF para vínculo manual. Para vincular muitos produtos manualmente, escolha um registro no bloco <b>Vincular um registro a vários produtos</b>, marque os produtos na tabela e clique em <b>Aplicar</b>.</div>
@@ -831,6 +1014,7 @@ export default function BancoPrecos() {
                   <th className="text-left p-3">Custo Unit.</th>
                   <th className="text-left p-3">Custo Caixa</th>
                   <th className="text-left p-3 min-w-[260px]">Vincular registro</th>
+                  <th className="text-left p-3">Editar</th>
                   <th className="text-left p-3">Excluir</th>
                 </tr>
               </thead>
@@ -914,6 +1098,15 @@ export default function BancoPrecos() {
                         )}
                       </div>
                     </td>
+                    <td className="p-3">
+                      <button
+                        type="button"
+                        onClick={() => setProdutoEditando({ ...p })}
+                        className="rounded-lg border px-3 py-2 text-cotamed-700 hover:bg-blue-50"
+                      >
+                        Editar
+                      </button>
+                    </td>
                     <td className="p-3"><button disabled={excluindo === p.id} onClick={() => excluirProduto(p)} className="rounded-lg border px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60">{excluindo === p.id ? "Excluindo..." : "Excluir"}</button></td>
                   </tr>
                 ))}
@@ -923,6 +1116,47 @@ export default function BancoPrecos() {
           </>
         )}
       </section>
+      {produtoEditando && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold">Editar produto cadastrado</h2>
+                <p className="text-sm text-slate-500">Altere os campos e salve. Os textos serão gravados em maiúsculo.</p>
+              </div>
+
+              <button
+                type="button"
+                className="rounded-lg border px-3 py-2"
+                onClick={() => setProdutoEditando(null)}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-4 mt-5">
+              <div><label className="text-sm font-medium">Descrição</label><input className="input mt-2 uppercase" value={produtoEditando.descricao || ""} onChange={(e) => atualizarCampoEdicao("descricao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2 uppercase" value={produtoEditando.apresentacao || ""} onChange={(e) => atualizarCampoEdicao("apresentacao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Marca</label><input className="input mt-2 uppercase" value={produtoEditando.marca || ""} onChange={(e) => atualizarCampoEdicao("marca", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2 uppercase" value={produtoEditando.registro_anvisa || ""} onChange={(e) => atualizarCampoEdicao("registro_anvisa", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Vencimento Registro</label><input className="input mt-2" placeholder="AAAA-MM-DD" value={produtoEditando.vencimento_registro || ""} onChange={(e) => atualizarCampoEdicao("vencimento_registro", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Unidade</label><input className="input mt-2 uppercase" value={produtoEditando.unidade || ""} onChange={(e) => atualizarCampoEdicao("unidade", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Qtd por caixa</label><input className="input mt-2" type="number" value={produtoEditando.quantidade_por_caixa || ""} onChange={(e) => atualizarCampoEdicao("quantidade_por_caixa", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Custo unitário</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_unitario || ""} onChange={(e) => atualizarCampoEdicao("custo_unitario", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Custo caixa</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_caixa || ""} onChange={(e) => atualizarCampoEdicao("custo_caixa", e.target.value)} /></div>
+              <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2 uppercase" value={produtoEditando.origem_preco || ""} onChange={(e) => atualizarCampoEdicao("origem_preco", e.target.value)} /></div>
+            </div>
+
+            <div className="flex justify-end gap-3 mt-6">
+              <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setProdutoEditando(null)}>Cancelar</button>
+              <button type="button" className="btn-primary" disabled={salvandoEdicao} onClick={salvarEdicaoProduto}>
+                {salvandoEdicao ? "Salvando..." : "Salvar alterações"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </AppShell>
   );
 }
