@@ -205,8 +205,8 @@ export default function BancoPrecos() {
     setErro("");
 
     const [produtosResp, registrosResp] = await Promise.all([
-      supabase.from("produtos").select("*").order("descricao", { ascending: true }),
-      supabase.from("registros_anvisa").select("*").order("item", { ascending: true }),
+      supabase.from("produtos").select("*").range(0, 5000).order("descricao", { ascending: true }),
+      supabase.from("registros_anvisa").select("*").range(0, 5000).order("item", { ascending: true }),
     ]);
 
     if (produtosResp.error) {
