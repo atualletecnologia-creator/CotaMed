@@ -99,53 +99,69 @@ export default function Dashboard() {
     try {
       const { supabase } = await import("@/lib/supabase");
 
-      const [produtosResp, registrosResp] = await Promise.all([
+      const [
+        totalProdutosResp,
+        precosDesatualizadosResp,
+        vencidosProdutosResp,
+        vencidosRegistrosResp,
+        pdfsProdutosResp,
+        pdfsRegistrosResp,
+      ] = await Promise.all([
         supabase
           .from("produtos")
-          .select("id,descricao,data_atualizacao_custo,vencimento_registro,pdf_url"),
+          .select("id", { count: "exact", head: true }),
+
+        supabase
+          .from("produtos")
+          .select("id", { count: "exact", head: true })
+          .lt("data_atualizacao_custo", new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()),
+
+        supabase
+          .from("produtos")
+          .select("id", { count: "exact", head: true })
+          .lt("vencimento_registro", new Date().toISOString().slice(0, 10)),
+
         supabase
           .from("registros_anvisa")
-          .select("id,pdf_path,vencimento_registro"),
+          .select("id", { count: "exact", head: true })
+          .lt("vencimento_registro", new Date().toISOString().slice(0, 10)),
+
+        supabase
+          .from("produtos")
+          .select("id", { count: "exact", head: true })
+          .not("pdf_url", "is", null),
+
+        supabase
+          .from("registros_anvisa")
+          .select("id", { count: "exact", head: true })
+          .not("pdf_path", "is", null),
       ]);
 
-      if (produtosResp.error) {
-        setErro(produtosResp.error.message);
+      const respostas = [
+        totalProdutosResp,
+        precosDesatualizadosResp,
+        vencidosProdutosResp,
+        vencidosRegistrosResp,
+        pdfsProdutosResp,
+        pdfsRegistrosResp,
+      ];
+
+      const erroResposta = respostas.find((resp) => resp.error);
+
+      if (erroResposta?.error) {
+        setErro(erroResposta.error.message);
         setCarregando(false);
         return;
       }
 
-      if (registrosResp.error) {
-        setErro(registrosResp.error.message);
-        setCarregando(false);
-        return;
-      }
-
-      const produtos = (produtosResp.data || []) as Produto[];
-      const registros = (registrosResp.data || []) as RegistroAnvisa[];
-
-      setTotalProdutos(produtos.length);
-
-      setPrecosDesatualizados(
-        produtos.filter((p) => {
-          const dias = diasDesde(p.data_atualizacao_custo);
-          return dias !== null && dias > 30;
-        }).length
+      setTotalProdutos(totalProdutosResp.count || 0);
+      setPrecosDesatualizados(precosDesatualizadosResp.count || 0);
+      setRegistrosVencidos(
+        Math.max(vencidosProdutosResp.count || 0, vencidosRegistrosResp.count || 0)
       );
-
-      const vencidosProdutos = produtos.filter((p) =>
-        estaVencido(p.vencimento_registro)
-      ).length;
-
-      const vencidosRegistros = registros.filter((r) =>
-        estaVencido(r.vencimento_registro)
-      ).length;
-
-      setRegistrosVencidos(Math.max(vencidosProdutos, vencidosRegistros));
-
-      const pdfsProdutos = produtos.filter((p) => !!p.pdf_url).length;
-      const pdfsRegistros = registros.filter((r) => !!r.pdf_path).length;
-
-      setPdfsDisponiveis(Math.max(pdfsProdutos, pdfsRegistros));
+      setPdfsDisponiveis(
+        Math.max(pdfsProdutosResp.count || 0, pdfsRegistrosResp.count || 0)
+      );
     } catch (e: any) {
       setErro(e?.message || "Não foi possível carregar o dashboard.");
     }
