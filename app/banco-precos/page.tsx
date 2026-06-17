@@ -224,6 +224,7 @@ export default function BancoPrecos() {
   const [produtoVinculoAberto, setProdutoVinculoAberto] = useState("");
   const [buscaRegistroVinculo, setBuscaRegistroVinculo] = useState("");
   const [excluindo, setExcluindo] = useState("");
+  const [excluindoMassa, setExcluindoMassa] = useState(false);
   const [desvinculando, setDesvinculando] = useState("");
   const [desvinculandoMassa, setDesvinculandoMassa] = useState(false);
   const [atualizandoVinculos, setAtualizandoVinculos] = useState(false);
@@ -808,6 +809,47 @@ export default function BancoPrecos() {
     }
   }
 
+  async function excluirProdutosEmMassa() {
+    try {
+      setErro("");
+      setMensagem("");
+
+      const produtoIds = Object.entries(produtosSelecionadosMassa)
+        .filter(([, marcado]) => marcado)
+        .map(([produtoId]) => produtoId);
+
+      if (!produtoIds.length) {
+        setErro("Selecione pelo menos um produto para excluir.");
+        return;
+      }
+
+      const confirmar = window.confirm(
+        `Excluir definitivamente ${produtoIds.length} produtos selecionados do Banco de Preços?`
+      );
+
+      if (!confirmar) return;
+
+      setExcluindoMassa(true);
+
+      const { error } = await supabase
+        .from("produtos")
+        .delete()
+        .in("id", produtoIds);
+
+      if (error) {
+        setErro(error.message);
+        return;
+      }
+
+      setMensagem(`${produtoIds.length} produtos excluídos com sucesso.`);
+      setProdutosSelecionadosMassa({});
+
+      await carregarDados();
+    } finally {
+      setExcluindoMassa(false);
+    }
+  }
+
   async function excluirProduto(produto: Produto) {
     try {
       setErro("");
@@ -923,6 +965,26 @@ export default function BancoPrecos() {
                 <option value="sem_pdf">Somente sem PDF</option>
               </select>
               <input className="input md:w-96 uppercase" placeholder="Buscar por descrição, marca, registro, apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-3">
+              <button
+                type="button"
+                disabled={excluindoMassa || totalSelecionadosMassa === 0}
+                onClick={excluirProdutosEmMassa}
+                className="rounded-xl border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60"
+              >
+                {excluindoMassa ? "Excluindo..." : `Excluir selecionados (${totalSelecionadosMassa})`}
+              </button>
+
+              <button
+                type="button"
+                disabled={excluindoMassa || totalSelecionadosMassa === 0}
+                onClick={limparSelecaoMassa}
+                className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
+              >
+                Limpar seleção
+              </button>
             </div>
 
             <div className="flex flex-col md:flex-row gap-3">
