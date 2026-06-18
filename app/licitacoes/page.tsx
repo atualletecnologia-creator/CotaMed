@@ -340,40 +340,6 @@ function chaveProdutoManual(produto: Produto) {
   return normalizarBuscaManual([produto.descricao, produto.apresentacao].filter(Boolean).join(" | ")) || String(produto.id || "");
 }
 
-function produtosBuscaManualMenorCusto(produtos: Produto[], busca: string, tipoPreco: TipoPreco) {
-  const melhores = new Map<string, Produto>();
-
-  produtos
-    .filter((produto) => combinaBuscaManual(produto, busca))
-    .forEach((produto) => {
-      const chave = chaveProdutoManual(produto);
-      const atual = melhores.get(chave);
-
-      if (!atual) {
-        melhores.set(chave, produto);
-        return;
-      }
-
-      const custoAtual = custoPorTipo(atual, tipoPreco) || Number.MAX_SAFE_INTEGER;
-      const custoNovo = custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER;
-
-      if (custoNovo < custoAtual) {
-        melhores.set(chave, produto);
-      }
-    });
-
-  return Array.from(melhores.values())
-    .sort((a, b) => {
-      const custoA = custoPorTipo(a, tipoPreco) || Number.MAX_SAFE_INTEGER;
-      const custoB = custoPorTipo(b, tipoPreco) || Number.MAX_SAFE_INTEGER;
-
-      if (custoA !== custoB) return custoA - custoB;
-
-      return String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR");
-    })
-    .slice(0, 50);
-}
-
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
