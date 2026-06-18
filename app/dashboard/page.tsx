@@ -173,7 +173,7 @@ export default function Dashboard() {
 
   return (
     <AppShell>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Dashboard</h1>
           <p className="text-slate-500">Bem-vindo ao CotaMed</p>
@@ -194,7 +194,7 @@ export default function Dashboard() {
         </div>
       )}
 
-      <div className="grid md:grid-cols-4 gap-4 mt-6">
+      <div className="grid min-w-0 md:grid-cols-4 gap-4 mt-6">
         <CardResumo
           titulo="Itens no banco"
           valor={carregando ? valorCarregando : totalProdutos}
@@ -220,7 +220,7 @@ export default function Dashboard() {
         />
       </div>
 
-      <section className="grid md:grid-cols-2 gap-5 mt-6">
+      <section className="grid min-w-0 md:grid-cols-2 gap-5 mt-6">
         <div className="card p-6">
           <h2 className="font-bold text-xl">Nova cotação</h2>
           <p className="text-slate-500 mt-1">
@@ -250,7 +250,7 @@ export default function Dashboard() {
           O CotaMed mantém apenas os relatórios essenciais para controle.
         </p>
 
-        <div className="grid md:grid-cols-2 gap-4 mt-5">
+        <div className="grid min-w-0 md:grid-cols-2 gap-4 mt-5">
           <Link href="/relatorios" className="border rounded-2xl p-5 hover:bg-blue-50 transition">
             <h3 className="font-bold text-red-700">Produtos desatualizados</h3>
             <p className="text-sm text-slate-500 mt-1">

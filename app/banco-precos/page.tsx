@@ -883,13 +883,13 @@ export default function BancoPrecos() {
 
   return (
     <AppShell>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Banco de Preços</h1>
           <p className="text-slate-500">Banco de produtos com vínculo automático ou manual dos registros ANVISA.</p>
         </div>
 
-        <div className="flex flex-col md:flex-row gap-3">
+        <div className="flex min-w-0 flex-col md:flex-row gap-3">
           <button
             type="button"
             disabled={atualizandoVinculos || carregando}
@@ -908,7 +908,7 @@ export default function BancoPrecos() {
       <section className="card p-6 mt-6">
         <h2 className="font-bold text-xl">Importar planilha de preços</h2>
 
-        <div className="grid md:grid-cols-[1fr_180px] gap-4 mt-5">
+        <div className="grid min-w-0 md:grid-cols-[1fr_180px] gap-4 mt-5">
           <input type="file" accept=".xlsx,.xls" className="input" onChange={(e) => importarPlanilha(e.target.files?.[0] || null)} />
           <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
         </div>
@@ -919,7 +919,7 @@ export default function BancoPrecos() {
             Baixe a planilha cadastrada, edite os itens e envie novamente para atualizar em massa.
           </p>
 
-          <div className="grid md:grid-cols-[220px_1fr] gap-3 mt-4">
+          <div className="grid min-w-0 md:grid-cols-[220px_1fr] gap-3 mt-4">
             <button
               type="button"
               className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-white"
@@ -944,21 +944,21 @@ export default function BancoPrecos() {
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>
 
-      <section className="grid md:grid-cols-3 gap-4 mt-6">
+      <section className="grid min-w-0 md:grid-cols-3 gap-4 mt-6">
         <div className="card p-5"><p className="text-sm text-slate-500">Total de produtos carregados</p><h3 className="text-2xl font-bold">{resumoPdf.todos}</h3></div>
         <div className="card p-5"><p className="text-sm text-slate-500">Com PDF</p><h3 className="text-2xl font-bold text-green-700">{resumoPdf.comPdf}</h3></div>
         <div className="card p-5"><p className="text-sm text-slate-500">Sem PDF</p><h3 className="text-2xl font-bold text-red-700">{resumoPdf.semPdf}</h3></div>
       </section>
 
-      <section className="card mt-6 overflow-hidden">
+      <section className="card mt-6 overflow-hidden max-w-full">
         <div className="p-6 border-b">
-          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <div className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 className="font-bold text-xl">Produtos cadastrados</h2>
               <p className="text-sm text-slate-500">Total filtrado: {produtosFiltrados.length} — exibindo {produtosPaginados.length} por página</p>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex min-w-0 flex-col md:flex-row gap-3">
               <select className="input md:w-48" value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
                 <option value="todos">Todos os produtos</option>
                 <option value="com_pdf">Somente com PDF</option>
@@ -967,7 +967,7 @@ export default function BancoPrecos() {
               <input className="input md:w-96 uppercase" placeholder="Buscar por descrição, marca, registro, apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex min-w-0 flex-col md:flex-row gap-3">
               <button
                 type="button"
                 disabled={excluindoMassa || totalSelecionadosMassa === 0}
@@ -987,7 +987,7 @@ export default function BancoPrecos() {
               </button>
             </div>
 
-            <div className="flex flex-col md:flex-row gap-3">
+            <div className="flex min-w-0 flex-col md:flex-row gap-3">
               <button
                 type="button"
                 disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
@@ -1012,7 +1012,7 @@ export default function BancoPrecos() {
                 Vincular um registro a vários produtos
               </p>
 
-              <div className="grid md:grid-cols-[1fr_160px_160px_160px] gap-3">
+              <div className="grid min-w-0 md:grid-cols-[1fr_160px_160px_160px] gap-3">
                 <select
                   className="input text-sm"
                   value={registroMassaId}
@@ -1067,7 +1067,7 @@ export default function BancoPrecos() {
                 Página <b>{Math.min(paginaProdutos, totalPaginasProdutos)}</b> de <b>{totalPaginasProdutos}</b> — mostrando até {produtosPorPagina} produtos por vez para não travar.
               </span>
 
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <button
                   type="button"
                   className="rounded-lg border px-3 py-2 hover:bg-white disabled:opacity-50"
@@ -1088,8 +1088,8 @@ export default function BancoPrecos() {
               </div>
             </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-xs">
+          <div className="overflow-x-auto max-w-full">
+            <table className="w-full max-w-full text-xs">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-3">Sel.</th>
@@ -1143,7 +1143,7 @@ export default function BancoPrecos() {
                     <td className="p-3">{dinheiro(p.custo_unitario)}</td>
                     <td className="p-3">{dinheiro(p.custo_caixa)}</td>
                     <td className="p-3">
-                      <div className="flex flex-col gap-2">
+                      <div className="flex min-w-0 flex-col gap-2">
                         <button
                           type="button"
                           className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
@@ -1209,7 +1209,7 @@ export default function BancoPrecos() {
       {produtoEditando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex items-start justify-between gap-4">
+            <div className="flex min-w-0 items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold">Editar produto cadastrado</h2>
                 <p className="text-sm text-slate-500">Altere os campos e salve. Os textos serão gravados em maiúsculo.</p>
@@ -1224,7 +1224,7 @@ export default function BancoPrecos() {
               </button>
             </div>
 
-            <div className="grid md:grid-cols-3 gap-4 mt-5">
+            <div className="grid min-w-0 md:grid-cols-3 gap-4 mt-5">
               <div><label className="text-sm font-medium">Descrição</label><input className="input mt-2 uppercase" value={produtoEditando.descricao || ""} onChange={(e) => atualizarCampoEdicao("descricao", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2 uppercase" value={produtoEditando.apresentacao || ""} onChange={(e) => atualizarCampoEdicao("apresentacao", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Marca</label><input className="input mt-2 uppercase" value={produtoEditando.marca || ""} onChange={(e) => atualizarCampoEdicao("marca", e.target.value)} /></div>
@@ -1237,7 +1237,7 @@ export default function BancoPrecos() {
               <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2 uppercase" value={produtoEditando.origem_preco || ""} onChange={(e) => atualizarCampoEdicao("origem_preco", e.target.value)} /></div>
             </div>
 
-            <div className="flex justify-end gap-3 mt-6">
+            <div className="flex min-w-0 justify-end gap-3 mt-6">
               <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setProdutoEditando(null)}>Cancelar</button>
               <button type="button" className="btn-primary" disabled={salvandoEdicao} onClick={salvarEdicaoProduto}>
                 {salvandoEdicao ? "Salvando..." : "Salvar alterações"}

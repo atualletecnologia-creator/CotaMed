@@ -23,3 +23,72 @@ body {
 .input {
   @apply w-full rounded-xl border border-blue-100 px-4 py-2 outline-none focus:ring-2 focus:ring-cotamed-500 bg-white;
 }
+
+
+/* COTAMED RESPONSIVO SEM SCROLL HORIZONTAL */
+html,
+body {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+#__next,
+main,
+section,
+.card {
+  min-width: 0;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  max-width: 100%;
+  table-layout: auto;
+}
+
+th,
+td {
+  max-width: 220px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  vertical-align: top;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.overflow-x-auto {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  table {
+    font-size: 11px;
+  }
+
+  th,
+  td {
+    max-width: 160px;
+    padding: 0.5rem !important;
+  }
+
+  .card {
+    padding-left: 1rem;
+    padding-right: 1rem;
+  }
+}

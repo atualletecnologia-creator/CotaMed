@@ -684,7 +684,7 @@ export default function Licitacoes() {
 
   return (
     <AppShell>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Licitações</h1>
           <p className="text-slate-500">Resultado em lista compacta, com seleção manual e escolha de preço por item.</p>
@@ -698,7 +698,7 @@ export default function Licitacoes() {
       <section className="card p-6 mt-6">
         <h2 className="font-bold text-xl">Enviar planilha da licitação</h2>
 
-        <div className="grid md:grid-cols-4 gap-4 mt-5">
+        <div className="grid min-w-0 md:grid-cols-4 gap-4 mt-5">
           <div>
             <label className="text-sm font-medium">Margem de lucro (%)</label>
             <input className="input mt-2" value={margem} onChange={(e) => setMargem(e.target.value)} />
@@ -739,7 +739,7 @@ export default function Licitacoes() {
 
       {itens.length > 0 && (
         <>
-          <section className="grid md:grid-cols-6 gap-4 mt-6">
+          <section className="grid min-w-0 md:grid-cols-6 gap-4 mt-6">
             <div className="card p-4"><p className="text-xs text-slate-500">Encontrados</p><h3 className="text-xl font-bold text-green-700">{resumo.encontrados}</h3></div>
             <div className="card p-4"><p className="text-xs text-slate-500">Manual</p><h3 className="text-xl font-bold text-blue-700">{resumo.manual}</h3></div>
             <div className="card p-4"><p className="text-xs text-slate-500">Conferir</p><h3 className="text-xl font-bold text-yellow-700">{resumo.conferir}</h3></div>
@@ -749,13 +749,13 @@ export default function Licitacoes() {
           </section>
 
           <section className="card p-4 mt-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+            <div className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <h2 className="font-bold text-xl">Resultado da cotação</h2>
                 <p className="text-sm text-slate-500">Exibindo {itensPaginados.length} de {itensFiltrados.length} itens filtrados. Total da licitação: {itens.length}.</p>
               </div>
 
-              <div className="flex flex-col md:flex-row gap-3">
+              <div className="flex min-w-0 flex-col md:flex-row gap-3">
                 <select className="input text-sm" value={filtro} onChange={(e) => setFiltro(e.target.value)}>
                   <option value="todos">Todos os itens</option>
                   <option value="preenchidos">Preenchidos</option>
@@ -777,7 +777,7 @@ export default function Licitacoes() {
                 Página <b>{Math.min(paginaItens, totalPaginasItens)}</b> de <b>{totalPaginasItens}</b> — mostrando até {itensPorPagina} itens por vez para não travar.
               </span>
 
-              <div className="flex gap-2">
+              <div className="flex min-w-0 gap-2">
                 <button
                   type="button"
                   className="rounded-lg border px-3 py-2 hover:bg-white disabled:opacity-50"
@@ -806,7 +806,7 @@ export default function Licitacoes() {
 
                 return (
                   <div key={item.numero_item} className={item.excluido ? "rounded-xl border bg-slate-50 opacity-70 p-3" : "rounded-xl border bg-white p-3"}>
-                    <div className="flex flex-wrap gap-3 text-[11px] leading-4">
+                    <div className="flex min-w-0 flex-wrap gap-3 text-[11px] leading-4">
                       <div className="w-12 shrink-0"><Campo label="Item" value={<b>{item.numero_item}</b>} /></div>
 
                       <div className="min-w-[260px] flex-1">

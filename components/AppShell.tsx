@@ -94,7 +94,7 @@ export function AppShell({
           </div>
         </aside>
 
-        <main className="flex-1 p-6">
+        <main className="min-w-0 max-w-full overflow-x-hidden flex-1 p-6">
           {children}
         </main>
       </div>

@@ -357,7 +357,7 @@ export default function RegistrosAnvisaPage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Registros ANVISA</h1>
           <p className="text-slate-500">Envie PDFs dos registros e vincule automaticamente ao banco de preços.</p>
@@ -391,7 +391,7 @@ export default function RegistrosAnvisaPage() {
         </div>
 
 
-        <div className="grid md:grid-cols-5 gap-4 mt-5">
+        <div className="grid min-w-0 md:grid-cols-5 gap-4 mt-5">
           <div><label className="text-sm font-medium">Item</label><input className="input mt-2 uppercase" value={item} onChange={(e) => setItem(maiusculo(e.target.value))} placeholder="EX: CARBONATO DE LÍTIO 300MG" /></div>
           <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2 uppercase" value={apresentacao} onChange={(e) => setApresentacao(maiusculo(e.target.value))} placeholder="EX: COMPRIMIDO" /></div>
           <div><label className="text-sm font-medium">Marca</label><input className="input mt-2 uppercase" value={marca} onChange={(e) => setMarca(maiusculo(e.target.value))} placeholder="EX: HIPOLABOR" /></div>
@@ -399,7 +399,7 @@ export default function RegistrosAnvisaPage() {
           <div><label className="text-sm font-medium">Vencimento</label><input className="input mt-2" type="text" value={vencimentoRegistro} onChange={(e) => setVencimentoRegistro(normalizarDataAAAA_MM_DD(e.target.value))} placeholder="AAAA-MM-DD" /></div>
         </div>
 
-        <div className="grid md:grid-cols-[1fr_180px] gap-4 mt-5">
+        <div className="grid min-w-0 md:grid-cols-[1fr_180px] gap-4 mt-5">
           <input type="file" accept="application/pdf,.pdf" className="input" onChange={(e) => { const file = e.target.files?.[0] || null; preencherPorNomeArquivo(file); enviarPdf(file); }} />
           <button type="button" className="btn-primary" disabled={enviando}>{enviando ? "Enviando..." : "Selecionar PDF"}</button>
         </div>
@@ -410,7 +410,7 @@ export default function RegistrosAnvisaPage() {
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>
 
-      <section className="card mt-6 overflow-hidden">
+      <section className="card mt-6 overflow-hidden max-w-full">
         <div className="p-6 border-b">
           <h2 className="font-bold text-xl">Registros salvos</h2>
           <p className="text-sm text-slate-500">Total encontrado: {filtrados.length}</p>
@@ -422,7 +422,7 @@ export default function RegistrosAnvisaPage() {
           <div className="p-6 text-slate-500">Nenhum registro encontrado.</div>
         ) : (
           <div className="overflow-hidden">
-            <table className="w-full text-sm">
+            <table className="w-full max-w-full text-xs text-sm">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Item</th>
