@@ -221,7 +221,7 @@ function chaveProdutoSemMarca(produto: Produto) {
   ].filter(Boolean).join(" | "));
 }
 
-function produtosManuaisMenorCusto(
+function produtosBuscaManualMenorCusto(
   produtos: Produto[],
   descricaoBusca: string,
   tipoPreco: TipoPreco
@@ -269,6 +269,109 @@ function produtosManuaisMenorCusto(
       return String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR");
     })
     .slice(0, 30);
+}
+
+async function buscarTodosProdutosLicitacao() {
+  const tamanhoLote = 1000;
+  let inicio = 0;
+  let todos: Produto[] = [];
+
+  while (true) {
+    const fim = inicio + tamanhoLote - 1;
+
+    const { data, error } = await supabase
+      .from("produtos")
+      .select("*")
+      .order("descricao", { ascending: true })
+      .range(inicio, fim);
+
+    if (error) throw error;
+
+    const lote = (data || []) as Produto[];
+    todos = todos.concat(lote);
+
+    if (lote.length < tamanhoLote) break;
+
+    inicio += tamanhoLote;
+  }
+
+  return todos;
+}
+
+function normalizarBuscaManual(valor: unknown) {
+  return String(valor || "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\/\\|,.;:()[\]{}_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function textoProdutoManual(produto: Produto) {
+  return normalizarBuscaManual([
+    produto.descricao,
+    produto.apresentacao,
+    produto.marca,
+    produto.registro_anvisa,
+  ].filter(Boolean).join(" "));
+}
+
+function combinaBuscaManual(produto: Produto, busca: string) {
+  const termo = normalizarBuscaManual(busca);
+  if (!termo) return true;
+
+  const texto = textoProdutoManual(produto);
+  if (texto.includes(termo)) return true;
+
+  const palavras = termo.split(" ").filter((p) => p.length > 1);
+  if (!palavras.length) return true;
+
+  let bateu = 0;
+  palavras.forEach((palavra) => {
+    if (texto.includes(palavra)) bateu++;
+  });
+
+  return bateu / palavras.length >= 0.6;
+}
+
+function chaveProdutoManual(produto: Produto) {
+  return normalizarBuscaManual([produto.descricao, produto.apresentacao].filter(Boolean).join(" | ")) || String(produto.id || "");
+}
+
+function produtosBuscaManualMenorCusto(produtos: Produto[], busca: string, tipoPreco: TipoPreco) {
+  const melhores = new Map<string, Produto>();
+
+  produtos
+    .filter((produto) => combinaBuscaManual(produto, busca))
+    .forEach((produto) => {
+      const chave = chaveProdutoManual(produto);
+      const atual = melhores.get(chave);
+
+      if (!atual) {
+        melhores.set(chave, produto);
+        return;
+      }
+
+      const custoAtual = custoPorTipo(atual, tipoPreco) || Number.MAX_SAFE_INTEGER;
+      const custoNovo = custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER;
+
+      if (custoNovo < custoAtual) {
+        melhores.set(chave, produto);
+      }
+    });
+
+  return Array.from(melhores.values())
+    .sort((a, b) => {
+      const custoA = custoPorTipo(a, tipoPreco) || Number.MAX_SAFE_INTEGER;
+      const custoB = custoPorTipo(b, tipoPreco) || Number.MAX_SAFE_INTEGER;
+
+      if (custoA !== custoB) return custoA - custoB;
+
+      return String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR");
+    })
+    .slice(0, 50);
 }
 
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
@@ -437,7 +540,8 @@ export default function Licitacoes() {
       setArquivoNome(file.name);
       setProcessando(true);
 
-      const { data: produtos, error: produtosError } = await supabase.from("produtos").select("*").order("descricao", { ascending: true });
+      const produtos = await buscarTodosProdutosLicitacao();
+      const produtosError = null;
 
       if (produtosError) {
         setErro(produtosError.message);
@@ -725,7 +829,7 @@ export default function Licitacoes() {
                           onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
                         >
                           <option value="">Selecionar menor custo...</option>
-                          {produtosManuaisMenorCusto(
+                          {produtosBuscaManualMenorCusto(
                             produtosBanco,
                             buscaManualPorItem[item.numero_item] || item.descricao,
                             item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)
