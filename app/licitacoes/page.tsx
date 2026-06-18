@@ -438,6 +438,47 @@ export default function Licitacoes() {
     };
   }
 
+  function recalcularItemManualLivre(
+    item: ItemLicitacao,
+    campos: Partial<ItemLicitacao> & { custo_usado?: number | null; tipo_preco?: TipoPreco }
+  ) {
+    const margemNumero = numero(margem);
+    const custo = campos.custo_usado ?? item.custo_usado ?? 0;
+    const valorUnitario = custo > 0 ? custo * (1 + margemNumero / 100) : null;
+    const valorTotal = valorUnitario ? valorUnitario * item.quantidade : null;
+
+    return {
+      ...item,
+      ...campos,
+      produto_id: null,
+      marca: maiusculo(campos.marca ?? item.marca),
+      registro_anvisa: maiusculo(campos.registro_anvisa ?? item.registro_anvisa),
+      custo_usado: custo || null,
+      tipo_preco: campos.tipo_preco || item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade),
+      valor_unitario: valorUnitario,
+      valor_total: valorTotal,
+      pdf_url: campos.pdf_url ?? item.pdf_url ?? null,
+      confianca: 100,
+      origem_match: "manual_livre",
+      status: custo > 0 ? "Manual" : item.status,
+      excluido: false,
+    };
+  }
+
+  function alterarCampoManualLivre(numeroItem: string, campo: "marca" | "registro_anvisa" | "custo_usado", valor: string) {
+    setItens((atuais) =>
+      atuais.map((item) => {
+        if (item.numero_item !== numeroItem) return item;
+
+        if (campo === "custo_usado") {
+          return recalcularItemManualLivre(item, { custo_usado: numero(valor) });
+        }
+
+        return recalcularItemManualLivre(item, { [campo]: valor } as Partial<ItemLicitacao>);
+      })
+    );
+  }
+
   function selecionarProdutoManual(numeroItem: string, produtoId: string) {
     if (!produtoId) return;
     const produto = produtosBanco.find((p) => p.id === produtoId);
@@ -453,7 +494,7 @@ export default function Licitacoes() {
       atuais.map((item) => {
         if (item.numero_item !== numeroItem) return item;
         const produto = produtosBanco.find((p) => p.id === item.produto_id);
-        if (!produto) return { ...item, tipo_preco: tipoPreco };
+        if (!produto) return recalcularItemManualLivre(item, { tipo_preco: tipoPreco });
         return recalcularItem(item, produto, tipoPreco, item.status);
       })
     );
@@ -803,6 +844,35 @@ export default function Licitacoes() {
                             <option key={p.id} value={p.id}>{labelProduto(p)}</option>
                           ))}
                         </select>
+
+                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 rounded-xl border bg-slate-50 p-2">
+                          <input
+                            className="input text-[11px] h-8 py-1 uppercase"
+                            placeholder="MARCA MANUAL"
+                            value={item.marca || ""}
+                            onChange={(e) => alterarCampoManualLivre(item.numero_item, "marca", e.target.value)}
+                          />
+
+                          <input
+                            className="input text-[11px] h-8 py-1 uppercase"
+                            placeholder="REGISTRO MANUAL"
+                            value={item.registro_anvisa || ""}
+                            onChange={(e) => alterarCampoManualLivre(item.numero_item, "registro_anvisa", e.target.value)}
+                          />
+
+                          <input
+                            className="input text-[11px] h-8 py-1"
+                            placeholder="CUSTO MANUAL"
+                            type="number"
+                            step="0.01"
+                            value={item.custo_usado || ""}
+                            onChange={(e) => alterarCampoManualLivre(item.numero_item, "custo_usado", e.target.value)}
+                          />
+                        </div>
+
+                        <p className="mt-1 text-[10px] text-slate-500">
+                          Se o produto não estiver cadastrado, preencha marca e custo manualmente. O sistema calcula a margem automaticamente.
+                        </p>
                       </div>
 
                       <div className="w-16"><Campo label="Qtd" value={item.quantidade} /></div>
