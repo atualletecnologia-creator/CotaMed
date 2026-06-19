@@ -457,7 +457,7 @@ export default function BancoPrecos() {
     }));
   }
 
-  function selecionarTodossFiltradosMassa() {
+  function selecionarTodosFiltradosMassa() {
     const novos: Record<string, boolean> = {};
 
     produtosPaginados.forEach((produto) => {
