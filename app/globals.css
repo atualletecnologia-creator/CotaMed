@@ -210,3 +210,147 @@ button {
     max-width: 150px;
   }
 }
+
+
+/* COTAMED MINIMAL UI V2 */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  background: #f8fafc;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.card,
+.clean-card {
+  border: 1px solid #e5e7eb !important;
+  border-radius: 16px !important;
+  background: #ffffff !important;
+  box-shadow: none !important;
+}
+
+.input,
+input,
+select,
+textarea {
+  border-radius: 12px !important;
+  border-color: #dbe4ef !important;
+  background: #ffffff !important;
+  color: #0f172a !important;
+  text-transform: none !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+  text-transform: none !important;
+}
+
+button,
+.btn-primary,
+.btn-clean,
+.btn-clean-primary,
+.btn-clean-secondary,
+.btn-clean-danger {
+  border-radius: 12px !important;
+  box-shadow: none !important;
+  text-transform: none !important;
+  min-height: 40px;
+}
+
+.btn-primary,
+.btn-clean-primary {
+  background: #2563eb !important;
+  color: #ffffff !important;
+}
+
+.btn-clean-secondary,
+.btn-clean-danger {
+  background: #ffffff !important;
+}
+
+.btn-clean-danger {
+  color: #dc2626 !important;
+  border-color: #fecaca !important;
+}
+
+.clean-table,
+table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: auto;
+}
+
+.clean-table th,
+.clean-table td,
+th,
+td {
+  white-space: normal !important;
+  word-break: break-word !important;
+  overflow-wrap: anywhere !important;
+  vertical-align: top;
+}
+
+.clean-table th,
+th {
+  background: #f8fafc !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.clean-table td,
+td {
+  font-size: 12px !important;
+  color: #0f172a !important;
+}
+
+.minimal-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.minimal-toolbar > * {
+  min-width: 0;
+}
+
+.minimal-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.minimal-actions button,
+.minimal-actions select,
+.minimal-actions input {
+  height: 40px;
+  font-size: 14px;
+}
+
+.minimal-summary {
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.uppercase {
+  text-transform: none !important;
+}
+
+@media (max-width: 900px) {
+  .minimal-toolbar,
+  .minimal-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .minimal-toolbar > *,
+  .minimal-actions > * {
+    width: 100% !important;
+  }
+}

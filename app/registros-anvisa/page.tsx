@@ -392,10 +392,10 @@ export default function RegistrosAnvisaPage() {
 
 
         <div className="grid min-w-0 md:grid-cols-5 gap-4 mt-5">
-          <div><label className="text-sm font-medium">Item</label><input className="input mt-2 uppercase" value={item} onChange={(e) => setItem(maiusculo(e.target.value))} placeholder="EX: CARBONATO DE LÍTIO 300MG" /></div>
-          <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2 uppercase" value={apresentacao} onChange={(e) => setApresentacao(maiusculo(e.target.value))} placeholder="EX: COMPRIMIDO" /></div>
-          <div><label className="text-sm font-medium">Marca</label><input className="input mt-2 uppercase" value={marca} onChange={(e) => setMarca(maiusculo(e.target.value))} placeholder="EX: HIPOLABOR" /></div>
-          <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2 uppercase" type="text" inputMode="text" value={registroAnvisa} onChange={(e) => setRegistroAnvisa(maiusculo(e.target.value))} placeholder="EX: 123456789 OU MS123ABC" /></div>
+          <div><label className="text-sm font-medium">Item</label><input className="input mt-2" value={item} onChange={(e) => setItem(maiusculo(e.target.value))} placeholder="EX: CARBONATO DE LÍTIO 300MG" /></div>
+          <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2" value={apresentacao} onChange={(e) => setApresentacao(maiusculo(e.target.value))} placeholder="EX: COMPRIMIDO" /></div>
+          <div><label className="text-sm font-medium">Marca</label><input className="input mt-2" value={marca} onChange={(e) => setMarca(maiusculo(e.target.value))} placeholder="EX: HIPOLABOR" /></div>
+          <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2" type="text" inputMode="text" value={registroAnvisa} onChange={(e) => setRegistroAnvisa(maiusculo(e.target.value))} placeholder="EX: 123456789 OU MS123ABC" /></div>
           <div><label className="text-sm font-medium">Vencimento</label><input className="input mt-2" type="text" value={vencimentoRegistro} onChange={(e) => setVencimentoRegistro(normalizarDataAAAA_MM_DD(e.target.value))} placeholder="AAAA-MM-DD" /></div>
         </div>
 
@@ -404,7 +404,7 @@ export default function RegistrosAnvisaPage() {
           <button type="button" className="btn-primary" disabled={enviando}>{enviando ? "Enviando..." : "Selecionar PDF"}</button>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">Tudo que for cadastrado fica em <b>letra maiúscula</b>. O sistema identifica <b>venc-AAAA-MM-DD</b> e <b>reg-REGISTRO</b>.</div>
+        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">Tudo que for cadastrado fica em <b>letra maiúscula</b>. O sistema identifica <b>venc-AAAA-MM-DD</b> e <b>reg-Registro</b>.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}

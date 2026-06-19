@@ -171,7 +171,7 @@ function filtrarRegistrosParaVinculo(registros: RegistroAnvisa[], busca: string)
     .slice(0, 25);
 }
 
-async function buscarTodosSupabase<T>(
+async function buscarTodossSupabase<T>(
   tabela: string,
   ordenarPor: string,
   ascendente = true
@@ -261,13 +261,13 @@ export default function BancoPrecos() {
     setErro("");
 
     try {
-      const [produtosTodos, registrosTodos] = await Promise.all([
-        buscarTodosSupabase<Produto>("produtos", "descricao", true),
-        buscarTodosSupabase<RegistroAnvisa>("registros_anvisa", "item", true),
+      const [produtosTodoss, registrosTodoss] = await Promise.all([
+        buscarTodossSupabase<Produto>("produtos", "descricao", true),
+        buscarTodossSupabase<RegistroAnvisa>("registros_anvisa", "item", true),
       ]);
 
-      setProdutos(produtosTodos);
-      setRegistros(registrosTodos);
+      setProdutos(produtosTodoss);
+      setRegistros(registrosTodoss);
     } catch (e: any) {
       setErro(e.message || "Erro ao carregar dados.");
     } finally {
@@ -457,7 +457,7 @@ export default function BancoPrecos() {
     }));
   }
 
-  function selecionarTodosFiltradosMassa() {
+  function selecionarTodossFiltradosMassa() {
     const novos: Record<string, boolean> = {};
 
     produtosPaginados.forEach((produto) => {
@@ -532,7 +532,7 @@ export default function BancoPrecos() {
     }
   }
 
-  async function atualizarTodosVinculos() {
+  async function atualizarTodossVinculos() {
     try {
       setErro("");
       setMensagem("");
@@ -893,7 +893,7 @@ export default function BancoPrecos() {
           <button
             type="button"
             disabled={atualizandoVinculos || carregando}
-            onClick={atualizarTodosVinculos}
+            onClick={atualizarTodossVinculos}
             className="btn-clean btn-clean-secondary disabled:opacity-60"
           >
             {atualizandoVinculos ? "Atualizando..." : "Atualizar vínculos"}
@@ -955,16 +955,16 @@ export default function BancoPrecos() {
           <div className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
               <h2 className="font-bold text-xl">Banco de preços</h2>
-              <p className="text-sm text-slate-500">Filtrados: {produtosFiltrados.length} — exibindo {produtosPaginados.length} por página</p>
+              <p className="text-sm text-slate-500">Itens: {produtosFiltrados.length} • {produtosPaginados.length} por página</p>
             </div>
 
             <div className="flex min-w-0 flex-col md:flex-row gap-3">
               <select className="input md:w-48" value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
-                <option value="todos">Todos os produtos</option>
+                <option value="todos">Todoss os produtos</option>
                 <option value="com_pdf">Somente com PDF</option>
                 <option value="sem_pdf">Somente sem PDF</option>
               </select>
-              <input className="input md:w-96 uppercase" placeholder="Buscar produto, marca ou registro" value={busca} onChange={(e) => setBusca(e.target.value)} />
+              <input className="input md:w-96" placeholder="Buscar produto, marca ou registro" value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
 
             <div className="flex min-w-0 flex-col md:flex-row gap-3">
@@ -1007,9 +1007,9 @@ export default function BancoPrecos() {
               </button>
             </div>
 
-            <div className="rounded-2xl border bg-slate-50 p-4">
-              <p className="text-sm font-semibold text-slate-700 mb-3">
-                Vínculo em massa
+            <div className="rounded-2xl border bg-white p-3">
+              <p className="text-sm font-medium text-slate-700 mb-2">
+                Vincular registro
               </p>
 
               <div className="grid min-w-0 md:grid-cols-[1fr_160px_160px_160px] gap-3">
@@ -1019,7 +1019,7 @@ export default function BancoPrecos() {
                   onChange={(e) => setRegistroMassaId(e.target.value)}
                   disabled={aplicandoMassa}
                 >
-                  <option value="">Escolha o registro ANVISA...</option>
+                  <option value="">Escolha o registro</option>
                   {registros.map((r) => (
                     <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
                   ))}
@@ -1028,7 +1028,7 @@ export default function BancoPrecos() {
                 <button
                   type="button"
                   disabled={aplicandoMassa || produtosFiltrados.length === 0}
-                  onClick={selecionarTodosFiltradosMassa}
+                  onClick={selecionarTodossFiltradosMassa}
                   className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-100 disabled:opacity-60"
                 >
                   Selecionar
@@ -1064,7 +1064,7 @@ export default function BancoPrecos() {
           <>
             <div className="m-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-2xl bg-blue-50 p-3 text-sm">
               <span>
-                Página <b>{Math.min(paginaProdutos, totalPaginasProdutos)}</b> de <b>{totalPaginasProdutos}</b> — mostrando até {produtosPorPagina} produtos por vez para não travar.
+                Página <b>{Math.min(paginaProdutos, totalPaginasProdutos)}</b> de <b>{totalPaginasProdutos}</b>
               </span>
 
               <div className="flex min-w-0 gap-2">
@@ -1225,16 +1225,16 @@ export default function BancoPrecos() {
             </div>
 
             <div className="grid min-w-0 md:grid-cols-3 gap-4 mt-5">
-              <div><label className="text-sm font-medium">Descrição</label><input className="input mt-2 uppercase" value={produtoEditando.descricao || ""} onChange={(e) => atualizarCampoEdicao("descricao", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2 uppercase" value={produtoEditando.apresentacao || ""} onChange={(e) => atualizarCampoEdicao("apresentacao", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Marca</label><input className="input mt-2 uppercase" value={produtoEditando.marca || ""} onChange={(e) => atualizarCampoEdicao("marca", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2 uppercase" value={produtoEditando.registro_anvisa || ""} onChange={(e) => atualizarCampoEdicao("registro_anvisa", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Descrição</label><input className="input mt-2" value={produtoEditando.descricao || ""} onChange={(e) => atualizarCampoEdicao("descricao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2" value={produtoEditando.apresentacao || ""} onChange={(e) => atualizarCampoEdicao("apresentacao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Marca</label><input className="input mt-2" value={produtoEditando.marca || ""} onChange={(e) => atualizarCampoEdicao("marca", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2" value={produtoEditando.registro_anvisa || ""} onChange={(e) => atualizarCampoEdicao("registro_anvisa", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Vencimento Registro</label><input className="input mt-2" placeholder="AAAA-MM-DD" value={produtoEditando.vencimento_registro || ""} onChange={(e) => atualizarCampoEdicao("vencimento_registro", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Unidade</label><input className="input mt-2 uppercase" value={produtoEditando.unidade || ""} onChange={(e) => atualizarCampoEdicao("unidade", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Unidade</label><input className="input mt-2" value={produtoEditando.unidade || ""} onChange={(e) => atualizarCampoEdicao("unidade", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Qtd por caixa</label><input className="input mt-2" type="number" value={produtoEditando.quantidade_por_caixa || ""} onChange={(e) => atualizarCampoEdicao("quantidade_por_caixa", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Custo unitário</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_unitario || ""} onChange={(e) => atualizarCampoEdicao("custo_unitario", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Custo caixa</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_caixa || ""} onChange={(e) => atualizarCampoEdicao("custo_caixa", e.target.value)} /></div>
-              <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2 uppercase" value={produtoEditando.origem_preco || ""} onChange={(e) => atualizarCampoEdicao("origem_preco", e.target.value)} /></div>
+              <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2" value={produtoEditando.origem_preco || ""} onChange={(e) => atualizarCampoEdicao("origem_preco", e.target.value)} /></div>
             </div>
 
             <div className="flex min-w-0 justify-end gap-3 mt-6">

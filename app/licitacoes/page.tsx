@@ -847,14 +847,14 @@ export default function Licitacoes() {
 
                         <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 rounded-xl border bg-slate-50 p-2">
                           <input
-                            className="input text-[11px] h-8 py-1 uppercase"
+                            className="input text-[11px] h-8 py-1"
                             placeholder="Marca"
                             value={item.marca || ""}
                             onChange={(e) => alterarCampoManualLivre(item.numero_item, "marca", e.target.value)}
                           />
 
                           <input
-                            className="input text-[11px] h-8 py-1 uppercase"
+                            className="input text-[11px] h-8 py-1"
                             placeholder="Registro"
                             value={item.registro_anvisa || ""}
                             onChange={(e) => alterarCampoManualLivre(item.numero_item, "registro_anvisa", e.target.value)}
