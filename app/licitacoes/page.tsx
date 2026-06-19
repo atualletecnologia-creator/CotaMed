@@ -863,9 +863,9 @@ export default function Licitacoes() {
                           <input
                             className="input text-[11px] h-8 py-1"
                             placeholder="Custo"
-                            type="number"
-                            step="0.01"
-                            value={item.custo_usado || ""}
+                            type="text"
+                            inputMode="decimal"
+                            value={item.custo_usado ? String(item.custo_usado).replace(".", ",") : ""}
                             onChange={(e) => alterarCampoManualLivre(item.numero_item, "custo_usado", e.target.value)}
                           />
                         </div>
