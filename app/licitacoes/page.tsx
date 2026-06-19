@@ -94,13 +94,13 @@ function pegarDescricao(linha: Record<string, unknown>) {
 function statusClasse(status: string) {
   if (status === "Encontrado") return "bg-green-100 text-green-700";
   if (status === "Manual") return "bg-blue-100 text-blue-700";
-  if (status === "Conferir match") return "bg-yellow-100 text-yellow-800";
+  if (status === "Conferir") return "bg-yellow-100 text-yellow-800";
   if (status === "Excluído") return "bg-slate-200 text-slate-700";
   return "bg-red-100 text-red-700";
 }
 
 function itemPodeCotar(item: ItemLicitacao) {
-  return !item.excluido && (item.status === "Encontrado" || item.status === "Manual" || item.status === "Conferir match");
+  return !item.excluido && (item.status === "Encontrado" || item.status === "Manual" || item.status === "Conferir");
 }
 
 function labelProduto(produto: Produto) {
@@ -164,7 +164,7 @@ function montarItemCotado(params: {
       descricao,
       quantidade,
       unidade,
-      status: "Produto não encontrado",
+      status: "Não encontrado",
       confianca: 0,
       origem_match: "sem_match",
       tipo_preco: tipoPreco,
@@ -178,9 +178,9 @@ function montarItemCotado(params: {
   const valorTotal = valorUnitario ? valorUnitario * quantidade : null;
   const nivel = classificarConfianca(score);
 
-  let status = "Produto não encontrado";
+  let status = "Não encontrado";
   if (nivel === "alto" && custo > 0) status = "Encontrado";
-  else if (nivel === "medio" && custo > 0) status = "Conferir match";
+  else if (nivel === "medio" && custo > 0) status = "Conferir";
 
   return {
     numero_item: String(index + 1).padStart(3, "0"),
@@ -375,8 +375,8 @@ export default function Licitacoes() {
       total,
       encontrados: itens.filter((i) => i.status === "Encontrado" && !i.excluido).length,
       manual: itens.filter((i) => i.status === "Manual" && !i.excluido).length,
-      conferir: itens.filter((i) => i.status === "Conferir match" && !i.excluido).length,
-      naoEncontrados: itens.filter((i) => i.status !== "Encontrado" && i.status !== "Manual" && i.status !== "Conferir match" && !i.excluido).length,
+      conferir: itens.filter((i) => i.status === "Conferir" && !i.excluido).length,
+      naoEncontrados: itens.filter((i) => i.status !== "Encontrado" && i.status !== "Manual" && i.status !== "Conferir" && !i.excluido).length,
       excluidos: itens.filter((i) => i.excluido).length,
       pdfs: itens.filter((i) => i.pdf_url && itemPodeCotar(i)).length,
     };
@@ -385,8 +385,8 @@ export default function Licitacoes() {
   const itensFiltrados = useMemo(() => {
     if (filtro === "preenchidos") return itens.filter((i) => (i.status === "Encontrado" || i.status === "Manual") && !i.excluido);
     if (filtro === "manual") return itens.filter((i) => i.status === "Manual" && !i.excluido);
-    if (filtro === "conferir") return itens.filter((i) => i.status === "Conferir match" && !i.excluido);
-    if (filtro === "nao_encontrados") return itens.filter((i) => i.status !== "Encontrado" && i.status !== "Manual" && i.status !== "Conferir match" && !i.excluido);
+    if (filtro === "conferir") return itens.filter((i) => i.status === "Conferir" && !i.excluido);
+    if (filtro === "nao_encontrados") return itens.filter((i) => i.status !== "Encontrado" && i.status !== "Manual" && i.status !== "Conferir" && !i.excluido);
     if (filtro === "com_pdf") return itens.filter((i) => !!i.pdf_url && !i.excluido);
     if (filtro === "sem_pdf") return itens.filter((i) => !i.pdf_url && !i.excluido);
     if (filtro === "excluidos") return itens.filter((i) => i.excluido);
@@ -702,7 +702,7 @@ export default function Licitacoes() {
         </a>
       </div>
 
-      <section className="card p-6 mt-6">
+      <section className="clean-card p-6 mt-6">
         <h2 className="font-bold text-xl">Enviar planilha da licitação</h2>
 
         <div className="grid min-w-0 md:grid-cols-4 gap-4 mt-5">
@@ -747,15 +747,15 @@ export default function Licitacoes() {
       {itens.length > 0 && (
         <>
           <section className="grid min-w-0 md:grid-cols-6 gap-4 mt-6">
-            <div className="card p-4"><p className="text-xs text-slate-500">Encontrados</p><h3 className="text-xl font-bold text-green-700">{resumo.encontrados}</h3></div>
-            <div className="card p-4"><p className="text-xs text-slate-500">Manual</p><h3 className="text-xl font-bold text-blue-700">{resumo.manual}</h3></div>
-            <div className="card p-4"><p className="text-xs text-slate-500">Conferir</p><h3 className="text-xl font-bold text-yellow-700">{resumo.conferir}</h3></div>
-            <div className="card p-4"><p className="text-xs text-slate-500">Não encontrados</p><h3 className="text-xl font-bold text-red-700">{resumo.naoEncontrados}</h3></div>
-            <div className="card p-4"><p className="text-xs text-slate-500">Excluídos</p><h3 className="text-xl font-bold text-slate-700">{resumo.excluidos}</h3></div>
-            <div className="card p-4"><p className="text-xs text-slate-500">Valor confirmado</p><h3 className="text-xl font-bold">{dinheiro(resumo.total)}</h3></div>
+            <div className="clean-card p-4"><p className="text-xs text-slate-500">Encontrados</p><h3 className="text-xl font-bold text-green-700">{resumo.encontrados}</h3></div>
+            <div className="clean-card p-4"><p className="text-xs text-slate-500">Manual</p><h3 className="text-xl font-bold text-blue-700">{resumo.manual}</h3></div>
+            <div className="clean-card p-4"><p className="text-xs text-slate-500">Conferir</p><h3 className="text-xl font-bold text-yellow-700">{resumo.conferir}</h3></div>
+            <div className="clean-card p-4"><p className="text-xs text-slate-500">Não encontrados</p><h3 className="text-xl font-bold text-red-700">{resumo.naoEncontrados}</h3></div>
+            <div className="clean-card p-4"><p className="text-xs text-slate-500">Excluídos</p><h3 className="text-xl font-bold text-slate-700">{resumo.excluidos}</h3></div>
+            <div className="clean-card p-4"><p className="text-xs text-slate-500">Valor confirmado</p><h3 className="text-xl font-bold">{dinheiro(resumo.total)}</h3></div>
           </section>
 
-          <section className="card p-4 mt-6">
+          <section className="clean-card p-4 mt-6">
             <div className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
               <div>
                 <h2 className="font-bold text-xl">Resultado da cotação</h2>
@@ -767,7 +767,7 @@ export default function Licitacoes() {
                   <option value="todos">Todos os itens</option>
                   <option value="preenchidos">Preenchidos</option>
                   <option value="manual">Selecionados manualmente</option>
-                  <option value="conferir">Conferir match</option>
+                  <option value="conferir">Conferir</option>
                   <option value="nao_encontrados">Não encontrados</option>
                   <option value="com_pdf">Com PDF</option>
                   <option value="sem_pdf">Sem PDF</option>
@@ -809,7 +809,7 @@ export default function Licitacoes() {
               {itensPaginados.map((item) => {
                 const cotar = itemPodeCotar(item);
                 const statusVisivel = item.excluido ? "Excluído" : item.status;
-                const preencher = !item.excluido && (item.status === "Encontrado" || item.status === "Manual" || item.status === "Conferir match");
+                const preencher = !item.excluido && (item.status === "Encontrado" || item.status === "Manual" || item.status === "Conferir");
 
                 return (
                   <div key={item.numero_item} className={item.excluido ? "rounded-xl border bg-slate-50 opacity-70 p-3" : "rounded-xl border bg-white p-3"}>
@@ -820,7 +820,7 @@ export default function Licitacoes() {
                         <Campo label="Descrição" value={item.descricao} />
                         <input
                           className="input mt-2 text-[11px] h-8 py-1"
-                          placeholder="BUSCAR PRODUTO MANUAL..."
+                          placeholder="Buscar produto"
                           value={buscaManualPorItem[item.numero_item] || ""}
                           onChange={(e) =>
                             setBuscaManualPorItem((atual) => ({
@@ -835,7 +835,7 @@ export default function Licitacoes() {
                           value={item.produto_id || ""}
                           onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
                         >
-                          <option value="">Selecionar menor custo...</option>
+                          <option value="">Menor custo</option>
                           {produtosBuscaManualMenorCusto(
                             produtosBanco,
                             buscaManualPorItem[item.numero_item] || item.descricao,
@@ -848,21 +848,21 @@ export default function Licitacoes() {
                         <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 rounded-xl border bg-slate-50 p-2">
                           <input
                             className="input text-[11px] h-8 py-1 uppercase"
-                            placeholder="MARCA MANUAL"
+                            placeholder="Marca"
                             value={item.marca || ""}
                             onChange={(e) => alterarCampoManualLivre(item.numero_item, "marca", e.target.value)}
                           />
 
                           <input
                             className="input text-[11px] h-8 py-1 uppercase"
-                            placeholder="REGISTRO MANUAL"
+                            placeholder="Registro"
                             value={item.registro_anvisa || ""}
                             onChange={(e) => alterarCampoManualLivre(item.numero_item, "registro_anvisa", e.target.value)}
                           />
 
                           <input
                             className="input text-[11px] h-8 py-1"
-                            placeholder="CUSTO MANUAL"
+                            placeholder="Custo"
                             type="number"
                             step="0.01"
                             value={item.custo_usado || ""}

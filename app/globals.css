@@ -92,3 +92,121 @@ button {
     padding-right: 1rem;
   }
 }
+
+
+/* COTAMED CLEAN UI */
+html, body {
+  max-width: 100%;
+  overflow-x: hidden;
+  background: #f6f8fb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.card {
+  border: 1px solid #e5edf7;
+  border-radius: 18px;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.clean-card {
+  border: 1px solid #e5edf7;
+  border-radius: 18px;
+  background: #fff;
+  box-shadow: 0 8px 22px rgba(15, 23, 42, 0.04);
+}
+
+.clean-muted {
+  color: #64748b;
+}
+
+.clean-title {
+  color: #0f172a;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.btn-clean {
+  border-radius: 12px;
+  padding: 0.65rem 1rem;
+  font-weight: 600;
+  transition: all .15s ease;
+}
+
+.btn-clean-primary {
+  background: #0b5ed7;
+  color: white;
+}
+
+.btn-clean-primary:hover {
+  background: #094fb8;
+}
+
+.btn-clean-secondary {
+  border: 1px solid #cfe0f5;
+  color: #0b5ed7;
+  background: white;
+}
+
+.btn-clean-secondary:hover {
+  background: #eff6ff;
+}
+
+.btn-clean-danger {
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  background: white;
+}
+
+.btn-clean-danger:hover {
+  background: #fff1f2;
+}
+
+.clean-table th {
+  background: #f8fafc;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.clean-table td {
+  font-size: 12px;
+  color: #0f172a;
+  vertical-align: top;
+}
+
+.clean-table th,
+.clean-table td {
+  padding: 10px 12px;
+  border-bottom: 1px solid #edf2f7;
+  max-width: 220px;
+  overflow-wrap: anywhere;
+}
+
+.clean-help {
+  display: none;
+}
+
+input,
+select,
+textarea,
+button {
+  max-width: 100%;
+}
+
+.input {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media (max-width: 768px) {
+  .clean-table th,
+  .clean-table td {
+    font-size: 11px;
+    padding: 8px;
+    max-width: 150px;
+  }
+}

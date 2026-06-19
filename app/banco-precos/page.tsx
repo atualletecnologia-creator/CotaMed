@@ -886,7 +886,7 @@ export default function BancoPrecos() {
       <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold">Banco de Preços</h1>
-          <p className="text-slate-500">Banco de produtos com vínculo automático ou manual dos registros ANVISA.</p>
+          <p className="text-slate-500">Gerencie produtos, custos e registros ANVISA.</p>
         </div>
 
         <div className="flex min-w-0 flex-col md:flex-row gap-3">
@@ -894,29 +894,29 @@ export default function BancoPrecos() {
             type="button"
             disabled={atualizandoVinculos || carregando}
             onClick={atualizarTodosVinculos}
-            className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
+            className="btn-clean btn-clean-secondary disabled:opacity-60"
           >
-            {atualizandoVinculos ? "Atualizando..." : "Atualizar vínculos pendentes"}
+            {atualizandoVinculos ? "Atualizando..." : "Atualizar vínculos"}
           </button>
 
-          <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-primary text-center">
-            Baixar planilha modelo
+          <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-clean btn-clean-primary text-center">
+            Modelo
           </a>
         </div>
       </div>
 
-      <section className="card p-6 mt-6">
-        <h2 className="font-bold text-xl">Importar planilha de preços</h2>
+      <section className="clean-card p-6 mt-6">
+        <h2 className="font-bold text-xl">Importação</h2>
 
         <div className="grid min-w-0 md:grid-cols-[1fr_180px] gap-4 mt-5">
           <input type="file" accept=".xlsx,.xls" className="input" onChange={(e) => importarPlanilha(e.target.files?.[0] || null)} />
-          <button className="btn-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
+          <button className="btn-clean btn-clean-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
         </div>
 
         <div className="mt-5 rounded-2xl border bg-blue-50 p-4">
-          <h3 className="font-semibold">Editar produtos em massa</h3>
+          <h3 className="font-semibold">Atualização em massa</h3>
           <p className="text-sm text-slate-600 mt-1">
-            Baixe a planilha cadastrada, edite os itens e envie novamente para atualizar em massa.
+            Exporte, edite e envie novamente.
           </p>
 
           <div className="grid min-w-0 md:grid-cols-[220px_1fr] gap-3 mt-4">
@@ -925,7 +925,7 @@ export default function BancoPrecos() {
               className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-white"
               onClick={baixarPlanilhaProdutosCadastrados}
             >
-              Baixar planilha cadastrada
+              Exportar produtos
             </button>
 
             <input
@@ -938,24 +938,24 @@ export default function BancoPrecos() {
           </div>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700"><b>Colunas da planilha:</b><br />{colunasModelo.join(", ")}<br /><br />Tudo que for cadastrado fica em <b>letra maiúscula</b>. O vínculo automático só acontece se o <b>registro for exatamente igual</b> ou se a <b>marca for exatamente igual</b> e o <b>nome bater com muita segurança</b>. Caso contrário, fica sem PDF para vínculo manual. Para vincular muitos produtos manualmente, escolha um registro no bloco <b>Vincular um registro a vários produtos</b>, marque os produtos na tabela e clique em <b>Aplicar</b>.</div>
+        <div className="mt-5 rounded-2xl bg-slate-50 p-4 text-sm text-slate-600">Use planilhas .xlsx ou .xls para importar ou atualizar produtos.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>
 
       <section className="grid min-w-0 md:grid-cols-3 gap-4 mt-6">
-        <div className="card p-5"><p className="text-sm text-slate-500">Total de produtos carregados</p><h3 className="text-2xl font-bold">{resumoPdf.todos}</h3></div>
-        <div className="card p-5"><p className="text-sm text-slate-500">Com PDF</p><h3 className="text-2xl font-bold text-green-700">{resumoPdf.comPdf}</h3></div>
-        <div className="card p-5"><p className="text-sm text-slate-500">Sem PDF</p><h3 className="text-2xl font-bold text-red-700">{resumoPdf.semPdf}</h3></div>
+        <div className="clean-card p-5"><p className="text-sm text-slate-500">Produtos</p><h3 className="text-2xl font-bold">{resumoPdf.todos}</h3></div>
+        <div className="clean-card p-5"><p className="text-sm text-slate-500">Com PDF</p><h3 className="text-2xl font-bold text-green-700">{resumoPdf.comPdf}</h3></div>
+        <div className="clean-card p-5"><p className="text-sm text-slate-500">Sem PDF</p><h3 className="text-2xl font-bold text-red-700">{resumoPdf.semPdf}</h3></div>
       </section>
 
-      <section className="card mt-6 overflow-hidden max-w-full">
+      <section className="clean-card mt-6 overflow-hidden max-w-full">
         <div className="p-6 border-b">
           <div className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h2 className="font-bold text-xl">Produtos cadastrados</h2>
-              <p className="text-sm text-slate-500">Total filtrado: {produtosFiltrados.length} — exibindo {produtosPaginados.length} por página</p>
+              <h2 className="font-bold text-xl">Banco de preços</h2>
+              <p className="text-sm text-slate-500">Filtrados: {produtosFiltrados.length} — exibindo {produtosPaginados.length} por página</p>
             </div>
 
             <div className="flex min-w-0 flex-col md:flex-row gap-3">
@@ -964,7 +964,7 @@ export default function BancoPrecos() {
                 <option value="com_pdf">Somente com PDF</option>
                 <option value="sem_pdf">Somente sem PDF</option>
               </select>
-              <input className="input md:w-96 uppercase" placeholder="Buscar por descrição, marca, registro, apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+              <input className="input md:w-96 uppercase" placeholder="Buscar produto, marca ou registro" value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
 
             <div className="flex min-w-0 flex-col md:flex-row gap-3">
@@ -972,9 +972,9 @@ export default function BancoPrecos() {
                 type="button"
                 disabled={excluindoMassa || totalSelecionadosMassa === 0}
                 onClick={excluirProdutosEmMassa}
-                className="rounded-xl border border-red-300 px-4 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60"
+                className="btn-clean btn-clean-danger disabled:opacity-60"
               >
-                {excluindoMassa ? "Excluindo..." : `Excluir selecionados (${totalSelecionadosMassa})`}
+                {excluindoMassa ? "Excluindo..." : `Excluir (${totalSelecionadosMassa})`}
               </button>
 
               <button
@@ -983,7 +983,7 @@ export default function BancoPrecos() {
                 onClick={limparSelecaoMassa}
                 className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
               >
-                Limpar seleção
+                Limpar
               </button>
             </div>
 
@@ -992,9 +992,9 @@ export default function BancoPrecos() {
                 type="button"
                 disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
                 onClick={desvincularRegistrosEmMassa}
-                className="rounded-xl border border-yellow-300 px-4 py-2 text-yellow-800 hover:bg-yellow-50 disabled:opacity-60"
+                className="btn-clean btn-clean-secondary disabled:opacity-60"
               >
-                {desvinculandoMassa ? "Desvinculando..." : `Desvincular selecionados (${totalSelecionadosMassa})`}
+                {desvinculandoMassa ? "Desvinculando..." : `Desvincular (${totalSelecionadosMassa})`}
               </button>
 
               <button
@@ -1003,13 +1003,13 @@ export default function BancoPrecos() {
                 onClick={limparSelecaoMassa}
                 className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
               >
-                Limpar seleção
+                Limpar
               </button>
             </div>
 
-            <div className="rounded-2xl border bg-blue-50 p-4">
+            <div className="rounded-2xl border bg-slate-50 p-4">
               <p className="text-sm font-semibold text-slate-700 mb-3">
-                Vincular um registro a vários produtos
+                Vínculo em massa
               </p>
 
               <div className="grid min-w-0 md:grid-cols-[1fr_160px_160px_160px] gap-3">
@@ -1031,7 +1031,7 @@ export default function BancoPrecos() {
                   onClick={selecionarTodosFiltradosMassa}
                   className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-100 disabled:opacity-60"
                 >
-                  Selecionar página
+                  Selecionar
                 </button>
 
                 <button
@@ -1089,7 +1089,7 @@ export default function BancoPrecos() {
             </div>
 
           <div className="overflow-x-auto max-w-full">
-            <table className="w-full max-w-full text-xs">
+            <table className="clean-table w-full max-w-full text-xs">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-3">Sel.</th>
@@ -1239,7 +1239,7 @@ export default function BancoPrecos() {
 
             <div className="flex min-w-0 justify-end gap-3 mt-6">
               <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setProdutoEditando(null)}>Cancelar</button>
-              <button type="button" className="btn-primary" disabled={salvandoEdicao} onClick={salvarEdicaoProduto}>
+              <button type="button" className="btn-clean btn-clean-primary" disabled={salvandoEdicao} onClick={salvarEdicaoProduto}>
                 {salvandoEdicao ? "Salvando..." : "Salvar alterações"}
               </button>
             </div>
