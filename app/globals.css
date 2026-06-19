@@ -354,3 +354,104 @@ td {
     width: 100% !important;
   }
 }
+
+
+/* COTAMED TOOLBAR ORGANIZADA */
+.cotamed-toolbar {
+  display: grid;
+  grid-template-columns: minmax(180px, 260px) 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.cotamed-toolbar-title h2 {
+  font-size: 22px;
+  line-height: 1.15;
+  margin: 0;
+}
+
+.cotamed-toolbar-title p {
+  margin-top: 6px;
+  color: #64748b;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.cotamed-toolbar-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-width: 0;
+}
+
+.cotamed-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  min-width: 0;
+}
+
+.cotamed-row input,
+.cotamed-row select,
+.cotamed-row button {
+  height: 42px;
+}
+
+.cotamed-search {
+  flex: 1 1 260px;
+  min-width: 220px;
+}
+
+.cotamed-action-card {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid #e5e7eb;
+  border-radius: 16px;
+  background: #f8fafc;
+}
+
+.cotamed-action-card-title {
+  flex: 0 0 150px;
+  font-weight: 600;
+  color: #334155;
+  font-size: 14px;
+}
+
+.cotamed-action-card-fields {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  min-width: 0;
+}
+
+.cotamed-action-card-fields > * {
+  flex: 1 1 140px;
+  min-width: 120px;
+}
+
+@media (max-width: 900px) {
+  .cotamed-toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .cotamed-toolbar-title h2 {
+    font-size: 20px;
+  }
+
+  .cotamed-action-card-title {
+    flex-basis: 100%;
+  }
+
+  .cotamed-action-card-fields > * {
+    flex-basis: 100%;
+  }
+
+  .cotamed-search {
+    min-width: 100%;
+  }
+}

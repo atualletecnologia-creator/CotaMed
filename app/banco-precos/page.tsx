@@ -952,105 +952,94 @@ export default function BancoPrecos() {
 
       <section className="clean-card mt-6 overflow-hidden max-w-full">
         <div className="p-6 border-b">
-          <div className="flex min-w-0 flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-            <div>
-              <h2 className="font-bold text-xl">Banco de preços</h2>
-              <p className="text-sm text-slate-500">Itens: {produtosFiltrados.length} • {produtosPaginados.length} por página</p>
-            </div>
-
-            <div className="flex min-w-0 flex-col md:flex-row gap-3">
-              <select className="input md:w-48" value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
-                <option value="todos">Todoss os produtos</option>
-                <option value="com_pdf">Somente com PDF</option>
-                <option value="sem_pdf">Somente sem PDF</option>
-              </select>
-              <input className="input md:w-96" placeholder="Buscar produto, marca ou registro" value={busca} onChange={(e) => setBusca(e.target.value)} />
-            </div>
-
-            <div className="flex min-w-0 flex-col md:flex-row gap-3">
-              <button
-                type="button"
-                disabled={excluindoMassa || totalSelecionadosMassa === 0}
-                onClick={excluirProdutosEmMassa}
-                className="btn-clean btn-clean-danger disabled:opacity-60"
-              >
-                {excluindoMassa ? "Excluindo..." : `Excluir (${totalSelecionadosMassa})`}
-              </button>
-
-              <button
-                type="button"
-                disabled={excluindoMassa || totalSelecionadosMassa === 0}
-                onClick={limparSelecaoMassa}
-                className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-              >
-                Limpar
-              </button>
-            </div>
-
-            <div className="flex min-w-0 flex-col md:flex-row gap-3">
-              <button
-                type="button"
-                disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
-                onClick={desvincularRegistrosEmMassa}
-                className="btn-clean btn-clean-secondary disabled:opacity-60"
-              >
-                {desvinculandoMassa ? "Desvinculando..." : `Desvincular (${totalSelecionadosMassa})`}
-              </button>
-
-              <button
-                type="button"
-                disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
-                onClick={limparSelecaoMassa}
-                className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-slate-50 disabled:opacity-60"
-              >
-                Limpar
-              </button>
-            </div>
-
-            <div className="rounded-2xl border bg-white p-3">
-              <p className="text-sm font-medium text-slate-700 mb-2">
-                Vincular registro
+          <div className="cotamed-toolbar">
+            <div className="cotamed-toolbar-title">
+              <h2>Banco de preços</h2>
+              <p>
+                {produtosFiltrados.length} itens encontrados<br />
+                {produtosPaginados.length} exibidos por página
               </p>
+            </div>
 
-              <div className="grid min-w-0 md:grid-cols-[1fr_160px_160px_160px] gap-3">
-                <select
-                  className="input text-sm"
-                  value={registroMassaId}
-                  onChange={(e) => setRegistroMassaId(e.target.value)}
-                  disabled={aplicandoMassa}
-                >
-                  <option value="">Escolha o registro</option>
-                  {registros.map((r) => (
-                    <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
-                  ))}
+            <div className="cotamed-toolbar-content">
+              <div className="cotamed-row">
+                <select className="input w-40" value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
+                  <option value="todos">Todos</option>
+                  <option value="com_pdf">Com PDF</option>
+                  <option value="sem_pdf">Sem PDF</option>
                 </select>
 
+                <input
+                  className="input cotamed-search"
+                  placeholder="Buscar produtoo"
+                  value={busca}
+                  onChange={(e) => setBusca(e.target.value)}
+                />
+              </div>
+
+              <div className="cotamed-row">
                 <button
                   type="button"
-                  disabled={aplicandoMassa || produtosFiltrados.length === 0}
-                  onClick={selecionarTodossFiltradosMassa}
-                  className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-100 disabled:opacity-60"
+                  disabled={excluindoMassa || totalSelecionadosMassa === 0}
+                  onClick={excluirProdutosEmMassa}
+                  className="btn-clean btn-clean-danger"
                 >
-                  Selecionar
+                  Excluir ({totalSelecionadosMassa})
                 </button>
 
                 <button
                   type="button"
-                  disabled={aplicandoMassa || !registroMassaId || totalSelecionadosMassa === 0}
-                  onClick={aplicarRegistroEmMassa}
-                  className="rounded-xl bg-cotamed-700 px-4 py-2 text-white hover:bg-cotamed-800 disabled:opacity-60"
+                  disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
+                  onClick={desvincularRegistrosEmMassa}
+                  className="btn-clean btn-clean-secondary"
                 >
-                  {aplicandoMassa ? "Aplicando..." : `Aplicar (${totalSelecionadosMassa})`}
+                  Desvincular ({totalSelecionadosMassa})
                 </button>
 
                 <button
                   type="button"
-                  disabled={aplicandoMassa || (!registroMassaId && totalSelecionadosMassa === 0)}
+                  disabled={(excluindoMassa || desvinculandoMassa) || totalSelecionadosMassa === 0}
                   onClick={limparSelecaoMassa}
-                  className="rounded-xl border px-4 py-2 text-slate-700 hover:bg-white disabled:opacity-60"
+                  className="btn-clean btn-clean-secondary"
                 >
                   Limpar
                 </button>
+              </div>
+
+              <div className="cotamed-action-card">
+                <div className="cotamed-action-card-title">Vincular registro</div>
+
+                <div className="cotamed-action-card-fields">
+                  <select
+                    className="input"
+                    value={registroMassaId}
+                    onChange={(e) => setRegistroMassaId(e.target.value)}
+                    disabled={aplicandoMassa}
+                  >
+                    <option value="">Escolha o registroistro</option>
+                    {registros.map((r) => (
+                      <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
+                    ))}
+                  </select>
+
+                  <button
+                    type="button"
+                    disabled={aplicandoMassa || produtosFiltrados.length === 0}
+                    onClick={selecionarTodosFiltradosMassa}
+                    className="btn-clean btn-clean-secondary"
+                  >
+                    Selecionar
+                  </button>
+
+                  <button
+                    type="button"
+                    disabled={aplicandoMassa || !registroMassaId || totalSelecionadosMassa === 0}
+                    onClick={aplicarRegistroEmMassa}
+                    className="btn-clean btn-clean-primary"
+                  >
+                    Aplicar ({totalSelecionadosMassa})
+                  </button>
+                </div>
               </div>
             </div>
           </div>
