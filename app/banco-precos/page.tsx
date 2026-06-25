@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { AppShell } from "@/components/AppShell";
@@ -64,7 +64,7 @@ function normalizarParaMatchForte(valor: unknown) {
 function palavrasFortes(valor: unknown) {
   const ignorar = new Set([
     "de", "da", "do", "das", "dos", "para", "por", "com", "sem",
-    "sulfato", "cloridrato", "sodico", "sodica", "base", "solucao", "solução",
+    "sulfato", "cloridrato", "sodico", "sodica", "base", "solucao", "soluÃ§Ã£o",
     "caixa", "cx", "unidade", "un", "und", "unid", "comprimido", "comprimidos",
     "capsula", "capsulas", "ampola", "ampolas", "ml", "mg", "g"
   ]);
@@ -107,7 +107,7 @@ function tokens(valor: unknown) {
   return normalizarTexto(valor)
     .split(" ")
     .filter((p) => p.length > 1)
-    .filter((p) => !["de", "da", "do", "das", "dos", "para", "por", "com", "sem", "sulfato", "cloridrato", "sodico", "base", "solucao", "solução"].includes(p));
+    .filter((p) => !["de", "da", "do", "das", "dos", "para", "por", "com", "sem", "sulfato", "cloridrato", "sodico", "base", "solucao", "soluÃ§Ã£o"].includes(p));
 }
 
 function numero(valor: unknown) {
@@ -127,17 +127,17 @@ function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
   const produtoRegistro = textoBusca(produto.registro_anvisa);
   const registroNumero = textoBusca(registro.registro_anvisa);
 
-  // Se tiver número de registro na planilha, só vincula se for exatamente igual.
+  // Se tiver nÃºmero de registro na planilha, sÃ³ vincula se for exatamente igual.
   if (produtoRegistro) {
     return registroNumero && produtoRegistro === registroNumero ? 100 : 0;
   }
 
-  // Sem número de registro, a marca precisa ser exatamente igual.
+  // Sem nÃºmero de registro, a marca precisa ser exatamente igual.
   if (!marcaIgualExata(produto, registro)) {
     return 0;
   }
 
-  // Mesmo com marca igual, o nome precisa bater com muita segurança.
+  // Mesmo com marca igual, o nome precisa bater com muita seguranÃ§a.
   if (!nomeBateComSeguranca(produto, registro)) {
     return 0;
   }
@@ -321,7 +321,7 @@ export default function BancoPrecos() {
       setImportando(true);
       const { data: userData, error: userError } = await supabase.auth.getUser();
       if (userError || !userData.user) {
-        setErro("Usuário não autenticado.");
+        setErro("UsuÃ¡rio nÃ£o autenticado.");
         return;
       }
 
@@ -349,7 +349,7 @@ export default function BancoPrecos() {
         .sort((a, b) => String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR"));
 
       if (!linhasOrdenadas.length) {
-        setErro("Nenhum produto válido encontrado. Verifique se existe a coluna descricao.");
+        setErro("Nenhum produto vÃ¡lido encontrado. Verifique se existe a coluna descricao.");
         return;
       }
 
@@ -400,7 +400,7 @@ export default function BancoPrecos() {
         return;
       }
 
-      setMensagem(`${produtosParaSalvar.length} produtos importados. ${vinculados} vinculados automaticamente ao registro ANVISA. ${semRegistro} sem vínculo automático.`);
+      setMensagem(`${produtosParaSalvar.length} produtos importados. ${vinculados} vinculados automaticamente ao registro ANVISA. ${semRegistro} sem vÃ­nculo automÃ¡tico.`);
       await carregarDados();
     } finally {
       setImportando(false);
@@ -415,7 +415,7 @@ export default function BancoPrecos() {
 
       const registro = registros.find((r) => r.id === registroId);
       if (!registro) {
-        setErro("Registro ANVISA não encontrado.");
+        setErro("Registro ANVISA nÃ£o encontrado.");
         return;
       }
 
@@ -442,7 +442,7 @@ export default function BancoPrecos() {
   async function tentarVincularAutomaticamente(produto: Produto) {
     const registro = encontrarRegistroAutomatico(produto, registros);
     if (!registro) {
-      setErro("Nenhum registro compatível encontrado automaticamente. Selecione manualmente na lista.");
+      setErro("Nenhum registro compatÃ­vel encontrado automaticamente. Selecione manualmente na lista.");
       return;
     }
     await vincularRegistroManual(produto, registro.id);
@@ -465,13 +465,13 @@ export default function BancoPrecos() {
     });
 
     setProdutosSelecionadosMassa(novos);
-    setMensagem(`${Object.keys(novos).length} produtos da página atual selecionados para vínculo em massa.`);
+    setMensagem(`${Object.keys(novos).length} produtos da pÃ¡gina atual selecionados para vÃ­nculo em massa.`);
   }
 
   function limparSelecaoMassa() {
     setProdutosSelecionadosMassa({});
     setRegistroMassaId("");
-    setMensagem("Seleção de vínculo em massa limpa.");
+    setMensagem("SeleÃ§Ã£o de vÃ­nculo em massa limpa.");
   }
 
   async function aplicarRegistroEmMassa() {
@@ -484,7 +484,7 @@ export default function BancoPrecos() {
         .map(([produtoId]) => produtoId);
 
       if (!registroMassaId) {
-        setErro("Selecione o registro ANVISA que será aplicado em massa.");
+        setErro("Selecione o registro ANVISA que serÃ¡ aplicado em massa.");
         return;
       }
 
@@ -496,7 +496,7 @@ export default function BancoPrecos() {
       const registro = registros.find((r) => r.id === registroMassaId);
 
       if (!registro) {
-        setErro("Registro ANVISA não encontrado.");
+        setErro("Registro ANVISA nÃ£o encontrado.");
         return;
       }
 
@@ -538,7 +538,7 @@ export default function BancoPrecos() {
       setMensagem("");
 
       const confirmar = window.confirm(
-        "Atualizar vínculos somente dos produtos que ainda estão sem registro/PDF? Produtos já vinculados serão mantidos."
+        "Atualizar vÃ­nculos somente dos produtos que ainda estÃ£o sem registro/PDF? Produtos jÃ¡ vinculados serÃ£o mantidos."
       );
 
       if (!confirmar) return;
@@ -583,7 +583,7 @@ export default function BancoPrecos() {
       }
 
       setMensagem(
-        `Vínculos atualizados. ${vinculados} novos vínculos aplicados. ${mantidos} produtos já vinculados foram mantidos. ${semVinculoSeguro} ficaram sem vínculo seguro. ${erros} erros.`
+        `VÃ­nculos atualizados. ${vinculados} novos vÃ­nculos aplicados. ${mantidos} produtos jÃ¡ vinculados foram mantidos. ${semVinculoSeguro} ficaram sem vÃ­nculo seguro. ${erros} erros.`
       );
 
       await carregarDados();
@@ -690,7 +690,7 @@ export default function BancoPrecos() {
     const ws = XLSX.utils.json_to_sheet(dados);
     const wb = XLSX.utils.book_new();
 
-    XLSX.utils.book_append_sheet(wb, ws, "Banco de Preços");
+    XLSX.utils.book_append_sheet(wb, ws, "Banco de PreÃ§os");
     XLSX.writeFile(wb, `banco-precos-cotamed-${new Date().toISOString().slice(0, 10)}.xlsx`);
   }
 
@@ -743,7 +743,7 @@ export default function BancoPrecos() {
           quantidade_por_caixa: numero(linha.quantidade_por_caixa),
           custo_unitario: numero(linha.custo_unitario),
           custo_caixa: numero(linha.custo_caixa),
-          origem_preco: maiusculo(linha.origem_preco) || "ATUALIZAÇÃO EM MASSA",
+          origem_preco: maiusculo(linha.origem_preco) || "ATUALIZAÃ‡ÃƒO EM MASSA",
           data_atualizacao_custo: new Date().toISOString(),
           pdf_url: String(linha.pdf_url || "").trim() || null,
         };
@@ -787,7 +787,7 @@ export default function BancoPrecos() {
         quantidade_por_caixa: produtoEditando.quantidade_por_caixa || null,
         custo_unitario: produtoEditando.custo_unitario || null,
         custo_caixa: produtoEditando.custo_caixa || null,
-        origem_preco: maiusculo(produtoEditando.origem_preco) || "EDIÇÃO MANUAL",
+        origem_preco: maiusculo(produtoEditando.origem_preco) || "EDIÃ‡ÃƒO MANUAL",
         data_atualizacao_custo: new Date().toISOString(),
       };
 
@@ -824,7 +824,7 @@ export default function BancoPrecos() {
       }
 
       const confirmar = window.confirm(
-        `Excluir definitivamente ${produtoIds.length} produtos selecionados do Banco de Preços?`
+        `Excluir definitivamente ${produtoIds.length} produtos selecionados do Banco de PreÃ§os?`
       );
 
       if (!confirmar) return;
@@ -841,7 +841,7 @@ export default function BancoPrecos() {
         return;
       }
 
-      setMensagem(`${produtoIds.length} produtos excluídos com sucesso.`);
+      setMensagem(`${produtoIds.length} produtos excluÃ­dos com sucesso.`);
       setProdutosSelecionadosMassa({});
 
       await carregarDados();
@@ -866,7 +866,7 @@ export default function BancoPrecos() {
         return;
       }
 
-      setMensagem("Produto excluído com sucesso.");
+      setMensagem("Produto excluÃ­do com sucesso.");
       await carregarDados();
     } finally {
       setExcluindo("");
@@ -877,7 +877,7 @@ export default function BancoPrecos() {
     try {
       await abrirPdfRegistro(path);
     } catch (e: any) {
-      setErro(e.message || "Não foi possível abrir o PDF.");
+      setErro(e.message || "NÃ£o foi possÃ­vel abrir o PDF.");
     }
   }
 
@@ -885,7 +885,7 @@ export default function BancoPrecos() {
     <AppShell>
       <div className="flex min-w-0 flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold">Banco de Preços</h1>
+          <h1 className="text-3xl font-bold">Banco de PreÃ§os</h1>
           <p className="text-slate-500">Gerencie produtos, custos e registros ANVISA.</p>
         </div>
 
@@ -896,7 +896,7 @@ export default function BancoPrecos() {
             onClick={atualizarTodossVinculos}
             className="btn-clean btn-clean-secondary disabled:opacity-60"
           >
-            {atualizandoVinculos ? "Atualizando..." : "Atualizar vínculos"}
+            {atualizandoVinculos ? "Atualizando..." : "Atualizar vÃ­nculos"}
           </button>
 
           <a href="/modelos/modelo-banco-precos-cotamed.xlsx" download className="btn-clean btn-clean-primary text-center">
@@ -906,7 +906,7 @@ export default function BancoPrecos() {
       </div>
 
       <section className="clean-card p-6 mt-6">
-        <h2 className="font-bold text-xl">Importação</h2>
+        <h2 className="font-bold text-xl">ImportaÃ§Ã£o</h2>
 
         <div className="grid min-w-0 md:grid-cols-[1fr_180px] gap-4 mt-5">
           <input type="file" accept=".xlsx,.xls" className="input" onChange={(e) => importarPlanilha(e.target.files?.[0] || null)} />
@@ -914,7 +914,7 @@ export default function BancoPrecos() {
         </div>
 
         <div className="mt-5 rounded-2xl border bg-blue-50 p-4">
-          <h3 className="font-semibold">Atualização em massa</h3>
+          <h3 className="font-semibold">AtualizaÃ§Ã£o em massa</h3>
           <p className="text-sm text-slate-600 mt-1">
             Exporte, edite e envie novamente.
           </p>
@@ -954,10 +954,10 @@ export default function BancoPrecos() {
         <div className="p-6 border-b">
           <div className="cotamed-toolbar">
             <div className="cotamed-toolbar-title">
-              <h2>Banco de preços</h2>
+              <h2>Banco de preÃ§os</h2>
               <p>
                 {produtosFiltrados.length} itens encontrados<br />
-                {produtosPaginados.length} exibidos por página
+                {produtosPaginados.length} exibidos por pÃ¡gina
               </p>
             </div>
 
@@ -971,7 +971,7 @@ export default function BancoPrecos() {
 
                 <input
                   className="input cotamed-search"
-                  placeholder="Buscar produtoo"
+                  placeholder="Buscar produto"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                 />
@@ -1016,7 +1016,7 @@ export default function BancoPrecos() {
                     onChange={(e) => setRegistroMassaId(e.target.value)}
                     disabled={aplicandoMassa}
                   >
-                    <option value="">Escolha o registroistro</option>
+                    <option value="">Escolha o registro</option>
                     {registros.map((r) => (
                       <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
                     ))}
@@ -1053,7 +1053,7 @@ export default function BancoPrecos() {
           <>
             <div className="m-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-2xl bg-blue-50 p-3 text-sm">
               <span>
-                Página <b>{Math.min(paginaProdutos, totalPaginasProdutos)}</b> de <b>{totalPaginasProdutos}</b>
+                PÃ¡gina <b>{Math.min(paginaProdutos, totalPaginasProdutos)}</b> de <b>{totalPaginasProdutos}</b>
               </span>
 
               <div className="flex min-w-0 gap-2">
@@ -1072,7 +1072,7 @@ export default function BancoPrecos() {
                   disabled={paginaProdutos >= totalPaginasProdutos}
                   onClick={() => setPaginaProdutos((p) => Math.min(totalPaginasProdutos, p + 1))}
                 >
-                  Próxima
+                  PrÃ³xima
                 </button>
               </div>
             </div>
@@ -1082,8 +1082,8 @@ export default function BancoPrecos() {
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-3">Sel.</th>
-                  <th className="text-left p-3">Descrição</th>
-                  <th className="text-left p-3">Apresentação</th>
+                  <th className="text-left p-3">DescriÃ§Ã£o</th>
+                  <th className="text-left p-3">ApresentaÃ§Ã£o</th>
                   <th className="text-left p-3">Marca</th>
                   <th className="text-left p-3">Registro ANVISA</th>
                   <th className="text-left p-3">Vencimento</th>
@@ -1112,7 +1112,7 @@ export default function BancoPrecos() {
                     <td className="p-3 font-medium">{p.descricao || "-"}</td>
                     <td className="p-3">{p.apresentacao || "-"}</td>
                     <td className="p-3">{p.marca || "-"}</td>
-                    <td className="p-3">{p.registro_anvisa || "Não vinculado"}</td>
+                    <td className="p-3">{p.registro_anvisa || "NÃ£o vinculado"}</td>
                     <td className="p-3">{p.vencimento_registro || "-"}</td>
                     <td className="p-3">{p.pdf_url ? <button onClick={() => abrirPdf(p.pdf_url)} className="text-cotamed-700 underline">Abrir PDF</button> : <span className="text-red-600 font-medium">Sem PDF</span>}</td>
                     <td className="p-3">
@@ -1142,10 +1142,10 @@ export default function BancoPrecos() {
                             setBuscaRegistroVinculo("");
                           }}
                         >
-                          {produtoVinculoAberto === p.id ? "Fechar vínculos" : "Vincular manual"}
+                          {produtoVinculoAberto === p.id ? "Fechar vÃ­nculos" : "Vincular manual"}
                         </button>
 
-                        <button className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60" disabled={vinculando === p.id} onClick={() => tentarVincularAutomaticamente(p)}>{vinculando === p.id ? "Vinculando..." : "Tentar automático"}</button>
+                        <button className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60" disabled={vinculando === p.id} onClick={() => tentarVincularAutomaticamente(p)}>{vinculando === p.id ? "Vinculando..." : "Tentar automÃ¡tico"}</button>
 
                         {produtoVinculoAberto === p.id && (
                           <div className="rounded-xl border bg-blue-50 p-3">
@@ -1201,7 +1201,7 @@ export default function BancoPrecos() {
             <div className="flex min-w-0 items-start justify-between gap-4">
               <div>
                 <h2 className="text-xl font-bold">Editar produto cadastrado</h2>
-                <p className="text-sm text-slate-500">Altere os campos e salve. Os textos serão gravados em maiúsculo.</p>
+                <p className="text-sm text-slate-500">Altere os campos e salve. Os textos serÃ£o gravados em maiÃºsculo.</p>
               </div>
 
               <button
@@ -1214,22 +1214,22 @@ export default function BancoPrecos() {
             </div>
 
             <div className="grid min-w-0 md:grid-cols-3 gap-4 mt-5">
-              <div><label className="text-sm font-medium">Descrição</label><input className="input mt-2" value={produtoEditando.descricao || ""} onChange={(e) => atualizarCampoEdicao("descricao", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2" value={produtoEditando.apresentacao || ""} onChange={(e) => atualizarCampoEdicao("apresentacao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">DescriÃ§Ã£o</label><input className="input mt-2" value={produtoEditando.descricao || ""} onChange={(e) => atualizarCampoEdicao("descricao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">ApresentaÃ§Ã£o</label><input className="input mt-2" value={produtoEditando.apresentacao || ""} onChange={(e) => atualizarCampoEdicao("apresentacao", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Marca</label><input className="input mt-2" value={produtoEditando.marca || ""} onChange={(e) => atualizarCampoEdicao("marca", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2" value={produtoEditando.registro_anvisa || ""} onChange={(e) => atualizarCampoEdicao("registro_anvisa", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Vencimento Registro</label><input className="input mt-2" placeholder="AAAA-MM-DD" value={produtoEditando.vencimento_registro || ""} onChange={(e) => atualizarCampoEdicao("vencimento_registro", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Unidade</label><input className="input mt-2" value={produtoEditando.unidade || ""} onChange={(e) => atualizarCampoEdicao("unidade", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Qtd por caixa</label><input className="input mt-2" type="number" value={produtoEditando.quantidade_por_caixa || ""} onChange={(e) => atualizarCampoEdicao("quantidade_por_caixa", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Custo unitário</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_unitario || ""} onChange={(e) => atualizarCampoEdicao("custo_unitario", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Custo unitÃ¡rio</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_unitario || ""} onChange={(e) => atualizarCampoEdicao("custo_unitario", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Custo caixa</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_caixa || ""} onChange={(e) => atualizarCampoEdicao("custo_caixa", e.target.value)} /></div>
-              <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2" value={produtoEditando.origem_preco || ""} onChange={(e) => atualizarCampoEdicao("origem_preco", e.target.value)} /></div>
+              <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preÃ§o</label><input className="input mt-2" value={produtoEditando.origem_preco || ""} onChange={(e) => atualizarCampoEdicao("origem_preco", e.target.value)} /></div>
             </div>
 
             <div className="flex min-w-0 justify-end gap-3 mt-6">
               <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setProdutoEditando(null)}>Cancelar</button>
               <button type="button" className="btn-clean btn-clean-primary" disabled={salvandoEdicao} onClick={salvarEdicaoProduto}>
-                {salvandoEdicao ? "Salvando..." : "Salvar alterações"}
+                {salvandoEdicao ? "Salvando..." : "Salvar alteraÃ§Ãµes"}
               </button>
             </div>
           </div>
@@ -1239,3 +1239,4 @@ export default function BancoPrecos() {
     </AppShell>
   );
 }
+
