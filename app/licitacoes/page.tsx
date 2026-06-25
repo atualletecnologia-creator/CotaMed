@@ -60,7 +60,16 @@ function normalizarCabecalho(valor: unknown) {
 function numero(valor: unknown) {
   if (valor === null || valor === undefined || valor === "") return 0;
   if (typeof valor === "number") return valor;
-  const texto = String(valor).replace("R$", "").replace(/\./g, "").replace(",", ".").trim();
+
+  let texto = String(valor)
+    .replace("R$", "")
+    .replace(/\s/g, "")
+    .trim();
+
+  if (texto.includes(",")) {
+    texto = texto.replace(/\./g, "").replace(",", ".");
+  }
+
   const n = Number(texto);
   return Number.isFinite(n) ? n : 0;
 }
@@ -360,6 +369,7 @@ export default function Licitacoes() {
   const [usarIa, setUsarIa] = useState(false);
   const [produtosBanco, setProdutosBanco] = useState<Produto[]>([]);
   const [buscaManualPorItem, setBuscaManualPorItem] = useState<Record<string, string>>({});
+  const [custoManualTextoPorItem, setCustoManualTextoPorItem] = useState<Record<string, string>>({});
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
   const [paginaItens, setPaginaItens] = useState(1);
@@ -465,6 +475,22 @@ export default function Licitacoes() {
     };
   }
 
+  function alterarCustoManualLivreTexto(numeroItem: string, valor: string) {
+    const valorNormalizado = valor.replace(/[^0-9,\.]/g, "");
+
+    setCustoManualTextoPorItem((atual) => ({
+      ...atual,
+      [numeroItem]: valorNormalizado,
+    }));
+
+    setItens((atuais) =>
+      atuais.map((item) => {
+        if (item.numero_item !== numeroItem) return item;
+        return recalcularItemManualLivre(item, { custo_usado: numero(valorNormalizado) });
+      })
+    );
+  }
+
   function alterarCampoManualLivre(numeroItem: string, campo: "marca" | "registro_anvisa" | "custo_usado", valor: string) {
     setItens((atuais) =>
       atuais.map((item) => {
@@ -483,6 +509,12 @@ export default function Licitacoes() {
     if (!produtoId) return;
     const produto = produtosBanco.find((p) => p.id === produtoId);
     if (!produto) return;
+
+    setCustoManualTextoPorItem((atual) => {
+      const novo = { ...atual };
+      delete novo[numeroItem];
+      return novo;
+    });
 
     setItens((atuais) =>
       atuais.map((item) => item.numero_item === numeroItem ? recalcularItem(item, produto, item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade), "Manual") : item)
@@ -540,6 +572,7 @@ export default function Licitacoes() {
       setMensagem("");
       setItens([]);
       setBuscaManualPorItem({});
+      setCustoManualTextoPorItem({});
       setFiltro("todos");
 
       if (!file) return;
@@ -865,8 +898,8 @@ export default function Licitacoes() {
                             placeholder="Custo"
                             type="text"
                             inputMode="decimal"
-                            value={item.custo_usado ? String(item.custo_usado).replace(".", ",") : ""}
-                            onChange={(e) => alterarCampoManualLivre(item.numero_item, "custo_usado", e.target.value)}
+                            value={custoManualTextoPorItem[item.numero_item] ?? ""}
+                            onChange={(e) => alterarCustoManualLivreTexto(item.numero_item, e.target.value)}
                           />
                         </div>
 
