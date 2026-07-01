@@ -109,7 +109,17 @@ function statusClasse(status: string) {
 }
 
 function itemPodeCotar(item: ItemLicitacao) {
-  return !item.excluido && (item.status === "Encontrado" || item.status === "Manual" || item.status === "Conferir");
+  if (item.excluido) return false;
+
+  const statusCotavel =
+    item.status === "Encontrado" ||
+    item.status === "Manual" ||
+    item.status === "Conferir" ||
+    item.status === "Conferir match";
+
+  const temCotacao = !!item.produto_id && !!item.custo_usado && !!item.valor_unitario;
+
+  return statusCotavel || temCotacao;
 }
 
 function labelProduto(produto: Produto) {
@@ -188,8 +198,10 @@ function montarItemCotado(params: {
   const nivel = classificarConfianca(score);
 
   let status = "Não encontrado";
-  if (nivel === "alto" && custo > 0) status = "Encontrado";
-  else if (nivel === "medio" && custo > 0) status = "Conferir";
+
+  if (custo > 0) {
+    status = nivel === "alto" ? "Encontrado" : "Conferir";
+  }
 
   return {
     numero_item: String(index + 1).padStart(3, "0"),
@@ -650,8 +662,20 @@ export default function Licitacoes() {
         );
       }
 
-      setItens(itensCotados);
-      setMensagem(`${itensCotados.length} itens processados. Você pode escolher UNITÁRIO ou CAIXA por item.`);
+      const itensCorrigidos = itensCotados.map((item) => {
+        if (item.produto_id && item.custo_usado && item.valor_unitario && item.status === "Não encontrado") {
+          return {
+            ...item,
+            status: "Conferir",
+            origem_match: item.origem_match || "busca_local",
+          };
+        }
+
+        return item;
+      });
+
+      setItens(itensCorrigidos);
+      setMensagem(`${itensCorrigidos.length} itens processados. Itens encontrados com custo serão cotados automaticamente.`);
     } finally {
       setProcessando(false);
       setProgressoProcessamento("");
