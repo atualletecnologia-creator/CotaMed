@@ -312,6 +312,38 @@ export default function BancoPrecos() {
     return Object.values(produtosSelecionadosMassa).filter(Boolean).length;
   }, [produtosSelecionadosMassa]);
 
+  async function salvarProdutoImportadoSemDuplicar(payload: any, idPlanilha?: string) {
+    if (idPlanilha) {
+      const { error } = await supabase.from("produtos").update(payload).eq("id", idPlanilha);
+      return error;
+    }
+
+    const descricaoBusca = String(payload.descricao || "").trim();
+    const marcaBusca = String(payload.marca || "").trim();
+    const custoUnitarioBusca = Number(payload.custo_unitario || 0);
+    const custoCaixaBusca = Number(payload.custo_caixa || 0);
+
+    const { data: existente, error: erroBusca } = await supabase
+      .from("produtos")
+      .select("id")
+      .eq("descricao", descricaoBusca)
+      .eq("marca", marcaBusca)
+      .eq("custo_unitario", custoUnitarioBusca)
+      .eq("custo_caixa", custoCaixaBusca)
+      .limit(1);
+
+    if (erroBusca) return erroBusca;
+
+    if (existente && existente.length > 0) {
+      const { error } = await supabase.from("produtos").update(payload).eq("id", existente[0].id);
+      return error;
+    }
+
+    const idPlanilha = String(normalizada.id || "").trim();
+        const error = await salvarProdutoImportadoSemDuplicar(payload, idPlanilha);
+    return error;
+  }
+
   async function importarPlanilha(file: File | null) {
     try {
       setErro("");
@@ -722,7 +754,7 @@ export default function BancoPrecos() {
         .filter((linha) => String(linha.id || "").trim());
 
       if (!atualizacoes.length) {
-        setErro("Nenhum produto com ID encontrado na planilha. Baixe a planilha do sistema, edite e envie novamente.");
+        setErro("Nenhum produto com ID encontrado. Baixe a planilha cadastrada pelo sistema, edite mantendo a coluna ID e envie novamente.");
         return;
       }
 
@@ -971,7 +1003,7 @@ export default function BancoPrecos() {
 
                 <input
                   className="input cotamed-search"
-                  placeholder="Buscar produto"
+                  placeholder="Buscar produtoo"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                 />
@@ -1016,7 +1048,7 @@ export default function BancoPrecos() {
                     onChange={(e) => setRegistroMassaId(e.target.value)}
                     disabled={aplicandoMassa}
                   >
-                    <option value="">Escolha o registro</option>
+                    <option value="">Escolha o registroistro</option>
                     {registros.map((r) => (
                       <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
                     ))}
@@ -1239,4 +1271,3 @@ export default function BancoPrecos() {
     </AppShell>
   );
 }
-
