@@ -314,7 +314,11 @@ export default function BancoPrecos() {
 
   async function salvarProdutoImportadoSemDuplicar(payload: any, idPlanilha?: string) {
     if (idPlanilha) {
-      const { error } = await supabase.from("produtos").update(payload).eq("id", idPlanilha);
+      const { error } = await supabase
+        .from("produtos")
+        .update(payload)
+        .eq("id", idPlanilha);
+
       return error;
     }
 
@@ -335,12 +339,18 @@ export default function BancoPrecos() {
     if (erroBusca) return erroBusca;
 
     if (existente && existente.length > 0) {
-      const { error } = await supabase.from("produtos").update(payload).eq("id", existente[0].id);
+      const { error } = await supabase
+        .from("produtos")
+        .update(payload)
+        .eq("id", existente[0].id);
+
       return error;
     }
 
-    const idPlanilha = String(normalizada.id || "").trim();
-        const error = await salvarProdutoImportadoSemDuplicar(payload, idPlanilha);
+    const { error } = await supabase
+      .from("produtos")
+      .insert(payload);
+
     return error;
   }
 
