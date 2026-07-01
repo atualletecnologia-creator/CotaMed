@@ -361,6 +361,228 @@ function chaveProdutoManual(produto: Produto) {
   return normalizarBuscaManual([produto.descricao, produto.apresentacao].filter(Boolean).join(" | ")) || String(produto.id || "");
 }
 
+
+const CHAVE_APRENDIZADO_COTAMED = "cotamed_aprendizado_licitacoes_v1";
+
+type AprendizadoBusca = {
+  descricao_normalizada: string;
+  palavras: string[];
+  produto_id: string;
+  produto_descricao?: string | null;
+  produto_marca?: string | null;
+  usos: number;
+  atualizado_em: string;
+};
+
+function normalizarAprendizado(valor: unknown) {
+  return String(valor || "")
+    .trim()
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[\/\\|,.;:()[\]{}_-]+/g, " ")
+    .replace(/\b(SULFATO|CLORIDRATO|SODICO|SODICA|BASE|SOLUCAO|SOLUÇÃO|INJETAVEL|INJETÁVEL|ORAL|USO|ADULTO|PEDIATRICO|PEDIÁTRICO)\b/g, " ")
+    .replace(/\b(COMP|COMPR|COMPRIMIDO|COMPRIMIDOS)\b/g, " COMPRIMIDO ")
+    .replace(/\b(CAPS|CAPSULA|CÁPSULA|CAPSULAS|CÁPSULAS)\b/g, " CAPSULA ")
+    .replace(/\b(AMP|AMPOLA|AMPOLAS)\b/g, " AMPOLA ")
+    .replace(/\b(CX|CAIXA|C\/|C)\s*(\d+)\b/g, " CAIXA $2 ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function palavrasAprendizado(valor: unknown) {
+  const ignorar = new Set([
+    "DE", "DA", "DO", "DAS", "DOS", "PARA", "POR", "COM", "SEM",
+    "ML", "MG", "G", "MCG", "UN", "UND", "UNIDADE", "CAIXA", "CX"
+  ]);
+
+  return normalizarAprendizado(valor)
+    .split(" ")
+    .map((p) => p.trim())
+    .filter((p) => p.length > 1)
+    .filter((p) => !ignorar.has(p));
+}
+
+function carregarAprendizadosBusca(): AprendizadoBusca[] {
+  if (typeof window === "undefined") return [];
+
+  try {
+    const bruto = window.localStorage.getItem(CHAVE_APRENDIZADO_COTAMED);
+    if (!bruto) return [];
+
+    const dados = JSON.parse(bruto);
+    return Array.isArray(dados) ? dados : [];
+  } catch {
+    return [];
+  }
+}
+
+function salvarAprendizadosBusca(aprendizados: AprendizadoBusca[]) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(
+      CHAVE_APRENDIZADO_COTAMED,
+      JSON.stringify(aprendizados.slice(0, 800))
+    );
+  } catch {
+    // Se o navegador bloquear localStorage, apenas ignora.
+  }
+}
+
+function gravarAprendizadoBusca(descricaoLicitacao: string, produto: Produto) {
+  if (!produto.id || !descricaoLicitacao) return;
+
+  const descricaoNormalizada = normalizarAprendizado(descricaoLicitacao);
+  const palavras = palavrasAprendizado(descricaoLicitacao);
+
+  if (!descricaoNormalizada || !palavras.length) return;
+
+  const aprendizados = carregarAprendizadosBusca();
+  const existente = aprendizados.find(
+    (a) => a.descricao_normalizada === descricaoNormalizada && a.produto_id === produto.id
+  );
+
+  if (existente) {
+    existente.usos += 1;
+    existente.atualizado_em = new Date().toISOString();
+  } else {
+    aprendizados.unshift({
+      descricao_normalizada: descricaoNormalizada,
+      palavras,
+      produto_id: produto.id,
+      produto_descricao: produto.descricao,
+      produto_marca: produto.marca,
+      usos: 1,
+      atualizado_em: new Date().toISOString(),
+    });
+  }
+
+  salvarAprendizadosBusca(
+    aprendizados.sort((a, b) => {
+      if (b.usos !== a.usos) return b.usos - a.usos;
+      return String(b.atualizado_em).localeCompare(String(a.atualizado_em));
+    })
+  );
+}
+
+function buscarProdutoPorAprendizado(descricao: string, produtos: Produto[]) {
+  const aprendizados = carregarAprendizadosBusca();
+  if (!aprendizados.length) return null;
+
+  const palavrasDescricao = palavrasAprendizado(descricao);
+  if (!palavrasDescricao.length) return null;
+
+  const candidatos = aprendizados
+    .map((aprendizado) => {
+      const produto = produtos.find((p) => p.id === aprendizado.produto_id);
+      if (!produto) return null;
+
+      let iguais = 0;
+
+      aprendizado.palavras.forEach((palavra) => {
+        if (palavrasDescricao.includes(palavra)) iguais++;
+      });
+
+      const scorePalavras = aprendizado.palavras.length
+        ? iguais / aprendizado.palavras.length
+        : 0;
+
+      const scoreDescricao = palavrasDescricao.length
+        ? iguais / palavrasDescricao.length
+        : 0;
+
+      const score = Math.round(((scorePalavras * 0.65) + (scoreDescricao * 0.35)) * 100) + Math.min(aprendizado.usos, 10);
+
+      return { produto, score };
+    })
+    .filter(Boolean) as { produto: Produto; score: number }[];
+
+  const melhor = candidatos
+    .filter((c) => c.score >= 72)
+    .sort((a, b) => b.score - a.score)[0];
+
+  return melhor || null;
+}
+
+function scoreProdutoAprimorado(descricao: string, produto: Produto) {
+  const palavrasItem = palavrasAprendizado(descricao);
+  const palavrasProduto = palavrasAprendizado([
+    produto.descricao,
+    produto.apresentacao,
+    produto.marca,
+  ].filter(Boolean).join(" "));
+
+  if (!palavrasItem.length || !palavrasProduto.length) return 0;
+
+  let iguais = 0;
+  let parciais = 0;
+
+  palavrasItem.forEach((palavra) => {
+    if (palavrasProduto.includes(palavra)) {
+      iguais++;
+      return;
+    }
+
+    if (palavrasProduto.some((p) => p.includes(palavra) || palavra.includes(p))) {
+      parciais++;
+    }
+  });
+
+  const scoreExato = (iguais / palavrasItem.length) * 100;
+  const scoreParcial = (parciais / palavrasItem.length) * 35;
+
+  const concentracaoItem = palavrasItem.find((p) => /\d+(MG|ML|G|MCG)?/.test(p));
+  const textoProduto = normalizarAprendizado([produto.descricao, produto.apresentacao].filter(Boolean).join(" "));
+
+  const bonusConcentracao = concentracaoItem && textoProduto.includes(concentracaoItem) ? 15 : 0;
+
+  return Math.min(100, Math.round(scoreExato + scoreParcial + bonusConcentracao));
+}
+
+function encontrarMelhorProdutoAprimorado(descricao: string, produtos: Produto[], tipoPreco: TipoPreco) {
+  const aprendido = buscarProdutoPorAprendizado(descricao, produtos);
+  if (aprendido?.produto) {
+    return {
+      produto: aprendido.produto,
+      score: Math.min(100, Math.max(88, aprendido.score)),
+      origem: "aprendizado",
+    };
+  }
+
+  const candidatosAprimorados = produtos
+    .map((produto) => ({
+      produto,
+      score: scoreProdutoAprimorado(descricao, produto),
+      custo: custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER,
+    }))
+    .filter((c) => c.score >= 62)
+    .sort((a, b) => {
+      if (b.score !== a.score) return b.score - a.score;
+      return a.custo - b.custo;
+    });
+
+  if (candidatosAprimorados[0]) {
+    return {
+      produto: candidatosAprimorados[0].produto,
+      score: candidatosAprimorados[0].score,
+      origem: "busca_aprimorada",
+    };
+  }
+
+  const melhorOriginal = encontrarMelhorProduto(descricao, produtos);
+
+  if (melhorOriginal?.produto) {
+    return {
+      produto: melhorOriginal.produto,
+      score: melhorOriginal.score,
+      origem: "busca_local",
+    };
+  }
+
+  return null;
+}
+
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
   return (
     <div className="min-w-0">
@@ -522,6 +744,11 @@ export default function Licitacoes() {
     const produto = produtosBanco.find((p) => p.id === produtoId);
     if (!produto) return;
 
+    const itemAtual = itens.find((item) => item.numero_item === numeroItem);
+    if (itemAtual) {
+      gravarAprendizadoBusca(itemAtual.descricao, produto);
+    }
+
     setCustoManualTextoPorItem((atual) => {
       const novo = { ...atual };
       delete novo[numeroItem];
@@ -643,10 +870,11 @@ export default function Licitacoes() {
         const quantidade = numero(linha.quantidade || linha.quant || linha.qtd) || 1;
         const unidade = maiusculo(linha.unidade || linha.unid || linha.und || "UNIDADE");
 
-        const melhor = encontrarMelhorProduto(descricao, produtosValidos);
+        const tipoPrecoItem = resolverTipoPrecoPadrao(tipoPrecoPadrao, descricao, unidade);
+        const melhor = encontrarMelhorProdutoAprimorado(descricao, produtosValidos, tipoPrecoItem);
         let produto = melhor?.produto || null;
         let score = melhor?.score || 0;
-        let origem = "busca_local";
+        let origem = melhor?.origem || "busca_local";
 
         if (usarIa && score < 70 && produtosValidos.length) {
           const ia = await buscarComIa(descricao, produtosValidos);
@@ -658,7 +886,7 @@ export default function Licitacoes() {
         }
 
         itensCotados.push(
-          montarItemCotado({ index, descricao, quantidade, unidade, produto, margem: margemNumero, confianca: score, origemMatch: origem, tipoPreco: resolverTipoPrecoPadrao(tipoPrecoPadrao, descricao, unidade) })
+          montarItemCotado({ index, descricao, quantidade, unidade, produto, margem: margemNumero, confianca: score, origemMatch: origem, tipoPreco: tipoPrecoItem })
         );
       }
 
@@ -675,7 +903,7 @@ export default function Licitacoes() {
       });
 
       setItens(itensCorrigidos);
-      setMensagem(`${itensCorrigidos.length} itens processados. Itens encontrados com custo serão cotados automaticamente.`);
+      setMensagem(`${itensCorrigidos.length} itens processados. A busca usa aprendizado das seleções manuais anteriores.`);
     } finally {
       setProcessando(false);
       setProgressoProcessamento("");
