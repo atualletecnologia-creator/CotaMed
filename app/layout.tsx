@@ -2,7 +2,8 @@ import "./globals.css";
 
 export const metadata = {
   title: "CotaMed",
-  description: "Sistema de cotação automática",
+  description: "Cotação inteligente para saúde",
+  icons: { icon: "/brand/cotamed-icon.svg" },
 };
 
 export default function RootLayout({

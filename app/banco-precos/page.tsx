@@ -171,7 +171,7 @@ function filtrarRegistrosParaVinculo(registros: RegistroAnvisa[], busca: string)
     .slice(0, 25);
 }
 
-async function buscarTodossSupabase<T>(
+async function buscarTodosSupabase<T>(
   tabela: string,
   ordenarPor: string,
   ascendente = true
@@ -261,13 +261,13 @@ export default function BancoPrecos() {
     setErro("");
 
     try {
-      const [produtosTodoss, registrosTodoss] = await Promise.all([
-        buscarTodossSupabase<Produto>("produtos", "descricao", true),
-        buscarTodossSupabase<RegistroAnvisa>("registros_anvisa", "item", true),
+      const [produtosTodos, registrosTodos] = await Promise.all([
+        buscarTodosSupabase<Produto>("produtos", "descricao", true),
+        buscarTodosSupabase<RegistroAnvisa>("registros_anvisa", "item", true),
       ]);
 
-      setProdutos(produtosTodoss);
-      setRegistros(registrosTodoss);
+      setProdutos(produtosTodos);
+      setRegistros(registrosTodos);
     } catch (e: any) {
       setErro(e.message || "Erro ao carregar dados.");
     } finally {
@@ -573,7 +573,7 @@ export default function BancoPrecos() {
     }
   }
 
-  async function atualizarTodossVinculos() {
+  async function atualizarTodosVinculos() {
     try {
       setErro("");
       setMensagem("");
@@ -934,7 +934,7 @@ export default function BancoPrecos() {
           <button
             type="button"
             disabled={atualizandoVinculos || carregando}
-            onClick={atualizarTodossVinculos}
+            onClick={atualizarTodosVinculos}
             className="btn-clean btn-clean-secondary disabled:opacity-60"
           >
             {atualizandoVinculos ? "Atualizando..." : "Atualizar vínculos"}

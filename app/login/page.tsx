@@ -33,7 +33,7 @@ export default function Login() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-cotamed-50 to-white flex items-center justify-center p-6">
-      <section className="card p-8 w-full max-w-md">
+      <section className="clean-card p-8 w-full max-w-md">
         <div className="flex items-center gap-3 mb-8">
           <div className="h-12 w-12 rounded-2xl bg-cotamed-600 text-white flex items-center justify-center font-bold text-xl">C+</div>
           <div>

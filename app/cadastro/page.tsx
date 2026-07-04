@@ -43,7 +43,7 @@ export default function Cadastro() {
 
   return (
     <main className="min-h-screen bg-gradient-to-br from-cotamed-50 to-white flex items-center justify-center p-6">
-      <section className="card p-8 w-full max-w-md">
+      <section className="clean-card p-8 w-full max-w-md">
         <h1 className="text-2xl font-bold text-cotamed-900">Cadastrar empresa</h1>
         <p className="text-sm text-slate-500 mb-6">Cada empresa acessa somente seus próprios arquivos.</p>
 

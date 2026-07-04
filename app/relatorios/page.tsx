@@ -82,7 +82,7 @@ export default function Relatorios() {
         Relatórios reais do banco de preços do usuário logado.
       </p>
 
-      <section className="card mt-6 overflow-hidden">
+      <section className="clean-card mt-6 overflow-hidden">
         <div className="p-6 border-b">
           <h2 className="font-bold text-red-700 text-2xl">
             Produtos com custo desatualizado há mais de 30 dias
@@ -97,7 +97,7 @@ export default function Relatorios() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="clean-table w-full text-sm">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Produto</th>
@@ -130,7 +130,7 @@ export default function Relatorios() {
         )}
       </section>
 
-      <section className="card mt-6 overflow-hidden">
+      <section className="clean-card mt-6 overflow-hidden">
         <div className="p-6 border-b">
           <h2 className="font-bold text-red-700 text-2xl">
             Registros ANVISA vencidos
@@ -145,7 +145,7 @@ export default function Relatorios() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="clean-table w-full text-sm">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Produto</th>

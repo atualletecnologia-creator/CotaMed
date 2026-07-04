@@ -72,9 +72,9 @@ function CardResumo({
   detalhe: string;
 }) {
   return (
-    <div className="card p-6">
+    <div className="clean-card p-5">
       <p className="text-slate-500">{titulo}</p>
-      <h2 className="text-4xl font-bold mt-4">{valor}</h2>
+      <h2 className="text-3xl font-black mt-3 tracking-tight">{valor}</h2>
       <p className="text-slate-500 mt-2">{detalhe}</p>
     </div>
   );
@@ -221,7 +221,7 @@ export default function Dashboard() {
       </div>
 
       <section className="grid min-w-0 md:grid-cols-2 gap-5 mt-6">
-        <div className="card p-6">
+        <div className="clean-card p-5">
           <h2 className="font-bold text-xl">Nova cotação</h2>
           <p className="text-slate-500 mt-1">
             Importe uma planilha da licitação, escolha a margem e gere a planilha final.
@@ -232,7 +232,7 @@ export default function Dashboard() {
           </Link>
         </div>
 
-        <div className="card p-6">
+        <div className="clean-card p-5">
           <h2 className="font-bold text-xl">Consulta rápida</h2>
           <p className="text-slate-500 mt-1">
             Pesquise o preço de um item por unidade ou por caixa.
@@ -244,7 +244,7 @@ export default function Dashboard() {
         </div>
       </section>
 
-      <section className="card p-6 mt-6">
+      <section className="clean-card p-6 mt-6">
         <h2 className="font-bold text-xl">Relatórios importantes</h2>
         <p className="text-slate-500 mt-1">
           O CotaMed mantém apenas os relatórios essenciais para controle.

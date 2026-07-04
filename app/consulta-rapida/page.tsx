@@ -221,7 +221,7 @@ export default function ConsultaRapida() {
         Pesquise qualquer produto do banco de preços, consulte custo, margem e registro ANVISA.
       </p>
 
-      <section className="card p-6 mt-6">
+      <section className="clean-card p-6 mt-6">
         <div className="grid md:grid-cols-[1fr_160px_180px_120px] gap-3">
           <input
             className="input"
@@ -255,7 +255,7 @@ export default function ConsultaRapida() {
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
       </section>
 
-      <section className="card mt-6 overflow-hidden">
+      <section className="clean-card mt-6 overflow-hidden">
         <div className="p-6 border-b">
           <h2 className="font-bold text-xl">Resultados</h2>
           <p className="text-sm text-slate-500">
@@ -271,7 +271,7 @@ export default function ConsultaRapida() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className="clean-table w-full text-sm">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Descrição</th>

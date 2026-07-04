@@ -366,7 +366,7 @@ export default function RegistrosAnvisaPage() {
         <input className="input md:max-w-md" placeholder="Buscar item, marca ou registro..." value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
 
-      <section className="card p-6 mt-6">
+      <section className="clean-card p-6 mt-6">
         <h2 className="font-bold text-xl">Enviar PDF do registro</h2>
         <p className="text-sm text-slate-500 mt-1">Padrão do arquivo: item_apresentacao_marca_venc-2028-04-15_reg-123456789.pdf</p>
 
@@ -410,7 +410,7 @@ export default function RegistrosAnvisaPage() {
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>
 
-      <section className="card mt-6 overflow-hidden max-w-full">
+      <section className="clean-card mt-6 overflow-hidden max-w-full">
         <div className="p-6 border-b">
           <h2 className="font-bold text-xl">Registros salvos</h2>
           <p className="text-sm text-slate-500">Total encontrado: {filtrados.length}</p>
@@ -422,7 +422,7 @@ export default function RegistrosAnvisaPage() {
           <div className="p-6 text-slate-500">Nenhum registro encontrado.</div>
         ) : (
           <div className="overflow-hidden">
-            <table className="w-full max-w-full text-xs text-sm">
+            <table className="clean-table w-full max-w-full text-xs text-sm">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Item</th>
