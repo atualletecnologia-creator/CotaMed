@@ -950,9 +950,9 @@ export default function BancoPrecos() {
       <section className="clean-card p-6 mt-6">
         <h2 className="font-bold text-xl">Importação</h2>
 
-        <div className="grid min-w-0 md:grid-cols-[1fr_180px] gap-4 mt-5">
+        <div className="import-row mt-5">
           <input type="file" accept=".xlsx,.xls" className="input" onChange={(e) => importarPlanilha(e.target.files?.[0] || null)} />
-          <button className="btn-clean btn-clean-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Selecionar arquivo"}</button>
+          <button className="btn-clean btn-clean-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Importar arquivo"}</button>
         </div>
 
         <div className="mt-5 rounded-2xl border bg-blue-50 p-4">
@@ -967,7 +967,7 @@ export default function BancoPrecos() {
               className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-white"
               onClick={baixarPlanilhaProdutosCadastrados}
             >
-              Exportar produtos
+              Exportar
             </button>
 
             <input

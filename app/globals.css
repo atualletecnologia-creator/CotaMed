@@ -1011,3 +1011,108 @@ main {
     padding: 30px !important;
   }
 }
+
+
+/* COTAMED UI FIX V4 - botões e campos sem corte */
+.btn-primary,
+.btn-clean,
+.btn-clean-primary,
+.btn-clean-secondary,
+.btn-clean-danger,
+button,
+a.btn-primary,
+a.rounded-xl,
+button.rounded-xl {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 8px;
+  min-height: 42px !important;
+  height: auto !important;
+  padding: 10px 18px !important;
+  line-height: 1.2 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-align: center !important;
+}
+
+.btn-primary.w-full,
+button.w-full,
+a.w-full {
+  width: 100% !important;
+}
+
+.clean-card,
+.card {
+  overflow: visible !important;
+}
+
+.clean-card * {
+  min-width: 0;
+}
+
+.app-content {
+  padding-bottom: 40px;
+}
+
+.dashboard-action-card .btn-primary,
+.dashboard-action-card a,
+.dashboard-action-card button {
+  width: fit-content !important;
+  max-width: 100% !important;
+  min-width: 150px;
+}
+
+input[type="file"] {
+  height: 42px !important;
+  line-height: 1.2 !important;
+  padding: 6px 10px !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  overflow: hidden !important;
+}
+
+input[type="file"]::file-selector-button {
+  height: 30px;
+  margin-right: 12px;
+  border: 0;
+  border-radius: 9px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 700;
+  padding: 0 12px;
+  cursor: pointer;
+}
+
+.import-row,
+.upload-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto !important;
+  gap: 14px !important;
+  align-items: center !important;
+}
+
+.import-row > *,
+.upload-row > * {
+  min-width: 0 !important;
+}
+
+@media (max-width: 768px) {
+  .import-row,
+  .upload-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .btn-primary,
+  .btn-clean,
+  .btn-clean-primary,
+  .btn-clean-secondary,
+  .btn-clean-danger,
+  button,
+  a.btn-primary,
+  a.rounded-xl,
+  button.rounded-xl {
+    width: 100%;
+    white-space: normal !important;
+  }
+}

@@ -228,7 +228,7 @@ export default function Dashboard() {
           </p>
 
           <Link href="/licitacoes" className="btn-primary inline-block mt-5">
-            Ir para Licitações
+            Abrir Licitações
           </Link>
         </div>
 
@@ -239,7 +239,7 @@ export default function Dashboard() {
           </p>
 
           <Link href="/consulta-rapida" className="btn-primary inline-block mt-5">
-            Consultar item
+            Consulta rápida
           </Link>
         </div>
       </section>
