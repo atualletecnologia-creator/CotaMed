@@ -222,6 +222,7 @@ export default function BancoPrecos() {
   const [carregando, setCarregando] = useState(true);
   const [vinculando, setVinculando] = useState("");
   const [produtoVinculoAberto, setProdutoVinculoAberto] = useState("");
+  const [menuProdutoAberto, setMenuProdutoAberto] = useState("");
   const [buscaRegistroVinculo, setBuscaRegistroVinculo] = useState("");
   const [excluindo, setExcluindo] = useState("");
   const [excluindoMassa, setExcluindoMassa] = useState(false);
@@ -1129,13 +1130,10 @@ export default function BancoPrecos() {
                   <th className="text-left p-3">Registro ANVISA</th>
                   <th className="text-left p-3">Vencimento</th>
                   <th className="text-left p-3">PDF</th>
-                  <th className="text-left p-3">Desvincular</th>
                   <th className="text-left p-3">Qtd/Caixa</th>
                   <th className="text-left p-3">Custo Unit.</th>
                   <th className="text-left p-3">Custo Caixa</th>
-                  <th className="text-left p-3 min-w-[260px]">Vincular registro</th>
-                  <th className="text-left p-3">Editar</th>
-                  <th className="text-left p-3">Excluir</th>
+                  <th className="text-left p-3">Opções</th>
                 </tr>
               </thead>
 
@@ -1155,79 +1153,109 @@ export default function BancoPrecos() {
                     <td className="p-3">{p.marca || "-"}</td>
                     <td className="p-3">{p.registro_anvisa || "Não vinculado"}</td>
                     <td className="p-3">{p.vencimento_registro || "-"}</td>
-                    <td className="p-3">{p.pdf_url ? <button onClick={() => abrirPdf(p.pdf_url)} className="text-cotamed-700 underline">Abrir PDF</button> : <span className="text-red-600 font-medium">Sem PDF</span>}</td>
-                    <td className="p-3">
-                      {(p.registro_anvisa || p.pdf_url) ? (
-                        <button
-                          disabled={desvinculando === p.id}
-                          onClick={() => desvincularRegistroProduto(p)}
-                          className="rounded-lg border px-3 py-2 text-yellow-700 hover:bg-yellow-50 disabled:opacity-60"
-                        >
-                          {desvinculando === p.id ? "Desvinculando..." : "Desvincular"}
-                        </button>
-                      ) : (
-                        <span className="text-slate-400">-</span>
-                      )}
-                    </td>
+                    <td className="p-3">{p.pdf_url ? <button onClick={() => abrirPdf(p.pdf_url)} className="text-cotamed-700 underline">Abrir PDF</button> : <span className="text-red-600">Sem PDF</span>}</td>
                     <td className="p-3">{p.quantidade_por_caixa || "-"}</td>
-                    <td className="p-3">{dinheiro(p.custo_unitario)}</td>
-                    <td className="p-3">{dinheiro(p.custo_caixa)}</td>
+                    <td className="p-3">{p.custo_unitario ? dinheiro(p.custo_unitario) : "-"}</td>
+                    <td className="p-3">{p.custo_caixa ? dinheiro(p.custo_caixa) : "-"}</td>
                     <td className="p-3">
-                      <div className="flex min-w-0 flex-col gap-2">
+                      <div className="table-actions-menu">
                         <button
                           type="button"
-                          className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60"
-                          disabled={vinculando === p.id}
-                          onClick={() => {
-                            setProdutoVinculoAberto(produtoVinculoAberto === p.id ? "" : String(p.id || ""));
-                            setBuscaRegistroVinculo("");
-                          }}
+                          className="table-actions-button"
+                          onClick={() => setMenuProdutoAberto(menuProdutoAberto === p.id ? "" : String(p.id || ""))}
                         >
-                          {produtoVinculoAberto === p.id ? "Fechar vínculos" : "Vincular manual"}
+                          Opções
                         </button>
 
-                        <button className="rounded-lg border border-blue-200 px-3 py-2 text-cotamed-700 hover:bg-blue-50 disabled:opacity-60" disabled={vinculando === p.id} onClick={() => tentarVincularAutomaticamente(p)}>{vinculando === p.id ? "Vinculando..." : "Tentar automático"}</button>
+                        {menuProdutoAberto === p.id && (
+                          <div className="table-actions-panel">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProdutoEditando({ ...p });
+                                setMenuProdutoAberto("");
+                              }}
+                            >
+                              Editar
+                            </button>
 
-                        {produtoVinculoAberto === p.id && (
-                          <div className="rounded-xl border bg-blue-50 p-3">
-                            <input
-                              className="input text-xs"
-                              placeholder="Buscar registro..."
-                              value={buscaRegistroVinculo}
-                              onChange={(e) => setBuscaRegistroVinculo(e.target.value)}
-                              autoFocus
-                            />
+                            <button
+                              type="button"
+                              disabled={desvinculando === p.id}
+                              onClick={() => {
+                                desvincularRegistroProduto(p);
+                                setMenuProdutoAberto("");
+                              }}
+                            >
+                              Desvincular registro
+                            </button>
 
-                            <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
-                              {filtrarRegistrosParaVinculo(registros, buscaRegistroVinculo).map((r) => (
-                                <button
-                                  key={r.id}
-                                  type="button"
-                                  onClick={() => {
-                                    vincularRegistroManual(p, r.id);
-                                    setProdutoVinculoAberto("");
-                                    setBuscaRegistroVinculo("");
-                                  }}
-                                  className="block w-full rounded-lg bg-white px-3 py-2 text-left text-[11px] hover:bg-blue-100"
-                                >
-                                  {labelRegistro(r)}
-                                </button>
-                              ))}
-                            </div>
+                            <button
+                              type="button"
+                              disabled={vinculando === p.id}
+                              onClick={() => {
+                                setProdutoVinculoAberto(produtoVinculoAberto === p.id ? "" : String(p.id || ""));
+                                setBuscaRegistroVinculo("");
+                                setMenuProdutoAberto("");
+                              }}
+                            >
+                              Vincular manual
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={vinculando === p.id}
+                              onClick={() => {
+                                tentarVincularAutomaticamente(p);
+                                setMenuProdutoAberto("");
+                              }}
+                            >
+                              Tentar automático
+                            </button>
+
+                            <button
+                              type="button"
+                              disabled={excluindo === p.id}
+                              onClick={() => {
+                                excluirProduto(p);
+                                setMenuProdutoAberto("");
+                              }}
+                            >
+                              Excluir
+                            </button>
                           </div>
                         )}
                       </div>
+
+                      {produtoVinculoAberto === p.id && (
+                        <div className="mt-3 rounded-xl border bg-slate-50 p-3 min-w-[280px]">
+                          <input
+                            className="input text-xs"
+                            placeholder="Buscar registro"
+                            value={buscaRegistroVinculo}
+                            onChange={(e) => setBuscaRegistroVinculo(e.target.value)}
+                            autoFocus
+                          />
+
+                          <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
+                            {filtrarRegistrosParaVinculo(registros, buscaRegistroVinculo).map((r) => (
+                              <button
+                                key={r.id}
+                                type="button"
+                                onClick={() => {
+                                  vincularRegistroManual(p, r.id);
+                                  setProdutoVinculoAberto("");
+                                  setBuscaRegistroVinculo("");
+                                }}
+                                className="block w-full rounded-lg bg-white px-3 py-2 text-left text-[11px] hover:bg-blue-100"
+                              >
+                                {labelRegistro(r)}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                     </td>
-                    <td className="p-3">
-                      <button
-                        type="button"
-                        onClick={() => setProdutoEditando({ ...p })}
-                        className="rounded-lg border px-3 py-2 text-cotamed-700 hover:bg-blue-50"
-                      >
-                        Editar
-                      </button>
-                    </td>
-                    <td className="p-3"><button disabled={excluindo === p.id} onClick={() => excluirProduto(p)} className="rounded-lg border px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60">{excluindo === p.id ? "Excluindo..." : "Excluir"}</button></td>
                   </tr>
                 ))}
               </tbody>

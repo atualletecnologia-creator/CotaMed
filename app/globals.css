@@ -483,3 +483,243 @@ tr:hover td {
     width: 100% !important;
   }
 }
+
+
+/* COTAMED UI FIX V2 - sidebar recolhida, tabelas compactas e login isolado */
+.app-shell {
+  grid-template-columns: 76px minmax(0, 1fr) !important;
+}
+
+.app-sidebar {
+  width: 76px !important;
+  overflow: hidden;
+  transition: width .18s ease;
+  z-index: 30;
+}
+
+.app-shell.sidebar-open .app-sidebar {
+  width: 272px !important;
+  box-shadow: 18px 0 60px rgba(15, 23, 42, .12);
+}
+
+.app-brand {
+  padding: 16px 14px !important;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar-toggle {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 44px;
+  border-radius: 14px;
+  border: 1px solid #dbe4ef;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 20px;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.app-brand-logo {
+  opacity: 0;
+  transform: translateX(-8px);
+  transition: opacity .18s ease, transform .18s ease;
+  pointer-events: none;
+}
+
+.app-shell.sidebar-open .app-brand-logo {
+  opacity: 1;
+  transform: translateX(0);
+}
+
+.app-nav {
+  padding: 12px !important;
+}
+
+.app-nav-item {
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 10px !important;
+  min-height: 46px;
+  white-space: nowrap;
+}
+
+.app-nav-icon {
+  flex: 0 0 24px;
+}
+
+.app-nav-label,
+.app-sidebar-footer {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+  transition: opacity .16s ease;
+}
+
+.app-shell.sidebar-open .app-nav-label,
+.app-shell.sidebar-open .app-sidebar-footer {
+  opacity: 1;
+  width: auto;
+}
+
+.app-main {
+  padding: 24px !important;
+}
+
+.topbar-mobile {
+  display: none;
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, .22);
+  border: 0;
+  z-index: 20;
+}
+
+.app-sidebar {
+  z-index: 31;
+}
+
+.clean-table th,
+.clean-table td,
+table th,
+table td {
+  white-space: nowrap !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  max-width: none !important;
+}
+
+.clean-table td:nth-child(2),
+table td:nth-child(2) {
+  white-space: normal !important;
+  min-width: 220px;
+  max-width: 360px !important;
+  line-height: 1.35;
+}
+
+.table-actions-menu {
+  position: relative;
+  display: inline-block;
+}
+
+.table-actions-button {
+  height: 36px;
+  min-height: 36px;
+  border-radius: 10px;
+  border: 1px solid #dbe4ef;
+  background: #fff;
+  padding: 0 12px;
+  color: #334155;
+  font-weight: 700;
+}
+
+.table-actions-panel {
+  position: absolute;
+  right: 0;
+  top: 42px;
+  z-index: 10;
+  width: 190px;
+  border: 1px solid #e5eaf2;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, .14);
+  padding: 6px;
+}
+
+.table-actions-panel button {
+  width: 100%;
+  min-height: 36px;
+  height: 36px;
+  justify-content: flex-start;
+  text-align: left;
+  border: 0 !important;
+  background: transparent !important;
+  color: #334155 !important;
+  padding: 0 10px !important;
+  border-radius: 10px !important;
+}
+
+.table-actions-panel button:hover {
+  background: #f8fafc !important;
+}
+
+.login-page {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(37, 99, 235, .15), transparent 34rem),
+    linear-gradient(135deg, #f8fafc 0%, #eef6ff 100%);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 430px;
+  background: #fff;
+  border: 1px solid #e5eaf2;
+  border-radius: 24px;
+  box-shadow: 0 24px 80px rgba(15, 23, 42, .10);
+  padding: 32px;
+}
+
+.login-logo {
+  display: block;
+  margin: 0 auto 22px;
+}
+
+@media (max-width: 1024px) {
+  .app-shell {
+    grid-template-columns: 1fr !important;
+  }
+
+  .app-sidebar {
+    position: fixed !important;
+    left: 0;
+    top: 0;
+    height: 100vh !important;
+    transform: translateX(-100%);
+    width: 272px !important;
+  }
+
+  .app-shell.sidebar-open .app-sidebar {
+    transform: translateX(0);
+  }
+
+  .app-brand-logo,
+  .app-nav-label,
+  .app-sidebar-footer {
+    opacity: 1 !important;
+    width: auto !important;
+  }
+
+  .topbar-mobile {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+}
+
+@media (max-width: 768px) {
+  .app-main {
+    padding: 14px !important;
+  }
+
+  .overflow-x-auto {
+    border-radius: 16px;
+  }
+
+  .clean-table td:nth-child(2),
+  table td:nth-child(2) {
+    min-width: 200px;
+  }
+}

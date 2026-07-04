@@ -1,9 +1,10 @@
- "use client";
+"use client";
 
 import { useState } from "react";
-import { supabase } from "@/lib/supabase";
-import { useRouter } from "next/navigation";
+import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 export default function Login() {
   const router = useRouter();
@@ -18,28 +19,34 @@ export default function Login() {
 
     const { error } = await supabase.auth.signInWithPassword({
       email,
-      password: senha
+      password: senha,
     });
 
     setCarregando(false);
 
     if (error) {
-  setErro(error.message);
-  return;
+      setErro(error.message);
+      return;
     }
 
     router.push("/dashboard");
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-cotamed-50 to-white flex items-center justify-center p-6">
-      <section className="clean-card p-8 w-full max-w-md">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="h-12 w-12 rounded-2xl bg-cotamed-600 text-white flex items-center justify-center font-bold text-xl">C+</div>
-          <div>
-            <h1 className="text-2xl font-bold text-cotamed-900">CotaMed</h1>
-            <p className="text-sm text-slate-500">Acesse sua empresa</p>
-          </div>
+    <main className="login-page">
+      <section className="login-card">
+        <Image
+          src="/brand/cotamed-logo.svg"
+          alt="CotaMed"
+          width={210}
+          height={54}
+          priority
+          className="login-logo"
+        />
+
+        <div className="mb-7 text-center">
+          <h1 className="text-2xl font-bold">Entrar no CotaMed</h1>
+          <p className="text-sm text-slate-500 mt-2">Acesse sua empresa para continuar.</p>
         </div>
 
         <label className="text-sm font-medium">E-mail</label>
@@ -55,7 +62,7 @@ export default function Login() {
         </button>
 
         <p className="text-sm text-slate-500 mt-5 text-center">
-          Ainda não tem conta? <Link href="/cadastro" className="text-cotamed-600 font-medium">Cadastrar empresa</Link>
+          Ainda não tem conta? <Link href="/cadastro" className="text-cotamed-700 font-semibold">Criar cadastro</Link>
         </p>
       </section>
     </main>
