@@ -128,6 +128,15 @@ function statusRegistro(data?: string | null) {
   };
 }
 
+
+function CelulaUnica({ children, title }: { children: React.ReactNode; title?: string }) {
+  return (
+    <span className="consulta-cell-nowrap" title={title}>
+      {children}
+    </span>
+  );
+}
+
 export default function ConsultaRapida() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [busca, setBusca] = useState("");
@@ -342,24 +351,24 @@ export default function ConsultaRapida() {
 
                   return (
                     <tr key={p.id || index} className="border-t">
-                      <td className="p-4 font-medium">{p.descricao || "-"}</td>
-                      <td className="p-4">{p.apresentacao || "-"}</td>
-                      <td className="p-4">{p.marca || "-"}</td>
-                      <td className="p-4">{p.registro_anvisa || "-"}</td>
-                      <td className="p-4">{p.vencimento_registro || "-"}</td>
-                      <td className="p-4">{p.quantidade_por_caixa || "-"}</td>
+                      <td className="p-4 font-medium"><CelulaUnica title={p.descricao || "-"}>{p.descricao || "-"}</CelulaUnica></td>
+                      <td className="p-4"><CelulaUnica title={p.apresentacao || "-"}>{p.apresentacao || "-"}</CelulaUnica></td>
+                      <td className="p-4"><CelulaUnica title={p.marca || "-"}>{p.marca || "-"}</CelulaUnica></td>
+                      <td className="p-4"><CelulaUnica title={p.registro_anvisa || "-"}>{p.registro_anvisa || "-"}</CelulaUnica></td>
+                      <td className="p-4"><CelulaUnica title={p.vencimento_registro || "-"}>{p.vencimento_registro || "-"}</CelulaUnica></td>
+                      <td className="p-4"><CelulaUnica>{p.quantidade_por_caixa || "-"}</CelulaUnica></td>
 
                       {(tipoPreco === "ambos" || tipoPreco === "unidade") && (
                         <>
-                          <td className="p-4">{dinheiro(p.custo_unitario)}</td>
-                          <td className="p-4 font-medium">{dinheiro(calcularComMargem(p.custo_unitario, margemNumero))}</td>
+                          <td className="p-4"><CelulaUnica>{dinheiro(p.custo_unitario)}</CelulaUnica></td>
+                          <td className="p-4 font-medium"><CelulaUnica>{dinheiro(calcularComMargem(p.custo_unitario, margemNumero))}</CelulaUnica></td>
                         </>
                       )}
 
                       {(tipoPreco === "ambos" || tipoPreco === "caixa") && (
                         <>
-                          <td className="p-4">{dinheiro(p.custo_caixa)}</td>
-                          <td className="p-4 font-medium">{dinheiro(calcularComMargem(p.custo_caixa, margemNumero))}</td>
+                          <td className="p-4"><CelulaUnica>{dinheiro(p.custo_caixa)}</CelulaUnica></td>
+                          <td className="p-4 font-medium"><CelulaUnica>{dinheiro(calcularComMargem(p.custo_caixa, margemNumero))}</CelulaUnica></td>
                         </>
                       )}
 
@@ -379,7 +388,7 @@ export default function ConsultaRapida() {
                         {p.pdf_url ? (
                           <button
                             onClick={() => abrirPdf(p.pdf_url)}
-                            className="text-cotamed-700 underline"
+                            className="pdf-button"
                           >
                             Abrir PDF
                           </button>

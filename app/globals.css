@@ -1642,3 +1642,68 @@ input[type="file"]::file-selector-button {
 .login-remember span {
   white-space: nowrap !important;
 }
+
+
+/* COTAMED UI FIX V10 - JSX da Consulta sem quebra real */
+.consulta-cell-nowrap {
+  display: block !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+}
+
+.consulta-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  max-width: 118px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+}
+
+.consulta-nowrap-table th,
+.consulta-nowrap-table td {
+  height: 52px !important;
+  vertical-align: middle !important;
+}
+
+.consulta-nowrap-table td {
+  line-height: 1 !important;
+}
+
+.consulta-nowrap-table td > span,
+.consulta-nowrap-table td > button {
+  vertical-align: middle !important;
+}
+
+.pdf-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: fit-content !important;
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  border: 1px solid #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+.pdf-button:hover {
+  background: #dbeafe !important;
+}
