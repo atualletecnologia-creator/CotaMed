@@ -1707,3 +1707,48 @@ input[type="file"]::file-selector-button {
 .pdf-button:hover {
   background: #dbeafe !important;
 }
+
+
+/* COTAMED UI FIX V11 - lembrar login em uma linha */
+.login-card .login-remember {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  justify-content: flex-start !important;
+  gap: 10px !important;
+  width: 100% !important;
+  margin: 0 0 18px 0 !important;
+  padding: 0 !important;
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+
+.login-card .login-remember input[type="checkbox"] {
+  appearance: auto !important;
+  -webkit-appearance: checkbox !important;
+  flex: 0 0 16px !important;
+  width: 16px !important;
+  min-width: 16px !important;
+  max-width: 16px !important;
+  height: 16px !important;
+  min-height: 16px !important;
+  max-height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  line-height: 1 !important;
+  border-radius: 4px !important;
+}
+
+.login-card .login-remember label,
+.login-card .login-remember span {
+  display: inline !important;
+  width: auto !important;
+  min-width: max-content !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  color: #475569 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+  line-height: 16px !important;
+  white-space: nowrap !important;
+}

@@ -109,14 +109,15 @@ export default function Login() {
             onKeyDown={tratarEnter}
           />
 
-          <label className="login-remember">
+          <div className="login-remember">
             <input
+              id="lembrarLogin"
               type="checkbox"
               checked={lembrarLogin}
               onChange={(e) => setLembrarLogin(e.target.checked)}
             />
-            <span>Lembrar login</span>
-          </label>
+            <label htmlFor="lembrarLogin">Lembrar login</label>
+          </div>
 
           {erro && <p className="text-red-600 text-sm mb-4">{erro}</p>}
 
