@@ -1119,8 +1119,8 @@ export default function BancoPrecos() {
               </div>
             </div>
 
-          <div className="overflow-x-auto max-w-full">
-            <table className="clean-table w-full max-w-full text-xs">
+          <div className="banco-table-wrap">
+            <table className="banco-table clean-table w-full max-w-full text-xs">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-3">Sel.</th>
