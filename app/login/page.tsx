@@ -36,12 +36,11 @@ export default function Login() {
     <main className="login-page">
       <section className="login-hero">
         <Image
-          src="/brand/cotamed-logo.svg"
+          src="/brand/cotamed-logo-white.svg"
           alt="CotaMed"
-          width={220}
-          height={58}
+          width={230}
+          height={60}
           priority
-          style={{ filter: "brightness(0) invert(1)" }}
         />
 
         <h1>Cotação inteligente para sua empresa.</h1>
