@@ -79,6 +79,7 @@ function parseNomeArquivo(fileName: string) {
 export default function RegistrosAnvisaPage() {
   const [registros, setRegistros] = useState<Registro[]>([]);
   const [busca, setBusca] = useState("");
+  const [paginaRegistros, setPaginaRegistros] = useState(1);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
   const [carregando, setCarregando] = useState(true);
@@ -120,6 +121,17 @@ export default function RegistrosAnvisaPage() {
     if (!termo) return registros;
     return registros.filter((r) => textoBusca([r.item, r.apresentacao, r.marca, r.registro_anvisa, r.vencimento_registro].filter(Boolean).join(" ")).includes(termo));
   }, [registros, busca]);
+
+  const registrosPorPagina = 50;
+  const totalPaginasRegistros = Math.max(1, Math.ceil(filtrados.length / registrosPorPagina));
+  const registrosPaginados = useMemo(() => {
+    const inicio = (paginaRegistros - 1) * registrosPorPagina;
+    return filtrados.slice(inicio, inicio + registrosPorPagina);
+  }, [filtrados, paginaRegistros]);
+
+  useEffect(() => {
+    setPaginaRegistros(1);
+  }, [busca, registros.length]);
 
   function preencherPorNomeArquivo(file: File | null) {
     if (!file) return;
@@ -363,14 +375,14 @@ export default function RegistrosAnvisaPage() {
           <p className="text-slate-500">Envie PDFs dos registros e vincule automaticamente ao banco de preços.</p>
         </div>
 
-        <input className="input md:max-w-md" placeholder="Buscar item, marca ou registro..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+        <input className="input md:max-w-md" placeholder="Buscar registro" value={busca} onChange={(e) => setBusca(e.target.value)} />
       </div>
 
-      <section className="clean-card p-6 mt-6">
+      <section className="clean-card p-6 mt-6 registros-upload-card">
         <h2 className="font-bold text-xl">Enviar PDF do registro</h2>
         <p className="text-sm text-slate-500 mt-1">Padrão do arquivo: item_apresentacao_marca_venc-2028-04-15_reg-123456789.pdf</p>
 
-        <div className="mt-5 rounded-2xl border border-blue-200 bg-blue-50 p-4">
+        <div className="registros-massa-card">
           <h3 className="font-semibold text-slate-800">Enviar vários PDFs de uma vez</h3>
           <p className="text-sm text-slate-600 mt-1">
             Selecione vários PDFs. O sistema vai ler os dados pelo nome do arquivo.
@@ -391,29 +403,29 @@ export default function RegistrosAnvisaPage() {
         </div>
 
 
-        <div className="grid min-w-0 md:grid-cols-5 gap-4 mt-5">
-          <div><label className="text-sm font-medium">Item</label><input className="input mt-2" value={item} onChange={(e) => setItem(maiusculo(e.target.value))} placeholder="EX: CARBONATO DE LÍTIO 300MG" /></div>
-          <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2" value={apresentacao} onChange={(e) => setApresentacao(maiusculo(e.target.value))} placeholder="EX: COMPRIMIDO" /></div>
-          <div><label className="text-sm font-medium">Marca</label><input className="input mt-2" value={marca} onChange={(e) => setMarca(maiusculo(e.target.value))} placeholder="EX: HIPOLABOR" /></div>
-          <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2" type="text" inputMode="text" value={registroAnvisa} onChange={(e) => setRegistroAnvisa(maiusculo(e.target.value))} placeholder="EX: 123456789 OU MS123ABC" /></div>
-          <div><label className="text-sm font-medium">Vencimento</label><input className="input mt-2" type="text" value={vencimentoRegistro} onChange={(e) => setVencimentoRegistro(normalizarDataAAAA_MM_DD(e.target.value))} placeholder="AAAA-MM-DD" /></div>
+        <div className="registros-form-grid">
+          <div className="registros-field"><label>Item</label><input className="input mt-2" value={item} onChange={(e) => setItem(maiusculo(e.target.value))} placeholder="EX: CARBONATO DE LÍTIO 300MG" /></div>
+          <div className="registros-field"><label>Apresentação</label><input className="input mt-2" value={apresentacao} onChange={(e) => setApresentacao(maiusculo(e.target.value))} placeholder="EX: COMPRIMIDO" /></div>
+          <div className="registros-field"><label>Marca</label><input className="input mt-2" value={marca} onChange={(e) => setMarca(maiusculo(e.target.value))} placeholder="EX: HIPOLABOR" /></div>
+          <div className="registros-field"><label>Registro ANVISA</label><input className="input mt-2" type="text" inputMode="text" value={registroAnvisa} onChange={(e) => setRegistroAnvisa(maiusculo(e.target.value))} placeholder="EX: 123456789 OU MS123ABC" /></div>
+          <div className="registros-field"><label>Vencimento</label><input className="input mt-2" type="text" value={vencimentoRegistro} onChange={(e) => setVencimentoRegistro(normalizarDataAAAA_MM_DD(e.target.value))} placeholder="AAAA-MM-DD" /></div>
         </div>
 
-        <div className="grid min-w-0 md:grid-cols-[1fr_180px] gap-4 mt-5">
+        <div className="registros-upload-row mt-5">
           <input type="file" accept="application/pdf,.pdf" className="input" onChange={(e) => { const file = e.target.files?.[0] || null; preencherPorNomeArquivo(file); enviarPdf(file); }} />
-          <button type="button" className="btn-primary" disabled={enviando}>{enviando ? "Enviando..." : "Selecionar PDF"}</button>
+          <button type="button" className="btn-primary" disabled={enviando}>{enviando ? "Enviando..." : "Enviar PDF"}</button>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">Tudo que for cadastrado fica em <b>letra maiúscula</b>. O sistema identifica <b>venc-AAAA-MM-DD</b> e <b>reg-Registro</b>.</div>
+        <div className="registros-help">O sistema identifica automaticamente <b>venc-AAAA-MM-DD</b> e <b>reg-Registro</b> pelo nome do arquivo.</div>
 
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>
 
-      <section className="clean-card mt-6 overflow-hidden max-w-full">
+      <section className="clean-card mt-6 overflow-hidden max-w-full registros-table-card">
         <div className="p-6 border-b">
           <h2 className="font-bold text-xl">Registros salvos</h2>
-          <p className="text-sm text-slate-500">Total encontrado: {filtrados.length}</p>
+          <p className="text-sm text-slate-500">Total: {filtrados.length} • exibindo 50 por página</p>
         </div>
 
         {carregando ? (
@@ -421,8 +433,8 @@ export default function RegistrosAnvisaPage() {
         ) : filtrados.length === 0 ? (
           <div className="p-6 text-slate-500">Nenhum registro encontrado.</div>
         ) : (
-          <div className="overflow-hidden">
-            <table className="clean-table w-full max-w-full text-xs text-sm">
+          <div className="registros-table-wrap">
+            <table className="registros-table clean-table w-full">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Item</th>
@@ -436,7 +448,7 @@ export default function RegistrosAnvisaPage() {
               </thead>
 
               <tbody>
-                {filtrados.map((registro) => (
+                {registrosPaginados.map((registro) => (
                   <tr key={registro.id} className="border-t">
                     <td className="p-4 font-medium">{registro.item || "-"}</td>
                     <td className="p-4">{registro.apresentacao || "-"}</td>
@@ -449,6 +461,30 @@ export default function RegistrosAnvisaPage() {
                 ))}
               </tbody>
             </table>
+
+            <div className="registros-pagination">
+              <span>Página {Math.min(paginaRegistros, totalPaginasRegistros)} de {totalPaginasRegistros}</span>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                  disabled={paginaRegistros <= 1}
+                  onClick={() => setPaginaRegistros((p) => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                  disabled={paginaRegistros >= totalPaginasRegistros}
+                  onClick={() => setPaginaRegistros((p) => Math.min(totalPaginasRegistros, p + 1))}
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>

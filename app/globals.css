@@ -1190,3 +1190,175 @@ input[type="file"]::file-selector-button {
     width: 100%;
   }
 }
+
+
+/* COTAMED UI FIX V6 - Registros ANVISA organizada */
+.registros-upload-card {
+  padding: 28px !important;
+}
+
+.registros-massa-card {
+  margin-top: 22px;
+  border-radius: 16px;
+  border: 1px solid #dbeafe;
+  background: #f8fafc;
+  padding: 18px;
+}
+
+.registros-form-grid {
+  display: grid !important;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+  align-items: end;
+}
+
+.registros-field {
+  min-width: 0;
+}
+
+.registros-field label {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f172a;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.registros-field input {
+  width: 100% !important;
+  height: 44px !important;
+}
+
+.registros-upload-row {
+  display: grid !important;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.registros-help {
+  margin-top: 20px;
+  border-radius: 16px;
+  background: #f8fafc;
+  border: 1px solid #eef2f7;
+  color: #475569;
+  padding: 14px 16px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.registros-table-card {
+  overflow: visible !important;
+}
+
+.registros-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.registros-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.registros-table th,
+.registros-table td {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: normal !important;
+  max-width: none !important;
+  padding: 10px 10px !important;
+  font-size: 12px !important;
+}
+
+.registros-table th:nth-child(1),
+.registros-table td:nth-child(1) {
+  width: 26%;
+}
+
+.registros-table th:nth-child(2),
+.registros-table td:nth-child(2) {
+  width: 16%;
+}
+
+.registros-table th:nth-child(3),
+.registros-table td:nth-child(3) {
+  width: 14%;
+}
+
+.registros-table th:nth-child(4),
+.registros-table td:nth-child(4) {
+  width: 15%;
+}
+
+.registros-table th:nth-child(5),
+.registros-table td:nth-child(5) {
+  width: 12%;
+}
+
+.registros-table th:nth-child(6),
+.registros-table td:nth-child(6) {
+  width: 8%;
+}
+
+.registros-table th:nth-child(7),
+.registros-table td:nth-child(7) {
+  width: 9%;
+}
+
+.registros-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+}
+
+@media (max-width: 1200px) {
+  .registros-form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .registros-table th:nth-child(2),
+  .registros-table td:nth-child(2),
+  .registros-table th:nth-child(5),
+  .registros-table td:nth-child(5) {
+    display: none;
+  }
+
+  .registros-table th:nth-child(1),
+  .registros-table td:nth-child(1) {
+    width: 34%;
+  }
+}
+
+@media (max-width: 760px) {
+  .registros-upload-card {
+    padding: 20px !important;
+  }
+
+  .registros-form-grid,
+  .registros-upload-row {
+    grid-template-columns: 1fr !important;
+  }
+
+  .registros-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .registros-pagination .flex {
+    width: 100%;
+  }
+
+  .registros-pagination button {
+    flex: 1;
+  }
+}
