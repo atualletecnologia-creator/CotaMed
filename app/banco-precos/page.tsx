@@ -322,29 +322,28 @@ export default function BancoPrecos() {
       return error;
     }
 
-    const descricaoBusca = String(payload.descricao || "").trim();
-    const marcaBusca = String(payload.marca || "").trim();
-    const custoUnitarioBusca = Number(payload.custo_unitario || 0);
-    const custoCaixaBusca = Number(payload.custo_caixa || 0);
+    const descricaoBusca = String(payload.descricao || "").trim().toUpperCase();
+    const marcaBusca = String(payload.marca || "").trim().toUpperCase();
 
-    const { data: existente, error: erroBusca } = await supabase
-      .from("produtos")
-      .select("id")
-      .eq("descricao", descricaoBusca)
-      .eq("marca", marcaBusca)
-      .eq("custo_unitario", custoUnitarioBusca)
-      .eq("custo_caixa", custoCaixaBusca)
-      .limit(1);
-
-    if (erroBusca) return erroBusca;
-
-    if (existente && existente.length > 0) {
-      const { error } = await supabase
+    // Sem ID, usa descrição + marca como chave para atualizar e não duplicar.
+    if (descricaoBusca && marcaBusca) {
+      const { data: existente, error: erroBusca } = await supabase
         .from("produtos")
-        .update(payload)
-        .eq("id", existente[0].id);
+        .select("id")
+        .eq("descricao", descricaoBusca)
+        .eq("marca", marcaBusca)
+        .limit(1);
 
-      return error;
+      if (erroBusca) return erroBusca;
+
+      if (existente && existente.length > 0) {
+        const { error } = await supabase
+          .from("produtos")
+          .update(payload)
+          .eq("id", existente[0].id);
+
+        return error;
+      }
     }
 
     const { error } = await supabase
@@ -1013,7 +1012,7 @@ export default function BancoPrecos() {
 
                 <input
                   className="input cotamed-search"
-                  placeholder="Buscar produtoo"
+                  placeholder="Buscar produto"
                   value={busca}
                   onChange={(e) => setBusca(e.target.value)}
                 />
@@ -1058,7 +1057,7 @@ export default function BancoPrecos() {
                     onChange={(e) => setRegistroMassaId(e.target.value)}
                     disabled={aplicandoMassa}
                   >
-                    <option value="">Escolha o registroistro</option>
+                    <option value="">Escolha o registro</option>
                     {registros.map((r) => (
                       <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
                     ))}
