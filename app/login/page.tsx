@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -9,9 +9,25 @@ import { supabase } from "@/lib/supabase";
 export default function Login() {
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [lembrarLogin, setLembrarLogin] = useState(false);
   const [senha, setSenha] = useState("");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(false);
+
+  useEffect(() => {
+    const emailSalvo = window.localStorage.getItem("cotamed_login_email");
+
+    if (emailSalvo) {
+      setEmail(emailSalvo);
+      setLembrarLogin(true);
+    }
+  }, []);
+
+  function tratarEnter(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === "Enter" && !carregando) {
+      entrar();
+    }
+  }
 
   async function entrar() {
     setCarregando(true);
@@ -27,6 +43,12 @@ export default function Login() {
     if (error) {
       setErro(error.message);
       return;
+    }
+
+    if (lembrarLogin) {
+      window.localStorage.setItem("cotamed_login_email", email);
+    } else {
+      window.localStorage.removeItem("cotamed_login_email");
     }
 
     router.push("/dashboard");
@@ -73,6 +95,7 @@ export default function Login() {
             placeholder="seu@email.com"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
+            onKeyDown={tratarEnter}
           />
 
           <label htmlFor="senha">Senha</label>
@@ -83,7 +106,17 @@ export default function Login() {
             placeholder="Sua senha"
             value={senha}
             onChange={(e) => setSenha(e.target.value)}
+            onKeyDown={tratarEnter}
           />
+
+          <label className="login-remember">
+            <input
+              type="checkbox"
+              checked={lembrarLogin}
+              onChange={(e) => setLembrarLogin(e.target.checked)}
+            />
+            <span>Lembrar login</span>
+          </label>
 
           {erro && <p className="text-red-600 text-sm mb-4">{erro}</p>}
 

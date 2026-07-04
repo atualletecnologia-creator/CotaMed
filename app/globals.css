@@ -1414,3 +1414,169 @@ input[type="file"]::file-selector-button {
     padding: 0 !important;
   }
 }
+
+
+/* COTAMED UI FIX V8 - Consulta rápida e login */
+.consulta-filter-card {
+  padding: 28px !important;
+}
+
+.consulta-filter-grid {
+  display: grid !important;
+  grid-template-columns: minmax(260px, 1fr) 150px 190px 130px;
+  gap: 18px;
+  align-items: center;
+}
+
+.consulta-filter-grid input,
+.consulta-filter-grid select {
+  height: 46px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+
+.consulta-table-card {
+  overflow: visible !important;
+}
+
+.consulta-table-wrap {
+  width: 100%;
+  max-width: 100%;
+  overflow: visible !important;
+}
+
+.consulta-table {
+  width: 100% !important;
+  table-layout: fixed !important;
+}
+
+.consulta-table th,
+.consulta-table td {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: normal !important;
+  max-width: none !important;
+  padding: 10px 8px !important;
+  font-size: 11.5px !important;
+}
+
+.consulta-table th:nth-child(1),
+.consulta-table td:nth-child(1) {
+  width: 18%;
+}
+
+.consulta-table th:nth-child(2),
+.consulta-table td:nth-child(2) {
+  width: 10%;
+}
+
+.consulta-table th:nth-child(3),
+.consulta-table td:nth-child(3) {
+  width: 9%;
+}
+
+.consulta-table th:nth-child(4),
+.consulta-table td:nth-child(4) {
+  width: 10%;
+}
+
+.consulta-table th:nth-child(5),
+.consulta-table td:nth-child(5) {
+  width: 9%;
+}
+
+.consulta-table th:nth-child(6),
+.consulta-table td:nth-child(6) {
+  width: 7%;
+}
+
+.consulta-table th:nth-child(7),
+.consulta-table td:nth-child(7),
+.consulta-table th:nth-child(8),
+.consulta-table td:nth-child(8),
+.consulta-table th:nth-child(9),
+.consulta-table td:nth-child(9),
+.consulta-table th:nth-child(10),
+.consulta-table td:nth-child(10) {
+  width: 8%;
+}
+
+.consulta-table th:nth-last-child(1),
+.consulta-table td:nth-last-child(1),
+.consulta-table th:nth-last-child(2),
+.consulta-table td:nth-last-child(2),
+.consulta-table th:nth-last-child(3),
+.consulta-table td:nth-last-child(3) {
+  width: 9%;
+}
+
+.consulta-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 16px 20px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 14px;
+}
+
+.consulta-pagination-top {
+  border-bottom: 1px solid #e5eaf2;
+}
+
+.login-remember {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+  margin: 2px 0 18px !important;
+  color: #475569 !important;
+  font-size: 14px !important;
+  font-weight: 600 !important;
+}
+
+.login-remember input {
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+@media (max-width: 1200px) {
+  .consulta-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .consulta-table th:nth-child(2),
+  .consulta-table td:nth-child(2),
+  .consulta-table th:nth-child(5),
+  .consulta-table td:nth-child(5),
+  .consulta-table th:nth-child(6),
+  .consulta-table td:nth-child(6) {
+    display: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .consulta-filter-card {
+    padding: 20px !important;
+  }
+
+  .consulta-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .consulta-pagination {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .consulta-pagination .flex {
+    width: 100%;
+  }
+
+  .consulta-pagination button {
+    flex: 1;
+  }
+}

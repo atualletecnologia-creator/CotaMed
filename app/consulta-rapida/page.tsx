@@ -135,6 +135,7 @@ export default function ConsultaRapida() {
   const [tipoPreco, setTipoPreco] = useState<"unidade" | "caixa" | "ambos">("ambos");
   const [erro, setErro] = useState("");
   const [carregando, setCarregando] = useState(true);
+  const [paginaConsulta, setPaginaConsulta] = useState(1);
 
   useEffect(() => {
     carregarProdutos();
@@ -192,6 +193,17 @@ export default function ConsultaRapida() {
     });
   }, [busca, produtos]);
 
+  const itensPorPagina = 50;
+  const totalPaginasConsulta = Math.max(1, Math.ceil(resultados.length / itensPorPagina));
+  const resultadosPaginados = useMemo(() => {
+    const inicio = (paginaConsulta - 1) * itensPorPagina;
+    return resultados.slice(inicio, inicio + itensPorPagina);
+  }, [resultados, paginaConsulta]);
+
+  useEffect(() => {
+    setPaginaConsulta(1);
+  }, [busca, tipoPreco, margem, produtos.length]);
+
   async function abrirPdf(path?: string | null) {
     setErro("");
 
@@ -221,8 +233,8 @@ export default function ConsultaRapida() {
         Pesquise qualquer produto do banco de preços, consulte custo, margem e registro ANVISA.
       </p>
 
-      <section className="clean-card p-6 mt-6">
-        <div className="grid md:grid-cols-[1fr_160px_180px_120px] gap-3">
+      <section className="clean-card p-6 mt-6 consulta-filter-card">
+        <div className="consulta-filter-grid">
           <input
             className="input"
             placeholder="Buscar por descrição, marca, registro ou apresentação..."
@@ -255,11 +267,11 @@ export default function ConsultaRapida() {
         {erro && <p className="text-red-600 text-sm mt-4">{erro}</p>}
       </section>
 
-      <section className="clean-card mt-6 overflow-hidden">
+      <section className="clean-card mt-6 overflow-hidden consulta-table-card">
         <div className="p-6 border-b">
           <h2 className="font-bold text-xl">Resultados</h2>
           <p className="text-sm text-slate-500">
-            {carregando ? "Carregando..." : `${resultados.length} produto(s) encontrado(s)`}
+            {carregando ? "Carregando..." : `${resultados.length} produto(s) encontrado(s) • 50 por página`}
           </p>
         </div>
 
@@ -270,8 +282,33 @@ export default function ConsultaRapida() {
             Nenhum produto encontrado. Verifique se o Banco de Preços já foi importado.
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="clean-table w-full text-sm">
+          <div className="consulta-table-wrap">
+          <div className="consulta-pagination consulta-pagination-top">
+            <span>Página {Math.min(paginaConsulta, totalPaginasConsulta)} de {totalPaginasConsulta}</span>
+
+            <div className="flex gap-2">
+              <button
+                type="button"
+                className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                disabled={paginaConsulta <= 1}
+                onClick={() => setPaginaConsulta((p) => Math.max(1, p - 1))}
+              >
+                Anterior
+              </button>
+
+              <button
+                type="button"
+                className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                disabled={paginaConsulta >= totalPaginasConsulta}
+                onClick={() => setPaginaConsulta((p) => Math.min(totalPaginasConsulta, p + 1))}
+              >
+                Próxima
+              </button>
+            </div>
+          </div>
+
+
+            <table className="consulta-table clean-table w-full">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Descrição</th>
@@ -299,7 +336,7 @@ export default function ConsultaRapida() {
               </thead>
 
               <tbody>
-                {resultados.map((p, index) => {
+                {resultadosPaginados.map((p, index) => {
                   const atualizacao = statusAtualizacao(p.data_atualizacao_custo);
                   const registro = statusRegistro(p.vencimento_registro);
 
@@ -355,6 +392,30 @@ export default function ConsultaRapida() {
                 })}
               </tbody>
             </table>
+
+            <div className="consulta-pagination">
+              <span>Página {Math.min(paginaConsulta, totalPaginasConsulta)} de {totalPaginasConsulta}</span>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                  disabled={paginaConsulta <= 1}
+                  onClick={() => setPaginaConsulta((p) => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                  disabled={paginaConsulta >= totalPaginasConsulta}
+                  onClick={() => setPaginaConsulta((p) => Math.min(totalPaginasConsulta, p + 1))}
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
           </div>
         )}
       </section>
