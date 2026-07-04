@@ -1580,3 +1580,65 @@ input[type="file"]::file-selector-button {
     flex: 1;
   }
 }
+
+
+/* COTAMED UI FIX V9 - Consulta sem quebra de linha */
+.consulta-nowrap-table {
+  table-layout: fixed !important;
+}
+
+.consulta-nowrap-table th,
+.consulta-nowrap-table td {
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  word-break: normal !important;
+  overflow-wrap: normal !important;
+  line-height: 1.25 !important;
+}
+
+.consulta-nowrap-table td * {
+  white-space: nowrap !important;
+}
+
+.consulta-nowrap-table td:nth-child(1) {
+  max-width: 260px !important;
+}
+
+.consulta-nowrap-table td:nth-child(2) {
+  max-width: 190px !important;
+}
+
+.consulta-nowrap-table td:nth-child(3) {
+  max-width: 130px !important;
+}
+
+.pdf-button {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  padding: 0 12px !important;
+  border-radius: 10px !important;
+  border: 1px solid #bfdbfe !important;
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  text-decoration: none !important;
+  white-space: nowrap !important;
+}
+
+.pdf-button:hover {
+  background: #dbeafe !important;
+}
+
+.login-remember {
+  white-space: nowrap !important;
+  flex-wrap: nowrap !important;
+}
+
+.login-remember span {
+  white-space: nowrap !important;
+}

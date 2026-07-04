@@ -308,7 +308,7 @@ export default function ConsultaRapida() {
           </div>
 
 
-            <table className="consulta-table clean-table w-full">
+            <table className="consulta-table consulta-nowrap-table clean-table w-full">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>
                   <th className="text-left p-4">Descrição</th>
