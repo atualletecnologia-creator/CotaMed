@@ -434,6 +434,31 @@ export default function RegistrosAnvisaPage() {
           <div className="p-6 text-slate-500">Nenhum registro encontrado.</div>
         ) : (
           <div className="registros-table-wrap">
+            <div className="registros-pagination registros-pagination-top">
+              <span>Página {Math.min(paginaRegistros, totalPaginasRegistros)} de {totalPaginasRegistros}</span>
+
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                  disabled={paginaRegistros <= 1}
+                  onClick={() => setPaginaRegistros((p) => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+
+                <button
+                  type="button"
+                  className="rounded-xl border px-4 py-2 disabled:opacity-50"
+                  disabled={paginaRegistros >= totalPaginasRegistros}
+                  onClick={() => setPaginaRegistros((p) => Math.min(totalPaginasRegistros, p + 1))}
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
+
+
             <table className="registros-table clean-table w-full">
               <thead className="bg-blue-50 text-slate-600">
                 <tr>

@@ -1362,3 +1362,55 @@ input[type="file"]::file-selector-button {
     flex: 1;
   }
 }
+
+
+/* COTAMED UI FIX V7 - Registros: campos com respiro e paginação superior */
+.registros-form-grid {
+  gap: 22px !important;
+}
+
+.registros-field {
+  padding: 0 4px !important;
+}
+
+.registros-field input,
+.registros-field select,
+.registros-upload-row input[type="file"],
+.registros-massa-card input[type="file"] {
+  height: 48px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+}
+
+.registros-field input::placeholder {
+  color: #94a3b8 !important;
+}
+
+.registros-upload-card {
+  padding-left: 34px !important;
+  padding-right: 34px !important;
+}
+
+.registros-upload-row {
+  gap: 18px !important;
+}
+
+.registros-massa-card {
+  padding: 22px !important;
+}
+
+.registros-pagination-top {
+  border-bottom: 1px solid #e5eaf2;
+  border-radius: 0 !important;
+}
+
+@media (max-width: 760px) {
+  .registros-upload-card {
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
+
+  .registros-field {
+    padding: 0 !important;
+  }
+}
