@@ -990,14 +990,12 @@ export default function Licitacoes() {
       <section className="clean-card p-6 mt-6">
         <h2 className="font-bold text-xl">Enviar planilha da licitação</h2>
 
-        <div className="grid min-w-0 md:grid-cols-4 gap-4 mt-5">
-          <div>
-            <label className="text-sm font-medium">Margem de lucro (%)</label>
+        <div className="licitacao-form-grid">
+          <div className="licitacao-field"><label>Margem de lucro (%)</label>
             <input className="input mt-2" value={margem} onChange={(e) => setMargem(e.target.value)} />
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Tipo de preço padrão</label>
+          <div className="licitacao-field"><label>Tipo de preço padrão</label>
             <select className="input mt-2" value={tipoPrecoPadrao} onChange={(e) => setTipoPrecoPadrao(e.target.value as TipoPreco | "auto")}>
               <option value="auto">Automático por item</option>
               <option value="unitario">Preço unitário</option>
@@ -1005,22 +1003,20 @@ export default function Licitacoes() {
             </select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Usar IA gratuita como fallback</label>
+          <div className="licitacao-field"><label>IA gratuita como fallback</label>
             <select className="input mt-2" value={usarIa ? "sim" : "nao"} onChange={(e) => setUsarIa(e.target.value === "sim")}>
               <option value="nao">Não, usar só busca local</option>
               <option value="sim">Sim, usar IA rápida quando não encontrar</option>
             </select>
           </div>
 
-          <div>
-            <label className="text-sm font-medium">Planilha</label>
+          <div className="licitacao-field"><label>Planilha</label>
             <input type="file" accept=".xlsx,.xls,.csv" className="input mt-2" onChange={(e) => processarPlanilha(e.target.files?.[0] || null)} />
           </div>
         </div>
 
-        <div className="bg-blue-50 rounded-2xl p-4 mt-5 text-sm text-slate-700">
-          Todos os textos cadastrados/exportados ficam em maiúsculo. Você pode alterar cada item entre <b>Unitário</b> e <b>Caixa</b>.
+        <div className="licitacao-help">
+          O sistema identifica os itens automaticamente. Você pode ajustar cada item depois do processamento.
         </div>
 
         {arquivoNome && <p className="text-sm text-slate-500 mt-4">Arquivo selecionado: {arquivoNome}</p>}
