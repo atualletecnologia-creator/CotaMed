@@ -1230,67 +1230,12 @@ export default function Licitacoes() {
                 const preencher = !item.excluido && (item.status === "Encontrado" || item.status === "Manual" || item.status === "Conferir");
 
                 return (
-                  <div key={item.numero_item} className={item.excluido ? "rounded-xl border bg-slate-50 opacity-70 p-3" : "rounded-xl border bg-white p-3"}>
-                    <div className="flex min-w-0 flex-wrap gap-3 text-[11px] leading-4">
+                  <div key={item.numero_item} className={item.excluido ? "licitacao-item-card opacity-70 bg-slate-50" : "licitacao-item-card"}>
+                    <div className="licitacao-item-resumo">
                       <div className="w-12 shrink-0"><Campo label="Item" value={<b>{item.numero_item}</b>} /></div>
 
-                      <div className="min-w-[260px] flex-1">
+                      <div className="min-w-[280px] flex-1 licitacao-descricao-resumo">
                         <Campo label="Descrição" value={item.descricao} />
-                        <input
-                          className="input mt-2 text-[11px] h-8 py-1"
-                          placeholder="Buscar produto"
-                          value={buscaManualPorItem[item.numero_item] || ""}
-                          onChange={(e) =>
-                            setBuscaManualPorItem((atual) => ({
-                              ...atual,
-                              [item.numero_item]: e.target.value.toUpperCase(),
-                            }))
-                          }
-                        />
-
-                        <select
-                          className="input mt-2 text-[11px] h-8 py-1"
-                          value={item.produto_id || ""}
-                          onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
-                        >
-                          <option value="">Menor custo</option>
-                          {produtosBuscaManualMenorCusto(
-                            produtosBanco,
-                            buscaManualPorItem[item.numero_item] || item.descricao,
-                            item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)
-                          ).map((p) => (
-                            <option key={p.id} value={p.id}>{labelProduto(p)}</option>
-                          ))}
-                        </select>
-
-                        <div className="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 rounded-xl border bg-slate-50 p-2">
-                          <input
-                            className="input text-[11px] h-8 py-1"
-                            placeholder="Marca"
-                            value={item.marca || ""}
-                            onChange={(e) => alterarCampoManualLivre(item.numero_item, "marca", e.target.value)}
-                          />
-
-                          <input
-                            className="input text-[11px] h-8 py-1"
-                            placeholder="Registro"
-                            value={item.registro_anvisa || ""}
-                            onChange={(e) => alterarCampoManualLivre(item.numero_item, "registro_anvisa", e.target.value)}
-                          />
-
-                          <input
-                            className="input text-[11px] h-8 py-1"
-                            placeholder="Custo"
-                            type="text"
-                            inputMode="decimal"
-                            value={custoManualTextoPorItem[item.numero_item] ?? ""}
-                            onChange={(e) => alterarCustoManualLivreTexto(item.numero_item, e.target.value)}
-                          />
-                        </div>
-
-                        <p className="mt-1 text-[10px] text-slate-500">
-                          Se o produto não estiver cadastrado, preencha marca e custo manualmente. O sistema calcula a margem automaticamente.
-                        </p>
                       </div>
 
                       <div className="w-16"><Campo label="Qtd" value={item.quantidade} /></div>
@@ -1325,6 +1270,93 @@ export default function Licitacoes() {
                         </button>
                       </div>
                     </div>
+
+                    {!item.excluido && (
+                      <div className="licitacao-manual-panel">
+                        <div className="licitacao-manual-search">
+                          <label>Buscar produto</label>
+                          <input
+                            className="input"
+                            placeholder="Digite o nome do produto, descrição ou princípio ativo..."
+                            value={buscaManualPorItem[item.numero_item] || ""}
+                            onChange={(e) =>
+                              setBuscaManualPorItem((atual) => ({
+                                ...atual,
+                                [item.numero_item]: e.target.value.toUpperCase(),
+                              }))
+                            }
+                          />
+
+                          <select
+                            className="input"
+                            value={item.produto_id || ""}
+                            onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
+                          >
+                            <option value="">Menor custo</option>
+                            {produtosBuscaManualMenorCusto(
+                              produtosBanco,
+                              buscaManualPorItem[item.numero_item] || item.descricao,
+                              item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)
+                            ).map((p) => (
+                              <option key={p.id} value={p.id}>{labelProduto(p)}</option>
+                            ))}
+                          </select>
+                        </div>
+
+                        <div className="licitacao-manual-fields">
+                          <div>
+                            <label>Marca</label>
+                            <input
+                              className="input"
+                              placeholder="Marca"
+                              value={item.marca || ""}
+                              onChange={(e) => alterarCampoManualLivre(item.numero_item, "marca", e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <label>Registro</label>
+                            <input
+                              className="input"
+                              placeholder="Registro"
+                              value={item.registro_anvisa || ""}
+                              onChange={(e) => alterarCampoManualLivre(item.numero_item, "registro_anvisa", e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <label>Custo</label>
+                            <input
+                              className="input"
+                              placeholder="Custo"
+                              type="text"
+                              inputMode="decimal"
+                              value={custoManualTextoPorItem[item.numero_item] ?? ""}
+                              onChange={(e) => alterarCustoManualLivreTexto(item.numero_item, e.target.value)}
+                            />
+                          </div>
+
+                          <div>
+                            <label>Vl. Unit.</label>
+                            <input className="input" value={item.valor_unitario ? dinheiro(item.valor_unitario) : "-"} readOnly />
+                          </div>
+
+                          <div>
+                            <label>Vl. Total</label>
+                            <input className="input" value={item.valor_total ? dinheiro(item.valor_total) : "-"} readOnly />
+                          </div>
+
+                          <div>
+                            <label>Confiança</label>
+                            <input className="input" value={`${item.confianca || 0}%`} readOnly />
+                          </div>
+                        </div>
+
+                        <p className="licitacao-manual-help">
+                          Se o produto não estiver cadastrado, preencha marca e custo manualmente. O sistema calcula a margem automaticamente.
+                        </p>
+                      </div>
+                    )}
                   </div>
                 );
               })}

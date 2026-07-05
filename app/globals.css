@@ -2133,3 +2133,143 @@ input[type="file"]::file-selector-button {
     width: 100%;
   }
 }
+
+
+/* COTAMED UI FIX V15 - Banco + Licitações visual final */
+.licitacao-item-card {
+  border: 1px solid #e5eaf2;
+  border-radius: 16px;
+  background: #ffffff;
+  padding: 14px;
+  box-shadow: 0 8px 26px rgba(15, 23, 42, .03);
+}
+
+.licitacao-item-resumo {
+  display: grid !important;
+  grid-template-columns: 56px minmax(260px, 1.6fr) 70px 70px 110px 120px 120px 90px 90px 90px 70px 105px 60px 80px;
+  gap: 12px;
+  align-items: start;
+  font-size: 11px;
+  line-height: 1.35;
+  min-width: 0;
+}
+
+.licitacao-descricao-resumo {
+  min-width: 0 !important;
+}
+
+.licitacao-descricao-resumo div {
+  white-space: normal !important;
+  line-height: 1.4 !important;
+}
+
+.licitacao-manual-panel {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid #e5eaf2;
+  border-radius: 14px;
+  background: #f8fafc;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(0, 1.75fr);
+  gap: 16px;
+  align-items: start;
+}
+
+.licitacao-manual-panel label {
+  display: block;
+  margin-bottom: 6px;
+  color: #334155;
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.licitacao-manual-panel .input {
+  height: 38px !important;
+  padding-left: 12px !important;
+  padding-right: 12px !important;
+  font-size: 12px !important;
+}
+
+.licitacao-manual-search {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 9px;
+}
+
+.licitacao-manual-search label {
+  margin-bottom: -2px;
+}
+
+.licitacao-manual-fields {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(110px, 1fr));
+  gap: 10px;
+}
+
+.licitacao-manual-help {
+  grid-column: 1 / -1;
+  margin-top: -4px;
+  color: #64748b;
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+@media (max-width: 1500px) {
+  .licitacao-item-resumo {
+    grid-template-columns: 50px minmax(230px, 1fr) repeat(12, minmax(65px, auto));
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .licitacao-manual-fields {
+    grid-template-columns: repeat(3, minmax(120px, 1fr));
+  }
+}
+
+@media (max-width: 900px) {
+  .licitacao-manual-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .licitacao-manual-fields {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Banco de Preços: cards com ícones no padrão aprovado */
+.banco-stat-card {
+  display: flex !important;
+  align-items: center !important;
+  gap: 18px !important;
+  padding: 24px !important;
+}
+
+.banco-stat-icon {
+  width: 58px !important;
+  height: 58px !important;
+  border-radius: 999px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  flex: 0 0 58px !important;
+}
+
+.banco-stat-icon svg {
+  width: 30px !important;
+  height: 30px !important;
+}
+
+.banco-filter-grid {
+  grid-template-columns: minmax(260px, 1fr) minmax(180px, .6fr) minmax(220px, .7fr) !important;
+}
+
+.banco-vinculo-row {
+  grid-template-columns: 120px minmax(260px, 1fr) minmax(180px, 260px) !important;
+}
+
+@media (max-width: 900px) {
+  .banco-filter-grid,
+  .banco-vinculo-row {
+    grid-template-columns: 1fr !important;
+  }
+}
