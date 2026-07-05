@@ -16,7 +16,6 @@ const menu: { href: string; label: string; icon: MenuIconName }[] = [
   { href: "/registros-anvisa", label: "Registros ANVISA", icon: "registros" },
   { href: "/consulta-rapida", label: "Consulta rápida", icon: "consulta" },
   { href: "/relatorios", label: "Relatórios", icon: "relatorios" },
-  { href: "/configuracoes", label: "Configurações", icon: "configuracoes" },
 ];
 
 function MenuIcon({ name }: { name: MenuIconName }) {

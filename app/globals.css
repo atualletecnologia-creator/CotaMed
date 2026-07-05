@@ -2855,3 +2855,75 @@ input[type="file"]::file-selector-button {
     z-index: 70 !important;
   }
 }
+
+
+/* COTAMED FIX DEFINITIVO - menu lateral fixo de verdade */
+@media (min-width: 1025px) {
+  .app-shell {
+    display: block !important;
+    min-height: 100vh !important;
+  }
+
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    width: 76px !important;
+    z-index: 999 !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+  }
+
+  .app-shell.sidebar-fixed .app-sidebar,
+  .app-shell.sidebar-open .app-sidebar,
+  .app-shell:not(.sidebar-fixed) .app-sidebar:hover {
+    width: 272px !important;
+  }
+
+  .app-main {
+    min-width: 0 !important;
+    width: auto !important;
+    margin-left: 76px !important;
+    transition: margin-left .18s ease !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-shell.sidebar-fixed .app-main,
+  .app-shell.sidebar-open .app-main {
+    margin-left: 272px !important;
+  }
+
+  .app-content {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  .sidebar-backdrop {
+    display: none !important;
+  }
+
+  .app-sidebar-footer {
+    margin-top: auto !important;
+    background: inherit !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    bottom: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    z-index: 999 !important;
+    overflow-y: auto !important;
+  }
+
+  .app-main {
+    margin-left: 0 !important;
+  }
+}
