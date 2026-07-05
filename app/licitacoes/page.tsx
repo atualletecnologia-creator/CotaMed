@@ -655,43 +655,56 @@ function compactarItemRascunho(item: ItemLicitacao): ItemLicitacao {
 function carregarRascunhoLicitacao(): RascunhoLicitacao | null {
   if (typeof window === "undefined") return null;
 
-  try {
-    const bruto = window.localStorage.getItem(CHAVE_RASCUNHO_LICITACAO);
-    if (!bruto) return null;
-
-    const rascunho = JSON.parse(bruto) as RascunhoLicitacao;
-
-    if (!rascunhoValido(rascunho)) {
-      window.localStorage.removeItem(CHAVE_RASCUNHO_LICITACAO);
+  const ler = (storage: Storage) => {
+    try {
+      const bruto = storage.getItem(CHAVE_RASCUNHO_LICITACAO);
+      if (!bruto) return null;
+      return JSON.parse(bruto) as RascunhoLicitacao;
+    } catch {
       return null;
     }
+  };
 
-    return rascunho;
-  } catch {
+  const rascunho = ler(window.localStorage) || ler(window.sessionStorage);
+
+  if (!rascunhoValido(rascunho)) {
+    window.localStorage.removeItem(CHAVE_RASCUNHO_LICITACAO);
+    window.sessionStorage.removeItem(CHAVE_RASCUNHO_LICITACAO);
     return null;
   }
+
+  return rascunho;
 }
 
 function salvarRascunhoLicitacao(rascunho: RascunhoLicitacao) {
   if (typeof window === "undefined") return;
   if (!rascunho.itens?.length) return;
 
-  try {
-    const compacto: RascunhoLicitacao = {
-      ...rascunho,
-      salvo_em: Date.now(),
-      itens: rascunho.itens.map(compactarItemRascunho),
-    };
+  const compacto: RascunhoLicitacao = {
+    ...rascunho,
+    salvo_em: Date.now(),
+    itens: rascunho.itens.map(compactarItemRascunho),
+  };
 
-    window.localStorage.setItem(CHAVE_RASCUNHO_LICITACAO, JSON.stringify(compacto));
+  const texto = JSON.stringify(compacto);
+
+  try {
+    window.localStorage.setItem(CHAVE_RASCUNHO_LICITACAO, texto);
   } catch {
-    // Se o navegador bloquear armazenamento, apenas ignora.
+    // Alguns navegadores podem bloquear localStorage.
+  }
+
+  try {
+    window.sessionStorage.setItem(CHAVE_RASCUNHO_LICITACAO, texto);
+  } catch {
+    // Backup opcional.
   }
 }
 
 function apagarRascunhoLicitacao() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(CHAVE_RASCUNHO_LICITACAO);
+  window.sessionStorage.removeItem(CHAVE_RASCUNHO_LICITACAO);
 }
 
 export default function Licitacoes() {
@@ -750,6 +763,40 @@ export default function Licitacoes() {
   useEffect(() => {
     setPaginaItens(1);
   }, [filtro, itens.length]);
+
+  useEffect(() => {
+    const rascunho = carregarRascunhoLicitacao();
+
+    if (rascunho) {
+      setRascunhoDisponivel(rascunho);
+      setMensagem("Rascunho disponível para continuar.");
+    }
+
+    setRascunhoCarregado(true);
+  }, []);
+
+  useEffect(() => {
+    if (!rascunhoCarregado) return;
+    if (!itens.length) return;
+
+    const timer = window.setTimeout(() => {
+      const rascunho: RascunhoLicitacao = {
+        salvo_em: Date.now(),
+        arquivo_nome: arquivoNome || "Licitação em andamento",
+        margem,
+        tipoPrecoPadrao,
+        usarIa,
+        itens,
+        buscaManualPorItem,
+        custoManualTextoPorItem,
+      };
+
+      salvarRascunhoLicitacao(rascunho);
+      setRascunhoDisponivel(rascunho);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [rascunhoCarregado, arquivoNome, margem, tipoPrecoPadrao, usarIa, itens, buscaManualPorItem, custoManualTextoPorItem]);
 
   const itensParaExportar = useMemo(() => itens.filter(itemPodeCotar), [itens]);
 
