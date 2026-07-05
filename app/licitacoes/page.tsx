@@ -625,12 +625,6 @@ function formatarDataHoraRascunho(timestamp: number) {
   }
 }
 
-function rascunhoValido(rascunho: RascunhoLicitacao | null) {
-  if (!rascunho?.salvo_em) return false;
-  if (!Array.isArray(rascunho.itens) || rascunho.itens.length === 0) return false;
-  return Date.now() - rascunho.salvo_em <= TEMPO_RASCUNHO_LICITACAO;
-}
-
 function compactarItemRascunho(item: ItemLicitacao): ItemLicitacao {
   return {
     numero_item: item.numero_item,
@@ -640,16 +634,23 @@ function compactarItemRascunho(item: ItemLicitacao): ItemLicitacao {
     produto_id: item.produto_id || "",
     marca: item.marca || "",
     registro_anvisa: item.registro_anvisa || "",
+    vencimento_registro: item.vencimento_registro || "",
     custo_usado: item.custo_usado || 0,
+    tipo_preco: item.tipo_preco,
     valor_unitario: item.valor_unitario || 0,
     valor_total: item.valor_total || 0,
-    tipo_preco: item.tipo_preco,
     pdf_url: item.pdf_url || null,
     status: item.status,
     confianca: item.confianca || 0,
     origem_match: item.origem_match || "",
     excluido: !!item.excluido,
   };
+}
+
+function rascunhoValido(rascunho: RascunhoLicitacao | null) {
+  if (!rascunho?.salvo_em) return false;
+  if (!Array.isArray(rascunho.itens) || rascunho.itens.length === 0) return false;
+  return Date.now() - rascunho.salvo_em <= TEMPO_RASCUNHO_LICITACAO;
 }
 
 function carregarRascunhoLicitacao(): RascunhoLicitacao | null {
@@ -690,15 +691,11 @@ function salvarRascunhoLicitacao(rascunho: RascunhoLicitacao) {
 
   try {
     window.localStorage.setItem(CHAVE_RASCUNHO_LICITACAO, texto);
-  } catch {
-    // Alguns navegadores podem bloquear localStorage.
-  }
+  } catch {}
 
   try {
     window.sessionStorage.setItem(CHAVE_RASCUNHO_LICITACAO, texto);
-  } catch {
-    // Backup opcional.
-  }
+  } catch {}
 }
 
 function apagarRascunhoLicitacao() {
@@ -776,6 +773,29 @@ export default function Licitacoes() {
   }, []);
 
   useEffect(() => {
+    if (!rascunhoCarregado) return;
+    if (!itens.length) return;
+
+    const timer = window.setTimeout(() => {
+      const rascunho: RascunhoLicitacao = {
+        salvo_em: Date.now(),
+        arquivo_nome: arquivoNome || "Licitação em andamento",
+        margem,
+        tipoPrecoPadrao,
+        usarIa,
+        itens,
+        buscaManualPorItem,
+        custoManualTextoPorItem,
+      };
+
+      salvarRascunhoLicitacao(rascunho);
+      setRascunhoDisponivel(rascunho);
+    }, 250);
+
+    return () => window.clearTimeout(timer);
+  }, [rascunhoCarregado, arquivoNome, margem, tipoPrecoPadrao, usarIa, itens, buscaManualPorItem, custoManualTextoPorItem]);
+
+useEffect(() => {
     if (!rascunhoCarregado) return;
     if (!itens.length) return;
 

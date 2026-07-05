@@ -21,52 +21,43 @@ const menu: { href: string; label: string; icon: MenuIconName }[] = [
 
 function MenuIcon({ name }: { name: MenuIconName }) {
   const common = {
-    width: 20,
-    height: 20,
+    width: 21,
+    height: 21,
     viewBox: "0 0 24 24",
     fill: "none",
     stroke: "currentColor",
-    strokeWidth: 2,
+    strokeWidth: 1.9,
     strokeLinecap: "round" as const,
     strokeLinejoin: "round" as const,
     "aria-hidden": true,
   };
 
   if (name === "dashboard") {
-    return <svg {...common}><path d="M3 12l9-8 9 8"/><path d="M5 10v10h14V10"/><path d="M9 20v-6h6v6"/></svg>;
+    return <svg {...common}><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>;
   }
 
   if (name === "banco") {
-    return <svg {...common}><rect x="4" y="5" width="16" height="14" rx="2"/><path d="M8 9h8"/><path d="M8 13h3"/><path d="M13 13h3"/><path d="M8 17h8"/></svg>;
+    return <svg {...common}><path d="M4 7h16"/><path d="M6 7V5.5A1.5 1.5 0 0 1 7.5 4h9A1.5 1.5 0 0 1 18 5.5V7"/><rect x="5" y="7" width="14" height="13" rx="2"/><path d="M9 11h6"/><path d="M9 15h2"/><path d="M14 15h1"/></svg>;
   }
 
   if (name === "licitacoes") {
-    return (
-      <svg {...common}>
-        <path d="M13.5 6.5l4 4" />
-        <path d="M10 10l4 4" />
-        <path d="M7.2 8.8l4.6-4.6 4 4-4.6 4.6z" />
-        <path d="M12.8 14.4l2.8-2.8 4 4-2.8 2.8z" />
-        <path d="M9.5 12.5L3.5 18.5" />
-        <path d="M2.8 21.2h8.4" />
-      </svg>
-    );
+    return <svg {...common}><path d="M14.5 4.5l5 5"/><path d="M12 7l5 5"/><path d="M6.8 9.8l4-4 5.4 5.4-4 4z"/><path d="M11 14l-7 7"/><path d="M3 21h8"/><path d="M16.8 12.8l3.4 3.4"/></svg>;
   }
 
   if (name === "registros") {
-    return <svg {...common}><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6z"/><path d="M9 12l2 2 4-5"/></svg>;
+    return <svg {...common}><path d="M12 3l7 4v5c0 4.6-2.8 7.7-7 9-4.2-1.3-7-4.4-7-9V7z"/><path d="M9 12l2 2 4-5"/></svg>;
   }
 
   if (name === "consulta") {
-    return <svg {...common}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>;
+    return <svg {...common}><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.4-3.4"/></svg>;
   }
 
   if (name === "relatorios") {
-    return <svg {...common}><path d="M4 19V5"/><path d="M4 19h16"/><rect x="7" y="11" width="3" height="5"/><rect x="12" y="7" width="3" height="9"/><rect x="17" y="4" width="3" height="12"/></svg>;
+    return <svg {...common}><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/></svg>;
   }
 
   if (name === "configuracoes") {
-    return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .35 2l.05.05-2.1 2.1-.05-.05a1.8 1.8 0 0 0-2-.35 1.8 1.8 0 0 0-1.1 1.65V20h-3v-.1A1.8 1.8 0 0 0 10.4 18.25a1.8 1.8 0 0 0-2 .35l-.05.05-2.1-2.1.05-.05a1.8 1.8 0 0 0 .35-2A1.8 1.8 0 0 0 5 13.4H4v-3h1a1.8 1.8 0 0 0 1.65-1.1 1.8 1.8 0 0 0-.35-2l-.05-.05 2.1-2.1.05.05a1.8 1.8 0 0 0 2 .35A1.8 1.8 0 0 0 11.5 4h3a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 2-.35l.05-.05 2.1 2.1-.05.05a1.8 1.8 0 0 0-.35 2A1.8 1.8 0 0 0 21 10.6h1v3h-1A1.8 1.8 0 0 0 19.4 15z"/></svg>;
+    return <svg {...common}><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.8 1.8 0 0 0 .35 2l.05.05-2.1 2.1-.05-.05a1.8 1.8 0 0 0-2-.35 1.8 1.8 0 0 0-1.1 1.65V20h-3v-.1a1.8 1.8 0 0 0-1.1-1.65 1.8 1.8 0 0 0-2 .35l-.05.05-2.1-2.1.05-.05a1.8 1.8 0 0 0 .35-2A1.8 1.8 0 0 0 5 13.4H4v-3h1a1.8 1.8 0 0 0 1.65-1.1 1.8 1.8 0 0 0-.35-2l-.05-.05 2.1-2.1.05.05a1.8 1.8 0 0 0 2 .35A1.8 1.8 0 0 0 11.5 4h3a1.8 1.8 0 0 0 1.1 1.65 1.8 1.8 0 0 0 2-.35l.05-.05 2.1 2.1-.05.05a1.8 1.8 0 0 0-.35 2A1.8 1.8 0 0 0 21 10.6h1v3h-1A1.8 1.8 0 0 0 19.4 15z"/></svg>;
   }
 
   return <svg {...common}><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><path d="M16 17l5-5-5-5"/><path d="M21 12H9"/></svg>;

@@ -2517,3 +2517,172 @@ input[type="file"]::file-selector-button {
     grid-column: 1 / -1;
   }
 }
+
+
+/* COTAMED CONSOLIDADO FINAL - menu, ícones, licitações e tabelas */
+@media (min-width: 1025px) {
+  .app-shell:not(.sidebar-fixed) {
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-fixed,
+  .app-shell.sidebar-open {
+    grid-template-columns: 272px minmax(0, 1fr) !important;
+  }
+
+  .app-sidebar {
+    width: 76px !important;
+    transition: width .18s ease, box-shadow .18s ease !important;
+  }
+
+  .app-shell.sidebar-fixed .app-sidebar,
+  .app-shell.sidebar-open .app-sidebar,
+  .app-shell:not(.sidebar-fixed) .app-sidebar:hover {
+    width: 272px !important;
+    box-shadow: 18px 0 60px rgba(15, 23, 42, .10);
+  }
+
+  .app-shell:not(.sidebar-fixed) .app-brand-logo,
+  .app-shell:not(.sidebar-fixed) .app-nav-label,
+  .app-shell:not(.sidebar-fixed) .app-sidebar-footer {
+    opacity: 0 !important;
+    width: 0 !important;
+    max-width: 0 !important;
+    pointer-events: none !important;
+    overflow: hidden !important;
+  }
+
+  .app-shell.sidebar-fixed .app-brand-logo,
+  .app-shell.sidebar-open .app-brand-logo,
+  .app-shell:not(.sidebar-fixed) .app-sidebar:hover .app-brand-logo {
+    opacity: 1 !important;
+    width: 176px !important;
+    max-width: 176px !important;
+    pointer-events: auto !important;
+  }
+
+  .app-shell.sidebar-fixed .app-nav-label,
+  .app-shell.sidebar-open .app-nav-label,
+  .app-shell.sidebar-fixed .app-sidebar-footer,
+  .app-shell.sidebar-open .app-sidebar-footer,
+  .app-shell:not(.sidebar-fixed) .app-sidebar:hover .app-nav-label,
+  .app-shell:not(.sidebar-fixed) .app-sidebar:hover .app-sidebar-footer {
+    opacity: 1 !important;
+    width: auto !important;
+    max-width: 190px !important;
+    pointer-events: auto !important;
+  }
+
+  .app-shell:not(.sidebar-fixed) .app-nav-item {
+    justify-content: center !important;
+  }
+
+  .app-shell:not(.sidebar-fixed) .app-sidebar:hover .app-nav-item,
+  .app-shell.sidebar-fixed .app-nav-item,
+  .app-shell.sidebar-open .app-nav-item {
+    justify-content: flex-start !important;
+  }
+
+  .app-shell:not(.sidebar-fixed) .app-nav-item:hover::after {
+    display: none !important;
+  }
+}
+
+.app-nav-icon {
+  background: #eef6ff !important;
+  color: #2563eb !important;
+}
+
+.app-nav-item.active .app-nav-icon {
+  background: #2563eb !important;
+  color: #fff !important;
+}
+
+.app-shell.sidebar-fixed .sidebar-toggle {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+.licitacao-item-card {
+  overflow: visible !important;
+}
+
+.licitacao-item-resumo {
+  display: grid !important;
+  grid-template-columns:
+    60px
+    minmax(280px, 2fr)
+    minmax(70px, .5fr)
+    minmax(70px, .5fr)
+    minmax(105px, .7fr)
+    minmax(120px, .9fr)
+    minmax(130px, .9fr)
+    minmax(90px, .65fr)
+    minmax(90px, .65fr)
+    minmax(100px, .7fr)
+    minmax(70px, .45fr)
+    minmax(160px, .95fr)
+    minmax(70px, .45fr)
+    minmax(86px, .55fr) !important;
+  gap: 12px !important;
+  align-items: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+}
+
+.licitacao-item-resumo > div {
+  min-width: 0 !important;
+  width: auto !important;
+  max-width: 100% !important;
+}
+
+.licitacao-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 150px !important;
+  max-width: 150px !important;
+  min-width: 118px !important;
+  height: 30px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: clip !important;
+}
+
+.licitacao-manual-panel {
+  width: 100% !important;
+  overflow: visible !important;
+}
+
+.rascunho-licitacao-card {
+  border-color: #bfdbfe !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%) !important;
+  overflow: visible !important;
+}
+
+@media (max-width: 1500px) {
+  .licitacao-item-resumo {
+    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  }
+
+  .licitacao-descricao-resumo {
+    grid-column: span 3;
+  }
+}
+
+@media (max-width: 720px) {
+  .licitacao-item-resumo {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .licitacao-descricao-resumo {
+    grid-column: 1 / -1;
+  }
+}
