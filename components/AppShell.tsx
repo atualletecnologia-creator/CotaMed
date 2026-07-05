@@ -41,7 +41,16 @@ function MenuIcon({ name }: { name: MenuIconName }) {
   }
 
   if (name === "licitacoes") {
-    return <svg {...common}><path d="M8 3h8l4 4v14H8z"/><path d="M16 3v5h5"/><path d="M4 7h4"/><path d="M4 11h4"/><path d="M4 15h4"/></svg>;
+    return (
+      <svg {...common}>
+        <path d="M13.5 6.5l4 4" />
+        <path d="M10 10l4 4" />
+        <path d="M7.2 8.8l4.6-4.6 4 4-4.6 4.6z" />
+        <path d="M12.8 14.4l2.8-2.8 4 4-2.8 2.8z" />
+        <path d="M9.5 12.5L3.5 18.5" />
+        <path d="M2.8 21.2h8.4" />
+      </svg>
+    );
   }
 
   if (name === "registros") {
