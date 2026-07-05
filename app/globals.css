@@ -2686,3 +2686,103 @@ input[type="file"]::file-selector-button {
     grid-column: 1 / -1;
   }
 }
+
+
+/* COTAMED FINAL FIX - status fora da grade apertada */
+.licitacao-status-row {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  width: 100% !important;
+  margin-bottom: 10px !important;
+  overflow: visible !important;
+}
+
+.licitacao-status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: 126px !important;
+  max-width: none !important;
+  height: 30px !important;
+  padding: 0 14px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: initial !important;
+}
+
+.licitacao-status-pill {
+  display: none !important;
+}
+
+.licitacao-item-resumo {
+  grid-template-columns:
+    60px
+    minmax(280px, 2fr)
+    minmax(70px, .5fr)
+    minmax(70px, .5fr)
+    minmax(105px, .7fr)
+    minmax(120px, .9fr)
+    minmax(130px, .9fr)
+    minmax(90px, .65fr)
+    minmax(90px, .65fr)
+    minmax(100px, .7fr)
+    minmax(70px, .45fr)
+    minmax(70px, .45fr)
+    minmax(86px, .55fr) !important;
+}
+
+
+/* COTAMED DEFINITIVO - status de Licitações fora do grid */
+.licitacao-item-card {
+  position: relative !important;
+  overflow: visible !important;
+}
+
+.licitacao-status-row {
+  display: flex !important;
+  justify-content: flex-end !important;
+  align-items: center !important;
+  width: 100% !important;
+  min-height: 34px !important;
+  margin: 0 0 12px 0 !important;
+  overflow: visible !important;
+}
+
+.licitacao-status-badge {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: auto !important;
+  min-width: max-content !important;
+  max-width: none !important;
+  height: 32px !important;
+  padding: 0 16px !important;
+  border-radius: 999px !important;
+  font-size: 12px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  flex: 0 0 auto !important;
+}
+
+.licitacao-status-pill {
+  display: none !important;
+}
+
+/* remove qualquer coluna antiga de status que ainda exista */
+.licitacao-item-resumo > div:has(.licitacao-status-pill) {
+  display: none !important;
+}
+
+.licitacao-item-resumo {
+  overflow: visible !important;
+  max-width: 100% !important;
+}

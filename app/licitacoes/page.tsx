@@ -762,14 +762,26 @@ export default function Licitacoes() {
   }, [filtro, itens.length]);
 
   useEffect(() => {
-    const rascunho = carregarRascunhoLicitacao();
+    let ativo = true;
 
-    if (rascunho) {
-      setRascunhoDisponivel(rascunho);
-      setMensagem("Rascunho disponível para continuar.");
+    async function carregarRascunhoInicial() {
+      const rascunho = (await carregarRascunhoSupabase()) || carregarRascunhoLicitacao();
+
+      if (!ativo) return;
+
+      if (rascunho) {
+        setRascunhoDisponivel(rascunho);
+        setMensagem("Rascunho disponível para continuar.");
+      }
+
+      setRascunhoCarregado(true);
     }
 
-    setRascunhoCarregado(true);
+    carregarRascunhoInicial();
+
+    return () => {
+      ativo = false;
+    };
   }, []);
 
   useEffect(() => {
@@ -789,6 +801,7 @@ export default function Licitacoes() {
       };
 
       salvarRascunhoLicitacao(rascunho);
+      salvarRascunhoSupabase(rascunho);
       setRascunhoDisponivel(rascunho);
     }, 250);
 
@@ -971,8 +984,77 @@ useEffect(() => {
     }
   }
 
-  function continuarRascunhoLicitacao() {
-    const rascunho = carregarRascunhoLicitacao();
+  async function carregarRascunhoSupabase() {
+    try {
+      const { data: sessao } = await supabase.auth.getSession();
+      const userId = sessao.session?.user?.id;
+
+      if (!userId) return null;
+
+      const limite = new Date(Date.now() - TEMPO_RASCUNHO_LICITACAO).toISOString();
+
+      const { data, error } = await supabase
+        .from("licitacoes_rascunhos")
+        .select("conteudo, updated_at")
+        .eq("user_id", userId)
+        .gte("updated_at", limite)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (error || !data?.conteudo) return null;
+
+      const rascunho = data.conteudo as RascunhoLicitacao;
+      return rascunhoValido(rascunho) ? rascunho : null;
+    } catch {
+      return null;
+    }
+  }
+
+  async function salvarRascunhoSupabase(rascunho: RascunhoLicitacao) {
+    try {
+      const { data: sessao } = await supabase.auth.getSession();
+      const userId = sessao.session?.user?.id;
+
+      if (!userId) return;
+
+      const compacto: RascunhoLicitacao = {
+        ...rascunho,
+        salvo_em: Date.now(),
+        itens: rascunho.itens.map(compactarItemRascunho),
+      };
+
+      await supabase
+        .from("licitacoes_rascunhos")
+        .upsert(
+          {
+            user_id: userId,
+            conteudo: compacto,
+            arquivo_nome: compacto.arquivo_nome,
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "user_id" }
+        );
+    } catch {
+      // Se a tabela ainda não existir, o rascunho continua salvo no navegador.
+    }
+  }
+
+  async function apagarRascunhoSupabase() {
+    try {
+      const { data: sessao } = await supabase.auth.getSession();
+      const userId = sessao.session?.user?.id;
+
+      if (!userId) return;
+
+      await supabase.from("licitacoes_rascunhos").delete().eq("user_id", userId);
+    } catch {
+      // Ignora se a tabela ainda não existir.
+    }
+  }
+
+  async function continuarRascunhoLicitacao() {
+    const rascunho = (await carregarRascunhoSupabase()) || carregarRascunhoLicitacao();
 
     if (!rascunho) {
       setRascunhoDisponivel(null);
@@ -992,7 +1074,7 @@ useEffect(() => {
     setMensagem("Rascunho restaurado com sucesso.");
   }
 
-  function novaCotacaoLicitacao() {
+  async function novaCotacaoLicitacao() {
     const confirmar = itens.length
       ? window.confirm("Começar uma nova cotação? O rascunho atual será apagado.")
       : true;
@@ -1000,6 +1082,7 @@ useEffect(() => {
     if (!confirmar) return;
 
     apagarRascunhoLicitacao();
+    await apagarRascunhoSupabase();
     setRascunhoDisponivel(null);
     setArquivoNome("");
     setItens([]);
@@ -1328,6 +1411,12 @@ useEffect(() => {
 
                 return (
                   <div key={item.numero_item} className={item.excluido ? "licitacao-item-card opacity-70 bg-slate-50" : "licitacao-item-card"}>
+                    <div className="licitacao-status-row">
+                      <span className={`licitacao-status-badge ${statusClasse(statusVisivel)}`} title={statusVisivel}>
+                        {statusVisivel}
+                      </span>
+                    </div>
+
                     <div className="licitacao-item-resumo">
                       <div className="w-12 shrink-0"><Campo label="Item" value={<b>{item.numero_item}</b>} /></div>
 
@@ -1353,10 +1442,7 @@ useEffect(() => {
                       <div className="w-20"><Campo label="Vl.Total" value={preencher ? dinheiro(item.valor_total) : "-"} /></div>
                       <div className="w-14"><Campo label="Conf." value={`${item.confianca || 0}%`} /></div>
 
-                      <div className="w-24">
-                        <p className="text-[10px] text-slate-500">Status</p>
-                        <span className={`licitacao-status-pill ${statusClasse(statusVisivel)}`} title={statusVisivel}>{statusVisivel}</span>
-                      </div>
+
 
                       <div className="w-12"><Campo label="PDF" value={<span className={item.pdf_url && cotar ? "text-green-700" : "text-red-700"}>{item.pdf_url && cotar ? "Sim" : "Não"}</span>} /></div>
 
