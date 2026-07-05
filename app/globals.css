@@ -2082,3 +2082,54 @@ input[type="file"]::file-selector-button {
 .app-shell:not(.sidebar-fixed):not(.sidebar-open) .app-nav-item:hover::after {
   display: none !important;
 }
+
+
+/* COTAMED UI FIX V14 - rascunho automático Licitações 24h */
+.rascunho-licitacao-card {
+  margin-top: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid #bfdbfe;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%);
+  box-shadow: 0 12px 35px rgba(29, 78, 216, .08);
+}
+
+.rascunho-licitacao-card h2 {
+  margin-top: 4px;
+  color: #0f172a;
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -.02em;
+}
+
+.rascunho-licitacao-card p {
+  margin-top: 4px;
+  color: #475569;
+  font-size: 14px;
+}
+
+.rascunho-licitacao-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 760px) {
+  .rascunho-licitacao-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .rascunho-licitacao-actions {
+    justify-content: stretch;
+  }
+
+  .rascunho-licitacao-actions button {
+    width: 100%;
+  }
+}

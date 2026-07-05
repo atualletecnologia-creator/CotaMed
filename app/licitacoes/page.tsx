@@ -597,6 +597,74 @@ function esperarInterface() {
 }
 
 
+
+const CHAVE_RASCUNHO_LICITACAO = "cotamed_rascunho_licitacao_24h";
+const TEMPO_RASCUNHO_LICITACAO = 24 * 60 * 60 * 1000;
+
+type RascunhoLicitacao = {
+  salvo_em: number;
+  arquivo_nome: string;
+  margem: string;
+  tipoPrecoPadrao: TipoPreco | "auto";
+  usarIa: boolean;
+  itens: ItemLicitacao[];
+  buscaManualPorItem: Record<string, string>;
+  custoManualTextoPorItem: Record<string, string>;
+};
+
+function formatarDataHoraRascunho(timestamp: number) {
+  try {
+    return new Date(timestamp).toLocaleString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "";
+  }
+}
+
+function rascunhoValido(rascunho: RascunhoLicitacao | null) {
+  if (!rascunho?.salvo_em) return false;
+  return Date.now() - rascunho.salvo_em <= TEMPO_RASCUNHO_LICITACAO;
+}
+
+function carregarRascunhoLicitacao(): RascunhoLicitacao | null {
+  if (typeof window === "undefined") return null;
+
+  try {
+    const bruto = window.localStorage.getItem(CHAVE_RASCUNHO_LICITACAO);
+    if (!bruto) return null;
+
+    const rascunho = JSON.parse(bruto) as RascunhoLicitacao;
+
+    if (!rascunhoValido(rascunho)) {
+      window.localStorage.removeItem(CHAVE_RASCUNHO_LICITACAO);
+      return null;
+    }
+
+    return rascunho;
+  } catch {
+    return null;
+  }
+}
+
+function salvarRascunhoLicitacao(rascunho: RascunhoLicitacao) {
+  if (typeof window === "undefined") return;
+
+  try {
+    window.localStorage.setItem(CHAVE_RASCUNHO_LICITACAO, JSON.stringify(rascunho));
+  } catch {
+    // Se o navegador bloquear armazenamento, apenas ignora.
+  }
+}
+
+function apagarRascunhoLicitacao() {
+  if (typeof window === "undefined") return;
+  window.localStorage.removeItem(CHAVE_RASCUNHO_LICITACAO);
+}
+
 export default function Licitacoes() {
   const [margem, setMargem] = useState("30");
   const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<TipoPreco | "auto">("auto");
@@ -612,6 +680,8 @@ export default function Licitacoes() {
   const [processando, setProcessando] = useState(false);
   const [progressoProcessamento, setProgressoProcessamento] = useState("");
   const [arquivoNome, setArquivoNome] = useState("");
+  const [rascunhoDisponivel, setRascunhoDisponivel] = useState<RascunhoLicitacao | null>(null);
+  const [rascunhoCarregado, setRascunhoCarregado] = useState(false);
 
   const resumo = useMemo(() => {
     const total = itens.filter(itemPodeCotar).reduce((acc, item) => acc + (item.valor_total || 0), 0);
@@ -805,6 +875,45 @@ export default function Licitacoes() {
     }
   }
 
+  function continuarRascunhoLicitacao() {
+    const rascunho = carregarRascunhoLicitacao();
+
+    if (!rascunho) {
+      setRascunhoDisponivel(null);
+      setErro("Nenhum rascunho válido encontrado.");
+      return;
+    }
+
+    setArquivoNome(rascunho.arquivo_nome || "Licitação em andamento");
+    setMargem(rascunho.margem || "30");
+    setTipoPrecoPadrao(rascunho.tipoPrecoPadrao || "auto");
+    setUsarIa(!!rascunho.usarIa);
+    setItens(rascunho.itens || []);
+    setBuscaManualPorItem(rascunho.buscaManualPorItem || {});
+    setCustoManualTextoPorItem(rascunho.custoManualTextoPorItem || {});
+    setFiltro("todos");
+    setPaginaItens(1);
+    setMensagem("Rascunho restaurado com sucesso.");
+  }
+
+  function novaCotacaoLicitacao() {
+    const confirmar = itens.length
+      ? window.confirm("Começar uma nova cotação? O rascunho atual será apagado.")
+      : true;
+
+    if (!confirmar) return;
+
+    apagarRascunhoLicitacao();
+    setRascunhoDisponivel(null);
+    setArquivoNome("");
+    setItens([]);
+    setBuscaManualPorItem({});
+    setCustoManualTextoPorItem({});
+    setFiltro("todos");
+    setPaginaItens(1);
+    setMensagem("Nova cotação iniciada.");
+  }
+
   async function processarPlanilha(file: File | null) {
     try {
       setErro("");
@@ -982,10 +1091,38 @@ export default function Licitacoes() {
           <p className="text-slate-500">Resultado em lista compacta, com seleção manual e escolha de preço por item.</p>
         </div>
 
-        <a href="/modelos/modelo-licitacao-cotamed.xlsx" download className="btn-primary text-center">
-          Baixar modelo da licitação
-        </a>
+        <div className="flex min-w-0 flex-wrap gap-3">
+          <button type="button" className="btn-clean btn-clean-secondary" onClick={novaCotacaoLicitacao}>
+            Nova cotação
+          </button>
+
+          <a href="/modelos/modelo-licitacao-cotamed.xlsx" download className="btn-primary text-center">
+            Baixar modelo da licitação
+          </a>
+        </div>
       </div>
+
+      {rascunhoDisponivel && itens.length === 0 && (
+        <section className="rascunho-licitacao-card">
+          <div>
+            <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Última cotação</p>
+            <h2>{rascunhoDisponivel.arquivo_nome || "Licitação em andamento"}</h2>
+            <p>
+              Última alteração: {formatarDataHoraRascunho(rascunhoDisponivel.salvo_em)} • disponível por 24h
+            </p>
+          </div>
+
+          <div className="rascunho-licitacao-actions">
+            <button type="button" className="btn-clean btn-clean-primary" onClick={continuarRascunhoLicitacao}>
+              Continuar
+            </button>
+
+            <button type="button" className="btn-clean btn-clean-secondary" onClick={novaCotacaoLicitacao}>
+              Nova cotação
+            </button>
+          </div>
+        </section>
+      )}
 
       <section className="clean-card p-6 mt-6">
         <h2 className="font-bold text-xl">Enviar planilha da licitação</h2>
