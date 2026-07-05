@@ -627,7 +627,29 @@ function formatarDataHoraRascunho(timestamp: number) {
 
 function rascunhoValido(rascunho: RascunhoLicitacao | null) {
   if (!rascunho?.salvo_em) return false;
+  if (!Array.isArray(rascunho.itens) || rascunho.itens.length === 0) return false;
   return Date.now() - rascunho.salvo_em <= TEMPO_RASCUNHO_LICITACAO;
+}
+
+function compactarItemRascunho(item: ItemLicitacao): ItemLicitacao {
+  return {
+    numero_item: item.numero_item,
+    descricao: item.descricao,
+    unidade: item.unidade,
+    quantidade: item.quantidade,
+    produto_id: item.produto_id || "",
+    marca: item.marca || "",
+    registro_anvisa: item.registro_anvisa || "",
+    custo_usado: item.custo_usado || 0,
+    valor_unitario: item.valor_unitario || 0,
+    valor_total: item.valor_total || 0,
+    tipo_preco: item.tipo_preco,
+    pdf_url: item.pdf_url || null,
+    status: item.status,
+    confianca: item.confianca || 0,
+    origem_match: item.origem_match || "",
+    excluido: !!item.excluido,
+  };
 }
 
 function carregarRascunhoLicitacao(): RascunhoLicitacao | null {
@@ -652,9 +674,16 @@ function carregarRascunhoLicitacao(): RascunhoLicitacao | null {
 
 function salvarRascunhoLicitacao(rascunho: RascunhoLicitacao) {
   if (typeof window === "undefined") return;
+  if (!rascunho.itens?.length) return;
 
   try {
-    window.localStorage.setItem(CHAVE_RASCUNHO_LICITACAO, JSON.stringify(rascunho));
+    const compacto: RascunhoLicitacao = {
+      ...rascunho,
+      salvo_em: Date.now(),
+      itens: rascunho.itens.map(compactarItemRascunho),
+    };
+
+    window.localStorage.setItem(CHAVE_RASCUNHO_LICITACAO, JSON.stringify(compacto));
   } catch {
     // Se o navegador bloquear armazenamento, apenas ignora.
   }
@@ -919,6 +948,7 @@ export default function Licitacoes() {
       setErro("");
       setMensagem("");
       setItens([]);
+      setRascunhoDisponivel(null);
       setBuscaManualPorItem({});
       setCustoManualTextoPorItem({});
       setFiltro("todos");
@@ -1258,7 +1288,7 @@ export default function Licitacoes() {
 
                       <div className="w-24">
                         <p className="text-[10px] text-slate-500">Status</p>
-                        <span className={`inline-block rounded-full px-2 py-1 text-[10px] ${statusClasse(statusVisivel)}`}>{statusVisivel}</span>
+                        <span className={`licitacao-status-pill ${statusClasse(statusVisivel)}`} title={statusVisivel}>{statusVisivel}</span>
                       </div>
 
                       <div className="w-12"><Campo label="PDF" value={<span className={item.pdf_url && cotar ? "text-green-700" : "text-red-700"}>{item.pdf_url && cotar ? "Sim" : "Não"}</span>} /></div>

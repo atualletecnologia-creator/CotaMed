@@ -2273,3 +2273,56 @@ input[type="file"]::file-selector-button {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* COTAMED UI FIX V16 - status dentro do card e rascunho robusto */
+.licitacao-item-resumo {
+  overflow: visible !important;
+  padding-right: 10px !important;
+}
+
+.licitacao-item-card {
+  overflow: hidden !important;
+}
+
+.licitacao-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  max-width: 112px !important;
+  min-width: 0 !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+}
+
+.licitacao-item-resumo > div {
+  min-width: 0 !important;
+}
+
+.licitacao-item-resumo .w-24 {
+  width: 104px !important;
+}
+
+.rascunho-licitacao-card {
+  overflow: visible !important;
+}
+
+.rascunho-licitacao-card h2,
+.rascunho-licitacao-card p {
+  word-break: normal !important;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 1500px) {
+  .licitacao-item-resumo {
+    grid-template-columns: 50px minmax(230px, 1fr) repeat(12, minmax(72px, auto)) !important;
+  }
+}
