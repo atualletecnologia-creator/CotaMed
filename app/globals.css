@@ -1935,3 +1935,110 @@ input[type="file"]::file-selector-button {
     border-radius: 10px !important;
   }
 }
+
+
+/* COTAMED UI FIX V12 - menu recolhido com tooltip e fixar pelas três barras */
+.app-sidebar {
+  width: 76px !important;
+}
+
+.app-shell:not(.sidebar-open) .app-sidebar {
+  width: 76px !important;
+}
+
+.app-shell.sidebar-open .app-sidebar {
+  width: 272px !important;
+}
+
+.app-shell:not(.sidebar-open) .app-brand-logo {
+  opacity: 0 !important;
+  width: 0 !important;
+  transform: translateX(-8px) !important;
+}
+
+.app-shell.sidebar-open .app-brand-logo {
+  opacity: 1 !important;
+  width: 176px !important;
+  transform: translateX(0) !important;
+}
+
+.app-shell:not(.sidebar-open) .app-nav-label,
+.app-shell:not(.sidebar-open) .app-sidebar-footer {
+  opacity: 0 !important;
+  width: 0 !important;
+  max-width: 0 !important;
+  overflow: hidden !important;
+  pointer-events: none !important;
+}
+
+.app-shell.sidebar-open .app-nav-label,
+.app-shell.sidebar-open .app-sidebar-footer {
+  opacity: 1 !important;
+  width: auto !important;
+  max-width: 180px !important;
+  pointer-events: auto !important;
+}
+
+.app-shell:not(.sidebar-open) .app-nav-item {
+  position: relative !important;
+  justify-content: center !important;
+}
+
+.app-shell:not(.sidebar-open) .app-nav-icon {
+  margin: 0 !important;
+}
+
+.app-shell:not(.sidebar-open) .app-nav-item:hover::after {
+  content: attr(title);
+  position: fixed;
+  left: 84px;
+  z-index: 99999;
+  min-width: max-content;
+  max-width: 220px;
+  padding: 9px 12px;
+  border-radius: 10px;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .22);
+  font-size: 13px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.sidebar-toggle {
+  transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+
+.app-shell.sidebar-fixed .sidebar-toggle {
+  background: #eff6ff !important;
+  color: #1d4ed8 !important;
+  border-color: #bfdbfe !important;
+}
+
+.app-shell.sidebar-fixed .sidebar-backdrop {
+  display: none !important;
+}
+
+@media (min-width: 1025px) {
+  .app-shell.sidebar-open {
+    grid-template-columns: 272px minmax(0, 1fr) !important;
+  }
+
+  .app-shell:not(.sidebar-open) {
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+  }
+}
+
+@media (max-width: 1024px) {
+  .app-shell:not(.sidebar-open) .app-sidebar {
+    transform: translateX(-100%) !important;
+  }
+
+  .app-shell.sidebar-open .app-sidebar {
+    transform: translateX(0) !important;
+  }
+
+  .app-shell:not(.sidebar-open) .app-nav-item:hover::after {
+    display: none !important;
+  }
+}

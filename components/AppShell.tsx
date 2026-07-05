@@ -64,7 +64,7 @@ function MenuIcon({ name }: { name: MenuIconName }) {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const [aberto, setAberto] = useState(false);
+  const [menuFixo, setMenuFixo] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -75,11 +75,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <AuthGuard>
-      <div className={aberto ? "app-shell sidebar-open" : "app-shell"}>
+      <div className={menuFixo ? "app-shell sidebar-open sidebar-fixed" : "app-shell"}>
         <aside className="app-sidebar">
           <div>
             <div className="app-brand">
-              <button type="button" className="sidebar-toggle" onClick={() => setAberto((v) => !v)} aria-label="Abrir menu">☰</button>
+              <button type="button" className="sidebar-toggle" onClick={() => setMenuFixo((v) => !v)} aria-label={menuFixo ? "Recolher menu" : "Fixar menu"}>☰</button>
 
               <Image src="/brand/cotamed-logo.svg" alt="CotaMed" width={176} height={46} priority className="app-brand-logo" />
             </div>
@@ -88,7 +88,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {menu.map((item) => {
                 const ativo = pathname === item.href || pathname?.startsWith(`${item.href}/`);
                 return (
-                  <Link key={item.href} href={item.href} title={item.label} className={ativo ? "app-nav-item active" : "app-nav-item"} onClick={() => { if (window.innerWidth < 1024) setAberto(false); }}>
+                  <Link key={item.href} href={item.href} title={item.label} className={ativo ? "app-nav-item active" : "app-nav-item"} onClick={() => { if (window.innerWidth < 1024) setMenuFixo(false); }}>
                     <span className="app-nav-icon"><MenuIcon name={item.icon} /></span>
                     <span className="app-nav-label">{item.label}</span>
                   </Link>
@@ -105,11 +105,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           <div className="app-sidebar-footer"><span>Atualle Tecnologia</span><small>© 2026</small></div>
         </aside>
 
-        {aberto && <button type="button" className="sidebar-backdrop" onClick={() => setAberto(false)} aria-label="Fechar menu" />}
+        {menuFixo && <button type="button" className="sidebar-backdrop" onClick={() => setMenuFixo(false)} aria-label="Fechar menu" />}
 
         <main className="app-main">
           <div className="topbar-mobile">
-            <button type="button" className="sidebar-toggle mobile" onClick={() => setAberto(true)}>☰</button>
+            <button type="button" className="sidebar-toggle mobile" onClick={() => setMenuFixo(true)}>☰</button>
             <Image src="/brand/cotamed-logo.svg" alt="CotaMed" width={150} height={40} />
           </div>
 
