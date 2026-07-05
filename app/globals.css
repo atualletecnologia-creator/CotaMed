@@ -2786,3 +2786,72 @@ input[type="file"]::file-selector-button {
   overflow: visible !important;
   max-width: 100% !important;
 }
+
+
+/* COTAMED FIX - menu lateral fixo acompanhando a rolagem */
+@media (min-width: 1025px) {
+  .app-shell {
+    display: grid !important;
+    min-height: 100vh !important;
+  }
+
+  .app-shell:not(.sidebar-fixed):not(.sidebar-open) {
+    grid-template-columns: 76px minmax(0, 1fr) !important;
+  }
+
+  .app-shell.sidebar-fixed,
+  .app-shell.sidebar-open {
+    grid-template-columns: 272px minmax(0, 1fr) !important;
+  }
+
+  .app-sidebar {
+    position: sticky !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    align-self: start !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    z-index: 50 !important;
+  }
+
+  .app-sidebar > div:first-child {
+    min-height: calc(100vh - 84px) !important;
+  }
+
+  .app-sidebar-footer {
+    margin-top: auto !important;
+    position: sticky !important;
+    bottom: 0 !important;
+    background: inherit !important;
+  }
+
+  .app-main {
+    min-width: 0 !important;
+    width: 100% !important;
+    overflow-x: hidden !important;
+  }
+
+  .app-content {
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+}
+
+/* No tablet/celular, o menu continua sobreposto quando aberto */
+@media (max-width: 1024px) {
+  .app-sidebar {
+    position: fixed !important;
+    top: 0 !important;
+    left: 0 !important;
+    height: 100vh !important;
+    max-height: 100vh !important;
+    overflow-y: auto !important;
+    z-index: 80 !important;
+  }
+
+  .sidebar-backdrop {
+    z-index: 70 !important;
+  }
+}
