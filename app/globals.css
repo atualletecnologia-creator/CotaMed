@@ -2326,3 +2326,97 @@ input[type="file"]::file-selector-button {
     grid-template-columns: 50px minmax(230px, 1fr) repeat(12, minmax(72px, auto)) !important;
   }
 }
+
+
+/* COTAMED UI FIX V17 - restauração automática e status seguro */
+.licitacao-item-card {
+  overflow: hidden !important;
+}
+
+.licitacao-item-resumo {
+  display: grid !important;
+  grid-template-columns:
+    52px
+    minmax(260px, 1.4fr)
+    70px
+    70px
+    104px
+    120px
+    130px
+    96px
+    96px
+    104px
+    70px
+    150px
+    64px
+    86px !important;
+  gap: 12px !important;
+  align-items: start !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow-x: auto !important;
+  overflow-y: visible !important;
+  padding-bottom: 6px !important;
+  padding-right: 6px !important;
+}
+
+.licitacao-item-resumo > div {
+  min-width: 0 !important;
+}
+
+.licitacao-status-pill {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 138px !important;
+  max-width: 138px !important;
+  height: 28px !important;
+  padding: 0 10px !important;
+  border-radius: 999px !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  vertical-align: middle !important;
+}
+
+.licitacao-item-resumo .w-24 {
+  width: 150px !important;
+  min-width: 150px !important;
+}
+
+.licitacao-item-resumo::-webkit-scrollbar {
+  height: 8px;
+}
+
+.licitacao-item-resumo::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 999px;
+}
+
+.rascunho-licitacao-card {
+  border-color: #bfdbfe !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #ffffff 100%) !important;
+}
+
+@media (max-width: 1500px) {
+  .licitacao-item-resumo {
+    grid-template-columns:
+      52px
+      minmax(260px, 1fr)
+      70px
+      70px
+      104px
+      120px
+      130px
+      96px
+      96px
+      104px
+      70px
+      150px
+      64px
+      86px !important;
+  }
+}

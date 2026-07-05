@@ -1132,7 +1132,7 @@ export default function Licitacoes() {
         </div>
       </div>
 
-      {rascunhoDisponivel && itens.length === 0 && (
+      {rascunhoDisponivel && (
         <section className="rascunho-licitacao-card">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.18em] text-blue-700">Última cotação</p>
