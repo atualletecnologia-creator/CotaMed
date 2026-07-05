@@ -215,6 +215,7 @@ export default function BancoPrecos() {
   const [registros, setRegistros] = useState<RegistroAnvisa[]>([]);
   const [busca, setBusca] = useState("");
   const [filtroPdf, setFiltroPdf] = useState("todos");
+  const [filtroMarca, setFiltroMarca] = useState("todas");
   const [paginaProdutos, setPaginaProdutos] = useState(1);
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
@@ -276,6 +277,10 @@ export default function BancoPrecos() {
     }
   }
 
+  const marcasDisponiveis = useMemo(() => {
+    return Array.from(new Set(produtos.map((p) => String(p.marca || "").trim()).filter(Boolean))).sort((a, b) => a.localeCompare(b, "pt-BR"));
+  }, [produtos]);
+
   const produtosFiltrados = useMemo(() => {
     const termo = textoBusca(busca);
     let lista = !termo
@@ -284,9 +289,10 @@ export default function BancoPrecos() {
 
     if (filtroPdf === "com_pdf") lista = lista.filter((p) => !!p.pdf_url);
     if (filtroPdf === "sem_pdf") lista = lista.filter((p) => !p.pdf_url);
+    if (filtroMarca !== "todas") lista = lista.filter((p) => String(p.marca || "").trim() === filtroMarca);
 
     return [...lista].sort((a, b) => String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR"));
-  }, [produtos, busca, filtroPdf]);
+  }, [produtos, busca, filtroPdf, filtroMarca]);
 
   const produtosPorPagina = 30;
 
@@ -301,7 +307,7 @@ export default function BancoPrecos() {
 
   useEffect(() => {
     setPaginaProdutos(1);
-  }, [busca, filtroPdf, produtos.length]);
+  }, [busca, filtroPdf, filtroMarca, produtos.length]);
 
   const resumoPdf = useMemo(() => ({
     todos: produtos.length,
@@ -986,104 +992,80 @@ export default function BancoPrecos() {
         {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
       </section>
 
-      <section className="grid min-w-0 md:grid-cols-3 gap-4 mt-6">
-        <div className="clean-card p-5"><p className="text-sm text-slate-500">Produtos</p><h3 className="text-2xl font-bold">{resumoPdf.todos}</h3></div>
-        <div className="clean-card p-5"><p className="text-sm text-slate-500">Com PDF</p><h3 className="text-2xl font-bold text-green-700">{resumoPdf.comPdf}</h3></div>
-        <div className="clean-card p-5"><p className="text-sm text-slate-500">Sem PDF</p><h3 className="text-2xl font-bold text-red-700">{resumoPdf.semPdf}</h3></div>
+      <section className="banco-metric-grid">
+        <div className="banco-metric-card">
+          <div className="banco-metric-icon banco-metric-blue">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M21 8l-9-5-9 5 9 5 9-5z"/><path d="M3 8v8l9 5 9-5V8"/><path d="M12 13v8"/></svg>
+          </div>
+          <div><p>Produtos</p><h3>{resumoPdf.todos}</h3><span>Total de produtos cadastrados</span></div>
+        </div>
+
+        <div className="banco-metric-card">
+          <div className="banco-metric-icon banco-metric-green">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M9 15l2 2 4-5"/></svg>
+          </div>
+          <div><p>Com PDF</p><h3 className="text-green-700">{resumoPdf.comPdf}</h3><span>Produtos com arquivo PDF</span></div>
+        </div>
+
+        <div className="banco-metric-card">
+          <div className="banco-metric-icon banco-metric-red">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M10 13l5 5"/><path d="M15 13l-5 5"/></svg>
+          </div>
+          <div><p>Sem PDF</p><h3 className="text-red-700">{resumoPdf.semPdf}</h3><span>Produtos sem arquivo PDF</span></div>
+        </div>
       </section>
 
       <section className="clean-card mt-6 overflow-hidden max-w-full">
-        <div className="p-6 border-b">
-          <div className="cotamed-toolbar">
-            <div className="cotamed-toolbar-title">
-              <h2>Banco de preços</h2>
-              <p>
-                {produtosFiltrados.length} itens encontrados<br />
-                {produtosPaginados.length} exibidos por página
-              </p>
+        <div className="banco-control-panel">
+          <div className="banco-actions-row">
+            <button type="button" disabled={aplicandoMassa || produtosFiltrados.length === 0} onClick={selecionarTodosFiltradosMassa} className="banco-action-button banco-action-select">
+              <span className="banco-action-icon">□</span>Selecionar todos
+            </button>
+
+            <button type="button" disabled={excluindoMassa || totalSelecionadosMassa === 0} onClick={excluirProdutosEmMassa} className="banco-action-button banco-action-danger">
+              <span className="banco-action-icon">🗑</span>Excluir ({totalSelecionadosMassa})
+            </button>
+
+            <button type="button" disabled={desvinculandoMassa || totalSelecionadosMassa === 0} onClick={desvincularRegistrosEmMassa} className="banco-action-button banco-action-link">
+              <span className="banco-action-icon">🔗</span>Desvincular ({totalSelecionadosMassa})
+            </button>
+
+            <button type="button" disabled={(excluindoMassa || desvinculandoMassa) || totalSelecionadosMassa === 0} onClick={limparSelecaoMassa} className="banco-action-button banco-action-link">
+              <span className="banco-action-icon">🧹</span>Limpar
+            </button>
+          </div>
+
+          <div className="banco-filter-grid">
+            <div className="banco-filter-field banco-filter-search">
+              <label>Buscar produto</label>
+              <input className="input" placeholder="Digite a descrição do produto..." value={busca} onChange={(e) => setBusca(e.target.value)} />
             </div>
 
-            <div className="cotamed-toolbar-content">
-              <div className="cotamed-row">
-                <select className="input w-40" value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
-                  <option value="todos">Todos</option>
-                  <option value="com_pdf">Com PDF</option>
-                  <option value="sem_pdf">Sem PDF</option>
-                </select>
-
-                <input
-                  className="input cotamed-search"
-                  placeholder="Buscar produto"
-                  value={busca}
-                  onChange={(e) => setBusca(e.target.value)}
-                />
-              </div>
-
-              <div className="cotamed-row">
-                <button
-                  type="button"
-                  disabled={excluindoMassa || totalSelecionadosMassa === 0}
-                  onClick={excluirProdutosEmMassa}
-                  className="btn-clean btn-clean-danger"
-                >
-                  Excluir ({totalSelecionadosMassa})
-                </button>
-
-                <button
-                  type="button"
-                  disabled={desvinculandoMassa || totalSelecionadosMassa === 0}
-                  onClick={desvincularRegistrosEmMassa}
-                  className="btn-clean btn-clean-secondary"
-                >
-                  Desvincular ({totalSelecionadosMassa})
-                </button>
-
-                <button
-                  type="button"
-                  disabled={(excluindoMassa || desvinculandoMassa) || totalSelecionadosMassa === 0}
-                  onClick={limparSelecaoMassa}
-                  className="btn-clean btn-clean-secondary"
-                >
-                  Limpar
-                </button>
-              </div>
-
-              <div className="cotamed-action-card">
-                <div className="cotamed-action-card-title">Vincular registro</div>
-
-                <div className="cotamed-action-card-fields">
-                  <select
-                    className="input"
-                    value={registroMassaId}
-                    onChange={(e) => setRegistroMassaId(e.target.value)}
-                    disabled={aplicandoMassa}
-                  >
-                    <option value="">Escolha o registro</option>
-                    {registros.map((r) => (
-                      <option key={r.id} value={r.id}>{labelRegistro(r)}</option>
-                    ))}
-                  </select>
-
-                  <button
-                    type="button"
-                    disabled={aplicandoMassa || produtosFiltrados.length === 0}
-                    onClick={selecionarTodosFiltradosMassa}
-                    className="btn-clean btn-clean-secondary"
-                  >
-                    Selecionar
-                  </button>
-
-                  <button
-                    type="button"
-                    disabled={aplicandoMassa || !registroMassaId || totalSelecionadosMassa === 0}
-                    onClick={aplicarRegistroEmMassa}
-                    className="btn-clean btn-clean-primary"
-                  >
-                    Aplicar ({totalSelecionadosMassa})
-                  </button>
-                </div>
-              </div>
+            <div className="banco-filter-field">
+              <label>Possui PDF</label>
+              <select className="input" value={filtroPdf} onChange={(e) => setFiltroPdf(e.target.value)}>
+                <option value="todos">Todos</option>
+                <option value="com_pdf">Com PDF</option>
+                <option value="sem_pdf">Sem PDF</option>
+              </select>
             </div>
+
+            <div className="banco-filter-field">
+              <label>Marca</label>
+              <select className="input" value={filtroMarca} onChange={(e) => setFiltroMarca(e.target.value)}>
+                <option value="todas">Todas as marcas</option>
+                {marcasDisponiveis.map((marca) => <option key={marca} value={marca}>{marca}</option>)}
+              </select>
+            </div>
+          </div>
+
+          <div className="banco-vinculo-row">
+            <label>Vincular registro</label>
+            <select className="input" value={registroMassaId} onChange={(e) => setRegistroMassaId(e.target.value)} disabled={aplicandoMassa}>
+              <option value="">Escolha o registro</option>
+              {registros.map((r) => (<option key={r.id} value={r.id}>{labelRegistro(r)}</option>))}
+            </select>
+            <button type="button" disabled={aplicandoMassa || !registroMassaId || totalSelecionadosMassa === 0} onClick={aplicarRegistroEmMassa} className="btn-clean btn-clean-primary banco-aplicar-button">Aplicar ({totalSelecionadosMassa})</button>
           </div>
         </div>
 

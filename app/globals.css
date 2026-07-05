@@ -1752,3 +1752,186 @@ input[type="file"]::file-selector-button {
   line-height: 16px !important;
   white-space: nowrap !important;
 }
+
+
+/* COTAMED UI - ícones profissionais e Banco de Preços simplificado */
+.app-nav-icon {
+  background: transparent !important;
+  color: #475569;
+}
+
+.app-nav-item.active .app-nav-icon {
+  color: #2563eb;
+}
+
+.app-nav-item.active {
+  background: #eff6ff !important;
+  color: #0b57d0 !important;
+  border-color: #dbeafe !important;
+}
+
+.banco-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 24px;
+}
+
+.banco-metric-card {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  min-height: 118px;
+  border: 1px solid #e5eaf2;
+  border-radius: 18px;
+  background: #fff;
+  padding: 22px;
+  box-shadow: 0 10px 28px rgba(15, 23, 42, 0.04);
+}
+
+.banco-metric-icon {
+  width: 58px;
+  height: 58px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 58px;
+}
+
+.banco-metric-blue { background: #eff6ff; color: #2563eb; }
+.banco-metric-green { background: #dcfce7; color: #059669; }
+.banco-metric-red { background: #fee2e2; color: #dc2626; }
+
+.banco-metric-card p {
+  margin: 0;
+  color: #0f172a;
+  font-weight: 800;
+  font-size: 14px;
+}
+
+.banco-metric-card h3 {
+  margin: 3px 0 2px;
+  font-size: 30px;
+  line-height: 1;
+  font-weight: 900;
+  letter-spacing: -0.03em;
+}
+
+.banco-metric-card span {
+  color: #64748b;
+  font-size: 13px;
+}
+
+.banco-control-panel {
+  border-bottom: 1px solid #e5eaf2;
+  background: #fff;
+}
+
+.banco-actions-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  align-items: center;
+  padding: 16px 18px;
+  border-bottom: 1px solid #e5eaf2;
+}
+
+.banco-action-button {
+  min-height: 42px !important;
+  height: 42px !important;
+  border-radius: 10px !important;
+  background: #fff !important;
+  border: 1px solid transparent !important;
+  padding: 0 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 9px !important;
+  font-weight: 800 !important;
+  font-size: 14px !important;
+  color: #2563eb !important;
+  white-space: nowrap !important;
+}
+
+.banco-action-button + .banco-action-button {
+  border-left: 1px solid #e5eaf2 !important;
+  border-radius: 0 !important;
+}
+
+.banco-action-select {
+  border: 1px solid #93c5fd !important;
+  border-radius: 10px !important;
+}
+
+.banco-action-danger {
+  color: #dc2626 !important;
+}
+
+.banco-action-link {
+  color: #2563eb !important;
+}
+
+.banco-action-icon {
+  font-size: 17px;
+  line-height: 1;
+}
+
+.banco-filter-grid {
+  display: grid;
+  grid-template-columns: minmax(260px, 1.4fr) minmax(180px, .8fr) minmax(220px, 1fr);
+  gap: 22px;
+  padding: 18px;
+  align-items: end;
+}
+
+.banco-filter-field label,
+.banco-vinculo-row label {
+  display: block;
+  margin-bottom: 8px;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.banco-filter-field input,
+.banco-filter-field select,
+.banco-vinculo-row select {
+  height: 44px !important;
+  padding-left: 16px !important;
+  padding-right: 16px !important;
+}
+
+.banco-vinculo-row {
+  display: grid;
+  grid-template-columns: 130px minmax(260px, 1fr) 180px;
+  gap: 18px;
+  align-items: end;
+  padding: 18px;
+  border-top: 1px solid #eef2f7;
+}
+
+.banco-vinculo-row label {
+  margin-bottom: 0;
+  align-self: center;
+}
+
+.banco-aplicar-button {
+  height: 44px !important;
+}
+
+@media (max-width: 1024px) {
+  .banco-metric-grid,
+  .banco-filter-grid,
+  .banco-vinculo-row {
+    grid-template-columns: 1fr;
+  }
+
+  .banco-actions-row {
+    gap: 8px;
+  }
+
+  .banco-action-button + .banco-action-button {
+    border-left: 1px solid transparent !important;
+    border-radius: 10px !important;
+  }
+}
