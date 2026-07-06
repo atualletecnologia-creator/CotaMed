@@ -1,0 +1,57 @@
+# PATCH app/banco-precos/page.tsx
+
+Objetivo:
+- Adicionar opção de excluir produto cadastrado no Banco de Preços.
+
+1) No state principal, adicione:
+
+const [excluindo, setExcluindo] = useState("");
+
+2) Adicione esta função:
+
+async function excluirProduto(produto: Produto) {
+  try {
+    setErro("");
+    setMensagem("");
+
+    if (!produto.id) return;
+
+    const confirmar = window.confirm(`Excluir o produto ${produto.descricao || ""}?`);
+
+    if (!confirmar) return;
+
+    setExcluindo(produto.id);
+
+    const { error } = await supabase
+      .from("produtos")
+      .delete()
+      .eq("id", produto.id);
+
+    if (error) {
+      setErro(error.message);
+      return;
+    }
+
+    setMensagem("Produto excluído com sucesso.");
+
+    await carregarDados();
+  } finally {
+    setExcluindo("");
+  }
+}
+
+3) No cabeçalho da tabela de produtos, adicione:
+
+<th className="text-left p-3">Excluir</th>
+
+4) No corpo da tabela, depois da coluna Vincular registro, adicione:
+
+<td className="p-3">
+  <button
+    disabled={excluindo === p.id}
+    onClick={() => excluirProduto(p)}
+    className="rounded-lg border px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60"
+  >
+    {excluindo === p.id ? "Excluindo..." : "Excluir"}
+  </button>
+</td>

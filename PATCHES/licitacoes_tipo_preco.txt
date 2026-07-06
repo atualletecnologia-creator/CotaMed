@@ -1,0 +1,108 @@
+# PATCH app/licitacoes/page.tsx
+
+Objetivo:
+- Criar opção para cotar usando preço unitário ou preço por caixa.
+- Manter seleção padrão antes da importação.
+- Permitir trocar o tipo de preço em cada item cotado.
+
+1) No state principal, adicione:
+
+const [tipoPrecoPadrao, setTipoPrecoPadrao] = useState<"unitario" | "caixa">("unitario");
+
+2) No type ItemLicitacao, adicione:
+
+tipo_preco?: "unitario" | "caixa";
+
+3) Crie esta função perto das funções auxiliares:
+
+function custoPorTipo(produto: Produto, tipoPreco: "unitario" | "caixa") {
+  if (tipoPreco === "caixa") {
+    return produto.custo_caixa || produto.custo_unitario || 0;
+  }
+
+  return produto.custo_unitario || produto.custo_caixa || 0;
+}
+
+4) Na função montarItemCotado, adicione no params:
+
+tipoPreco: "unitario" | "caixa";
+
+E troque:
+
+const custo = produto.custo_unitario || produto.custo_caixa || 0;
+
+por:
+
+const custo = custoPorTipo(produto, tipoPreco);
+
+E no return coloque:
+
+tipo_preco: tipoPreco,
+
+5) Onde chama montarItemCotado dentro de processarPlanilha, adicione:
+
+tipoPreco: tipoPrecoPadrao,
+
+6) Na parte de Enviar planilha, deixe o grid com 4 colunas:
+
+<div className="grid md:grid-cols-4 gap-4 mt-5">
+
+E adicione este campo depois da margem:
+
+<div>
+  <label className="text-sm font-medium">Tipo de preço padrão</label>
+  <select
+    className="input mt-2"
+    value={tipoPrecoPadrao}
+    onChange={(e) => setTipoPrecoPadrao(e.target.value as "unitario" | "caixa")}
+  >
+    <option value="unitario">Preço unitário</option>
+    <option value="caixa">Preço por caixa</option>
+  </select>
+</div>
+
+7) Crie esta função:
+
+function alterarTipoPrecoItem(numeroItem: string, tipoPreco: "unitario" | "caixa") {
+  setItens((atuais) =>
+    atuais.map((item) => {
+      if (item.numero_item !== numeroItem) return item;
+
+      const produto = produtosBanco.find((p) => p.id === item.produto_id);
+
+      if (!produto) {
+        return { ...item, tipo_preco: tipoPreco };
+      }
+
+      const margemNumero = numero(margem);
+      const custo = custoPorTipo(produto, tipoPreco);
+      const valorUnitario = custo > 0 ? custo * (1 + margemNumero / 100) : null;
+      const valorTotal = valorUnitario ? valorUnitario * item.quantidade : null;
+
+      return {
+        ...item,
+        tipo_preco: tipoPreco,
+        custo_usado: custo || null,
+        valor_unitario: valorUnitario,
+        valor_total: valorTotal,
+      };
+    })
+  );
+}
+
+8) Na linha/card de cada item cotado, adicione um select:
+
+<select
+  className="input text-[11px] h-8 py-1"
+  value={item.tipo_preco || tipoPrecoPadrao}
+  onChange={(e) =>
+    alterarTipoPrecoItem(item.numero_item, e.target.value as "unitario" | "caixa")
+  }
+>
+  <option value="unitario">Unitário</option>
+  <option value="caixa">Caixa</option>
+</select>
+
+9) Na exportação da planilha, adicione a coluna:
+
+"TIPO PREÇO": cotar ? (item.tipo_preco === "caixa" ? "CAIXA" : "UNITÁRIO") : "",

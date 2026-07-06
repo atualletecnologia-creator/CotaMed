@@ -1,0 +1,72 @@
+# PATCH app/registros-anvisa/page.tsx
+
+Objetivo:
+- Adicionar opção de excluir registro ANVISA cadastrado.
+- Remover também o PDF do Supabase Storage.
+- Limpar vínculo em produtos que usavam esse PDF.
+
+1) No state principal, adicione:
+
+const [excluindo, setExcluindo] = useState("");
+
+2) Adicione esta função:
+
+async function excluirRegistro(registro: Registro) {
+  try {
+    setErro("");
+    setMensagem("");
+
+    const confirmar = window.confirm(`Excluir o registro ${registro.item || ""}?`);
+
+    if (!confirmar) return;
+
+    setExcluindo(registro.id);
+
+    if (registro.pdf_path) {
+      await supabase.storage
+        .from("registros-anvisa")
+        .remove([registro.pdf_path]);
+    }
+
+    const { error } = await supabase
+      .from("registros_anvisa")
+      .delete()
+      .eq("id", registro.id);
+
+    if (error) {
+      setErro(error.message);
+      return;
+    }
+
+    await supabase
+      .from("produtos")
+      .update({
+        registro_anvisa: null,
+        vencimento_registro: null,
+        pdf_url: null,
+      })
+      .eq("pdf_url", registro.pdf_path);
+
+    setMensagem("Registro excluído com sucesso.");
+
+    await carregar();
+  } finally {
+    setExcluindo("");
+  }
+}
+
+3) No cabeçalho da tabela, adicione:
+
+<th className="text-left p-4">Ação</th>
+
+4) No corpo da tabela, após a coluna PDF, adicione:
+
+<td className="p-4">
+  <button
+    disabled={excluindo === registro.id}
+    onClick={() => excluirRegistro(registro)}
+    className="rounded-lg border px-3 py-2 text-red-700 hover:bg-red-50 disabled:opacity-60"
+  >
+    {excluindo === registro.id ? "Excluindo..." : "Excluir"}
+  </button>
+</td>
