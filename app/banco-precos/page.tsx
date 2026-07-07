@@ -364,7 +364,7 @@ export default function BancoPrecos() {
         custo_caixa: produtoNovo.custo_caixa || null,
         data_atualizacao_custo: new Date().toISOString().slice(0, 10),
         origem_preco: maiusculo(produtoNovo.origem_preco || "MANUAL"),
-        pdf_url: registroVinculado?.pdf_path ? publicUrl(registroVinculado.pdf_path) : null,
+        pdf_url: registroVinculado?.pdf_path || null,
       };
 
       const error = await salvarProdutoImportadoSemDuplicar(payload);
