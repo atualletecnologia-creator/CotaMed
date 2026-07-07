@@ -3214,3 +3214,12 @@ input[type="file"]::file-selector-button {
     height: calc(100vh - 220px) !important;
   }
 }
+
+
+/* COTAMED - cadastro manual no banco de preços */
+.banco-manual-actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  flex-wrap: wrap;
+}

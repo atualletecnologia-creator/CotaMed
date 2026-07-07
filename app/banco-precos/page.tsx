@@ -235,6 +235,8 @@ export default function BancoPrecos() {
   const [aplicandoMassa, setAplicandoMassa] = useState(false);
   const [produtoEditando, setProdutoEditando] = useState<Produto | null>(null);
   const [salvandoEdicao, setSalvandoEdicao] = useState(false);
+  const [produtoNovo, setProdutoNovo] = useState<Produto | null>(null);
+  const [salvandoNovo, setSalvandoNovo] = useState(false);
 
   useEffect(() => {
     carregarDados();
@@ -256,6 +258,101 @@ export default function BancoPrecos() {
         [campo]: valor.toUpperCase(),
       };
     });
+  }
+
+  function abrirCadastroManual() {
+    setErro("");
+    setMensagem("");
+    setProdutoNovo({
+      descricao: "",
+      apresentacao: "",
+      marca: "",
+      registro_anvisa: "",
+      vencimento_registro: "",
+      unidade: "UNIDADE",
+      quantidade_por_caixa: null,
+      custo_unitario: null,
+      custo_caixa: null,
+      origem_preco: "MANUAL",
+    });
+  }
+
+  function atualizarCampoNovo(campo: keyof Produto, valor: string) {
+    setProdutoNovo((atual) => {
+      if (!atual) return atual;
+
+      if (campo === "quantidade_por_caixa" || campo === "custo_unitario" || campo === "custo_caixa") {
+        return {
+          ...atual,
+          [campo]: valor === "" ? null : Number(String(valor).replace(",", ".")),
+        };
+      }
+
+      return {
+        ...atual,
+        [campo]: valor.toUpperCase(),
+      };
+    });
+  }
+
+  async function salvarProdutoManual() {
+    if (!produtoNovo) return;
+
+    const descricao = String(produtoNovo.descricao || "").trim().toUpperCase();
+
+    if (!descricao) {
+      setErro("Informe a descrição do produto.");
+      return;
+    }
+
+    setSalvandoNovo(true);
+    setErro("");
+    setMensagem("");
+
+    try {
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        setErro("Usuário não autenticado.");
+        return;
+      }
+
+      const registroVinculado = localizarRegistro(registros, {
+        descricao,
+        apresentacao: produtoNovo.apresentacao || "",
+        marca: produtoNovo.marca || "",
+        registro: produtoNovo.registro_anvisa || "",
+      });
+
+      const payload = {
+        user_id: userData.user.id,
+        descricao,
+        apresentacao: maiusculo(produtoNovo.apresentacao || ""),
+        marca: maiusculo(produtoNovo.marca || ""),
+        registro_anvisa: maiusculo(registroVinculado?.registro_anvisa || produtoNovo.registro_anvisa || ""),
+        vencimento_registro: registroVinculado?.vencimento_registro || produtoNovo.vencimento_registro || null,
+        unidade: maiusculo(produtoNovo.unidade || "UNIDADE"),
+        quantidade_por_caixa: produtoNovo.quantidade_por_caixa || null,
+        custo_unitario: produtoNovo.custo_unitario || null,
+        custo_caixa: produtoNovo.custo_caixa || null,
+        data_atualizacao_custo: new Date().toISOString().slice(0, 10),
+        origem_preco: maiusculo(produtoNovo.origem_preco || "MANUAL"),
+        pdf_url: registroVinculado?.pdf_path ? publicUrl(registroVinculado.pdf_path) : null,
+      };
+
+      const error = await salvarProdutoImportadoSemDuplicar(payload);
+
+      if (error) {
+        setErro(error.message || "Erro ao cadastrar produto.");
+        return;
+      }
+
+      setProdutoNovo(null);
+      setMensagem("Produto cadastrado manualmente com sucesso.");
+      await carregarDados();
+    } finally {
+      setSalvandoNovo(false);
+    }
   }
 
   async function carregarDados() {
@@ -956,9 +1053,15 @@ export default function BancoPrecos() {
       <section className="clean-card p-6 mt-6">
         <h2 className="font-bold text-xl">Importação</h2>
 
+        <div className="banco-manual-actions mt-5">
+          <button type="button" className="btn-clean btn-clean-primary" onClick={abrirCadastroManual}>
+            Cadastrar produto manualmente
+          </button>
+        </div>
+
         <div className="import-row mt-5">
           <input type="file" accept=".xlsx,.xls" className="input" onChange={(e) => importarPlanilha(e.target.files?.[0] || null)} />
-          <button className="btn-clean btn-clean-primary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Importar arquivo"}</button>
+          <button className="btn-clean btn-clean-secondary" disabled={importando} onClick={() => document.querySelector<HTMLInputElement>('input[type="file"]')?.click()}>{importando ? "Importando..." : "Importar arquivo"}</button>
         </div>
 
         <div className="mt-5 rounded-2xl border bg-blue-50 p-4">
@@ -1281,6 +1384,51 @@ export default function BancoPrecos() {
           </>
         )}
       </section>
+      {produtoNovo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
+            <div className="flex min-w-0 items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl font-bold">Cadastrar produto manualmente</h2>
+                <p className="text-sm text-slate-500">Preencha os dados do produto. Os textos serão gravados em maiúsculo.</p>
+              </div>
+
+              <button
+                type="button"
+                className="rounded-lg border px-3 py-2"
+                onClick={() => setProdutoNovo(null)}
+              >
+                Fechar
+              </button>
+            </div>
+
+            <div className="grid min-w-0 md:grid-cols-3 gap-4 mt-5">
+              <div className="md:col-span-2"><label className="text-sm font-medium">Descrição *</label><input className="input mt-2" value={produtoNovo.descricao || ""} onChange={(e) => atualizarCampoNovo("descricao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2" value={produtoNovo.apresentacao || ""} onChange={(e) => atualizarCampoNovo("apresentacao", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Marca</label><input className="input mt-2" value={produtoNovo.marca || ""} onChange={(e) => atualizarCampoNovo("marca", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2" value={produtoNovo.registro_anvisa || ""} onChange={(e) => atualizarCampoNovo("registro_anvisa", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Vencimento Registro</label><input className="input mt-2" placeholder="AAAA-MM-DD" value={produtoNovo.vencimento_registro || ""} onChange={(e) => atualizarCampoNovo("vencimento_registro", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Unidade</label><input className="input mt-2" value={produtoNovo.unidade || ""} onChange={(e) => atualizarCampoNovo("unidade", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Qtd por caixa</label><input className="input mt-2" type="number" value={produtoNovo.quantidade_por_caixa || ""} onChange={(e) => atualizarCampoNovo("quantidade_por_caixa", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Custo unitário</label><input className="input mt-2" type="number" step="0.01" value={produtoNovo.custo_unitario || ""} onChange={(e) => atualizarCampoNovo("custo_unitario", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Custo caixa</label><input className="input mt-2" type="number" step="0.01" value={produtoNovo.custo_caixa || ""} onChange={(e) => atualizarCampoNovo("custo_caixa", e.target.value)} /></div>
+              <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2" value={produtoNovo.origem_preco || ""} onChange={(e) => atualizarCampoNovo("origem_preco", e.target.value)} /></div>
+            </div>
+
+            <div className="mt-5 rounded-xl bg-blue-50 p-4 text-sm text-slate-600">
+              Se o registro ANVISA ou marca bater com algum registro salvo, o sistema vincula o PDF automaticamente.
+            </div>
+
+            <div className="flex min-w-0 justify-end gap-3 mt-6">
+              <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setProdutoNovo(null)}>Cancelar</button>
+              <button type="button" className="btn-clean btn-clean-primary" disabled={salvandoNovo} onClick={salvarProdutoManual}>
+                {salvandoNovo ? "Salvando..." : "Cadastrar produto"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {produtoEditando && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
