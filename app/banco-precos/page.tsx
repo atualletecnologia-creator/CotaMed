@@ -210,6 +210,33 @@ function labelRegistro(registro: RegistroAnvisa) {
   return [registro.item, registro.apresentacao, registro.marca, registro.registro_anvisa ? `REG ${registro.registro_anvisa}` : "", registro.vencimento_registro ? `VENC ${registro.vencimento_registro}` : ""].filter(Boolean).join(" | ");
 }
 
+
+function localizarRegistro(
+  registros: RegistroAnvisa[],
+  produto: { descricao?: string | null; apresentacao?: string | null; marca?: string | null; registro?: string | null }
+) {
+  const registroInformado = String(produto.registro || "").trim().toUpperCase();
+  const marcaInformada = String(produto.marca || "").trim().toUpperCase();
+  const descricaoInformada = textoBusca([produto.descricao, produto.apresentacao].filter(Boolean).join(" "));
+
+  if (registroInformado) {
+    const porRegistro = registros.find((r) => String(r.registro_anvisa || "").trim().toUpperCase() === registroInformado);
+    if (porRegistro) return porRegistro;
+  }
+
+  if (marcaInformada && descricaoInformada) {
+    const porMarcaDescricao = registros.find((r) => {
+      const marcaRegistro = String(r.marca || "").trim().toUpperCase();
+      const textoRegistro = textoBusca([r.item, r.apresentacao].filter(Boolean).join(" "));
+      return marcaRegistro === marcaInformada && (textoRegistro.includes(descricaoInformada) || descricaoInformada.includes(textoRegistro));
+    });
+
+    if (porMarcaDescricao) return porMarcaDescricao;
+  }
+
+  return null;
+}
+
 export default function BancoPrecos() {
   const [produtos, setProdutos] = useState<Produto[]>([]);
   const [registros, setRegistros] = useState<RegistroAnvisa[]>([]);
