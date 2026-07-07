@@ -1210,17 +1210,44 @@ export default function BancoPrecos() {
                       </div>
 
                       {produtoVinculoAberto === p.id && (
-                        <div className="mt-3 rounded-xl border bg-slate-50 p-3 min-w-[280px]">
+                        <div className="registro-picker-wide">
+                          <div className="registro-picker-header">
+                            <div>
+                              <strong>Vincular registro ANVISA</strong>
+                              <span>Escolha o registro correto para este produto.</span>
+                            </div>
+
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setProdutoVinculoAberto("");
+                                setBuscaRegistroVinculo("");
+                              }}
+                              aria-label="Fechar"
+                            >
+                              ×
+                            </button>
+                          </div>
+
                           <input
-                            className="input text-xs"
-                            placeholder="Buscar registro"
+                            className="input registro-picker-search"
+                            placeholder="Buscar por descrição, apresentação, marca ou registro..."
                             value={buscaRegistroVinculo}
                             onChange={(e) => setBuscaRegistroVinculo(e.target.value)}
                             autoFocus
                           />
 
-                          <div className="mt-2 max-h-48 overflow-y-auto space-y-1">
-                            {filtrarRegistrosParaVinculo(registros, buscaRegistroVinculo).map((r) => (
+                          <div className="registro-picker-table-head">
+                            <span>Descrição</span>
+                            <span>Apresentação</span>
+                            <span>Marca</span>
+                            <span>Registro</span>
+                            <span>Vencimento</span>
+                            <span>PDF</span>
+                          </div>
+
+                          <div className="registro-picker-list">
+                            {filtrarRegistrosParaVinculo(registros, buscaRegistroVinculo).slice(0, 80).map((r) => (
                               <button
                                 key={r.id}
                                 type="button"
@@ -1229,9 +1256,17 @@ export default function BancoPrecos() {
                                   setProdutoVinculoAberto("");
                                   setBuscaRegistroVinculo("");
                                 }}
-                                className="block w-full rounded-lg bg-white px-3 py-2 text-left text-[11px] hover:bg-blue-100"
+                                className="registro-picker-item"
+                                title={labelRegistro(r)}
                               >
-                                {labelRegistro(r)}
+                                <span>{r.item || "-"}</span>
+                                <span>{r.apresentacao || "-"}</span>
+                                <span>{r.marca || "-"}</span>
+                                <span>{r.registro_anvisa || "-"}</span>
+                                <span>{r.vencimento_registro || "-"}</span>
+                                <span className={r.pdf_url ? "text-green-700 font-bold" : "text-red-600 font-bold"}>
+                                  {r.pdf_url ? "Com PDF" : "Sem PDF"}
+                                </span>
                               </button>
                             ))}
                           </div>

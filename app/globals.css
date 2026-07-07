@@ -2927,3 +2927,137 @@ input[type="file"]::file-selector-button {
     margin-left: 0 !important;
   }
 }
+
+
+/* COTAMED - seletor de registro manual maior */
+.registro-picker-wide {
+  position: absolute !important;
+  right: 16px !important;
+  z-index: 80 !important;
+  width: 920px !important;
+  max-width: calc(100vw - 140px) !important;
+  height: 560px !important;
+  max-height: 78vh !important;
+  margin-top: 12px !important;
+  padding: 16px !important;
+  border: 1px solid #dbe7f5 !important;
+  border-radius: 18px !important;
+  background: #ffffff !important;
+  box-shadow: 0 28px 80px rgba(15, 23, 42, .18) !important;
+  overflow: hidden !important;
+}
+
+.registro-picker-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 16px !important;
+  margin-bottom: 14px !important;
+}
+
+.registro-picker-header strong {
+  display: block !important;
+  color: #0f172a !important;
+  font-size: 16px !important;
+  font-weight: 800 !important;
+}
+
+.registro-picker-header span {
+  display: block !important;
+  margin-top: 2px !important;
+  color: #64748b !important;
+  font-size: 12px !important;
+}
+
+.registro-picker-header button {
+  width: 34px !important;
+  height: 34px !important;
+  border: 1px solid #dbe7f5 !important;
+  border-radius: 10px !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  font-size: 22px !important;
+  line-height: 1 !important;
+}
+
+.registro-picker-search {
+  width: 100% !important;
+  height: 44px !important;
+  margin-bottom: 12px !important;
+  font-size: 14px !important;
+}
+
+.registro-picker-table-head,
+.registro-picker-item {
+  display: grid !important;
+  grid-template-columns: minmax(280px, 1.5fr) minmax(140px, .8fr) minmax(120px, .65fr) minmax(150px, .75fr) minmax(120px, .65fr) minmax(90px, .45fr) !important;
+  gap: 12px !important;
+  align-items: center !important;
+}
+
+.registro-picker-table-head {
+  padding: 10px 12px !important;
+  border-radius: 12px !important;
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+  font-size: 11px !important;
+  font-weight: 800 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .02em !important;
+}
+
+.registro-picker-list {
+  height: 410px !important;
+  margin-top: 8px !important;
+  overflow-y: auto !important;
+  padding-right: 4px !important;
+}
+
+.registro-picker-item {
+  width: 100% !important;
+  min-height: 44px !important;
+  padding: 10px 12px !important;
+  border: 1px solid transparent !important;
+  border-radius: 12px !important;
+  background: #fff !important;
+  color: #0f172a !important;
+  text-align: left !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+}
+
+.registro-picker-item:hover {
+  border-color: #bfdbfe !important;
+  background: #eff6ff !important;
+}
+
+.registro-picker-item span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 1024px) {
+  .registro-picker-wide {
+    position: fixed !important;
+    left: 16px !important;
+    right: 16px !important;
+    top: 70px !important;
+    width: auto !important;
+    max-width: none !important;
+    height: 70vh !important;
+  }
+
+  .registro-picker-table-head,
+  .registro-picker-item {
+    grid-template-columns: minmax(220px, 1fr) minmax(110px, .7fr) minmax(110px, .7fr) minmax(130px, .7fr) !important;
+  }
+
+  .registro-picker-table-head span:nth-child(5),
+  .registro-picker-table-head span:nth-child(6),
+  .registro-picker-item span:nth-child(5),
+  .registro-picker-item span:nth-child(6) {
+    display: none !important;
+  }
+}
