@@ -1412,42 +1412,162 @@ export default function BancoPrecos() {
         )}
       </section>
       {produtoNovo && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-          <div className="max-h-[90vh] w-full max-w-4xl overflow-y-auto rounded-2xl bg-white p-6 shadow-xl">
-            <div className="flex min-w-0 items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-bold">Cadastrar produto manualmente</h2>
-                <p className="text-sm text-slate-500">Preencha os dados do produto. Os textos serão gravados em maiúsculo.</p>
+        <div className="modal-produto-manual-overlay">
+          <div className="modal-produto-manual">
+            <div className="modal-produto-manual-header">
+              <div className="modal-produto-manual-title">
+                <div className="modal-produto-manual-icon">
+                  <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M21 8l-9-5-9 5 9 5 9-5z" />
+                    <path d="M3 8v8l9 5 9-5V8" />
+                    <path d="M12 13v8" />
+                  </svg>
+                </div>
+
+                <div>
+                  <h2>Cadastrar produto manualmente</h2>
+                  <p>Preencha os dados do produto. Os campos com asterisco são obrigatórios.</p>
+                </div>
               </div>
 
               <button
                 type="button"
-                className="rounded-lg border px-3 py-2"
+                className="modal-produto-manual-close"
                 onClick={() => setProdutoNovo(null)}
+                aria-label="Fechar"
               >
-                Fechar
+                ×
               </button>
             </div>
 
-            <div className="grid min-w-0 md:grid-cols-3 gap-4 mt-5">
-              <div className="md:col-span-2"><label className="text-sm font-medium">Descrição *</label><input className="input mt-2" value={produtoNovo.descricao || ""} onChange={(e) => atualizarCampoNovo("descricao", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Apresentação</label><input className="input mt-2" value={produtoNovo.apresentacao || ""} onChange={(e) => atualizarCampoNovo("apresentacao", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Marca</label><input className="input mt-2" value={produtoNovo.marca || ""} onChange={(e) => atualizarCampoNovo("marca", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Registro ANVISA</label><input className="input mt-2" value={produtoNovo.registro_anvisa || ""} onChange={(e) => atualizarCampoNovo("registro_anvisa", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Vencimento Registro</label><input className="input mt-2" placeholder="AAAA-MM-DD" value={produtoNovo.vencimento_registro || ""} onChange={(e) => atualizarCampoNovo("vencimento_registro", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Unidade</label><input className="input mt-2" value={produtoNovo.unidade || ""} onChange={(e) => atualizarCampoNovo("unidade", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Qtd por caixa</label><input className="input mt-2" type="number" value={produtoNovo.quantidade_por_caixa || ""} onChange={(e) => atualizarCampoNovo("quantidade_por_caixa", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Custo unitário</label><input className="input mt-2" type="number" step="0.01" value={produtoNovo.custo_unitario || ""} onChange={(e) => atualizarCampoNovo("custo_unitario", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Custo caixa</label><input className="input mt-2" type="number" step="0.01" value={produtoNovo.custo_caixa || ""} onChange={(e) => atualizarCampoNovo("custo_caixa", e.target.value)} /></div>
-              <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2" value={produtoNovo.origem_preco || ""} onChange={(e) => atualizarCampoNovo("origem_preco", e.target.value)} /></div>
+            <div className="modal-produto-manual-section">
+              <h3>
+                <span>▣</span>
+                Informações do produto
+              </h3>
+
+              <div className="modal-produto-manual-grid">
+                <div className="field-lg">
+                  <label>Descrição <b>*</b></label>
+                  <input
+                    className="input"
+                    placeholder="Ex.: CATETER COMUM 18G"
+                    value={produtoNovo.descricao || ""}
+                    onChange={(e) => atualizarCampoNovo("descricao", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Apresentação</label>
+                  <input
+                    className="input"
+                    placeholder="Ex.: UNIDADE, CX 100, FRASCO"
+                    value={produtoNovo.apresentacao || ""}
+                    onChange={(e) => atualizarCampoNovo("apresentacao", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Marca</label>
+                  <input
+                    className="input"
+                    placeholder="Ex.: INJEX, MEDIX, TKL"
+                    value={produtoNovo.marca || ""}
+                    onChange={(e) => atualizarCampoNovo("marca", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Registro ANVISA</label>
+                  <input
+                    className="input"
+                    placeholder="Digite o número do registro"
+                    value={produtoNovo.registro_anvisa || ""}
+                    onChange={(e) => atualizarCampoNovo("registro_anvisa", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Vencimento do registro</label>
+                  <input
+                    className="input"
+                    placeholder="AAAA-MM-DD"
+                    value={produtoNovo.vencimento_registro || ""}
+                    onChange={(e) => atualizarCampoNovo("vencimento_registro", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Unidade</label>
+                  <input
+                    className="input"
+                    placeholder="Ex.: UNIDADE, CX, FRASCO"
+                    value={produtoNovo.unidade || ""}
+                    onChange={(e) => atualizarCampoNovo("unidade", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Qtd por caixa</label>
+                  <input
+                    className="input"
+                    type="number"
+                    placeholder="Ex.: 100, 50, 10"
+                    value={produtoNovo.quantidade_por_caixa || ""}
+                    onChange={(e) => atualizarCampoNovo("quantidade_por_caixa", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Custo unitário <b>*</b></label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={produtoNovo.custo_unitario || ""}
+                    onChange={(e) => atualizarCampoNovo("custo_unitario", e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <label>Custo por caixa</label>
+                  <input
+                    className="input"
+                    type="number"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={produtoNovo.custo_caixa || ""}
+                    onChange={(e) => atualizarCampoNovo("custo_caixa", e.target.value)}
+                  />
+                </div>
+
+                <div className="field-lg">
+                  <label>Origem do preço</label>
+                  <input
+                    className="input"
+                    value={produtoNovo.origem_preco || ""}
+                    onChange={(e) => atualizarCampoNovo("origem_preco", e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
 
-            <div className="mt-5 rounded-xl bg-blue-50 p-4 text-sm text-slate-600">
-              Se o registro ANVISA ou marca bater com algum registro salvo, o sistema vincula o PDF automaticamente.
+            <div className="modal-produto-manual-alert modal-produto-manual-alert-green">
+              <strong>Vincular registro ANVISA automaticamente</strong>
+              <span>Se o registro ANVISA ou a marca bater com algum registro salvo, o sistema associa o PDF automaticamente.</span>
             </div>
 
-            <div className="flex min-w-0 justify-end gap-3 mt-6">
-              <button type="button" className="rounded-xl border px-4 py-2" onClick={() => setProdutoNovo(null)}>Cancelar</button>
+            <div className="modal-produto-manual-alert modal-produto-manual-alert-blue">
+              <strong>Dica importante</strong>
+              <span>Preencha pelo menos a descrição e o custo unitário. Os demais campos ajudam na organização e na vinculação automática.</span>
+            </div>
+
+            <div className="modal-produto-manual-footer">
+              <button type="button" className="btn-cancelar-modal" onClick={() => setProdutoNovo(null)}>
+                Cancelar
+              </button>
+
               <button type="button" className="btn-clean btn-clean-primary" disabled={salvandoNovo} onClick={salvarProdutoManual}>
                 {salvandoNovo ? "Salvando..." : "Cadastrar produto"}
               </button>
