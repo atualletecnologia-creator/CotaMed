@@ -1264,8 +1264,8 @@ export default function BancoPrecos() {
                                 <span>{r.marca || "-"}</span>
                                 <span>{r.registro_anvisa || "-"}</span>
                                 <span>{r.vencimento_registro || "-"}</span>
-                                <span className={r.pdf_url ? "text-green-700 font-bold" : "text-red-600 font-bold"}>
-                                  {r.pdf_url ? "Com PDF" : "Sem PDF"}
+                                <span className={r.pdf_path ? "text-green-700 font-bold" : "text-red-600 font-bold"}>
+                                  {r.pdf_path ? "Com PDF" : "Sem PDF"}
                                 </span>
                               </button>
                             ))}
