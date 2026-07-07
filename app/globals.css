@@ -3061,3 +3061,156 @@ input[type="file"]::file-selector-button {
     display: none !important;
   }
 }
+
+
+/* COTAMED FIX - seletor manual de registro em janela grande */
+.registro-picker-wide {
+  position: fixed !important;
+  inset: 48px 48px 40px 96px !important;
+  z-index: 9999 !important;
+  width: auto !important;
+  max-width: none !important;
+  height: auto !important;
+  max-height: none !important;
+  margin: 0 !important;
+  padding: 24px !important;
+  border: 1px solid #dbe7f5 !important;
+  border-radius: 24px !important;
+  background: #ffffff !important;
+  box-shadow: 0 34px 100px rgba(15, 23, 42, .26) !important;
+  overflow: hidden !important;
+}
+
+.registro-picker-wide::before {
+  content: "" !important;
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: -1 !important;
+  background: rgba(15, 23, 42, .18) !important;
+  backdrop-filter: blur(2px) !important;
+}
+
+.registro-picker-header {
+  display: flex !important;
+  align-items: flex-start !important;
+  justify-content: space-between !important;
+  gap: 20px !important;
+  margin-bottom: 18px !important;
+}
+
+.registro-picker-header strong {
+  display: block !important;
+  color: #0f172a !important;
+  font-size: 22px !important;
+  font-weight: 900 !important;
+}
+
+.registro-picker-header span {
+  display: block !important;
+  margin-top: 4px !important;
+  color: #64748b !important;
+  font-size: 14px !important;
+}
+
+.registro-picker-header button {
+  width: 42px !important;
+  height: 42px !important;
+  border: 1px solid #dbe7f5 !important;
+  border-radius: 14px !important;
+  background: #f8fafc !important;
+  color: #0f172a !important;
+  font-size: 26px !important;
+  line-height: 1 !important;
+}
+
+.registro-picker-search {
+  width: 100% !important;
+  height: 52px !important;
+  margin-bottom: 16px !important;
+  padding-left: 18px !important;
+  padding-right: 18px !important;
+  font-size: 16px !important;
+}
+
+.registro-picker-table-head,
+.registro-picker-item {
+  display: grid !important;
+  grid-template-columns:
+    minmax(360px, 1.8fr)
+    minmax(190px, .9fr)
+    minmax(170px, .8fr)
+    minmax(190px, .9fr)
+    minmax(150px, .7fr)
+    minmax(120px, .55fr) !important;
+  gap: 18px !important;
+  align-items: center !important;
+  min-width: 1180px !important;
+}
+
+.registro-picker-table-head {
+  padding: 14px 16px !important;
+  border-radius: 14px !important;
+  background: #eef4fb !important;
+  color: #334155 !important;
+  font-size: 12px !important;
+  font-weight: 900 !important;
+  text-transform: uppercase !important;
+  letter-spacing: .03em !important;
+}
+
+.registro-picker-list {
+  height: calc(100vh - 250px) !important;
+  max-height: none !important;
+  margin-top: 10px !important;
+  overflow: auto !important;
+  padding: 0 4px 8px 0 !important;
+}
+
+.registro-picker-item {
+  width: 100% !important;
+  min-height: 54px !important;
+  padding: 13px 16px !important;
+  border: 1px solid transparent !important;
+  border-radius: 14px !important;
+  background: #fff !important;
+  color: #0f172a !important;
+  text-align: left !important;
+  font-size: 13px !important;
+  font-weight: 700 !important;
+}
+
+.registro-picker-item:hover {
+  border-color: #93c5fd !important;
+  background: #eff6ff !important;
+}
+
+.registro-picker-item span,
+.registro-picker-table-head span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+}
+
+@media (max-width: 1024px) {
+  .registro-picker-wide {
+    inset: 18px !important;
+    padding: 18px !important;
+  }
+
+  .registro-picker-table-head,
+  .registro-picker-item {
+    grid-template-columns:
+      minmax(300px, 1.6fr)
+      minmax(150px, .8fr)
+      minmax(140px, .7fr)
+      minmax(170px, .8fr)
+      minmax(120px, .6fr)
+      minmax(100px, .5fr) !important;
+    min-width: 980px !important;
+  }
+
+  .registro-picker-list {
+    height: calc(100vh - 220px) !important;
+  }
+}
