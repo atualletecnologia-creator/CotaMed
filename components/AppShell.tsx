@@ -7,12 +7,13 @@ import { useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { supabase } from "@/lib/supabase";
 
-type MenuIconName = "dashboard" | "banco" | "licitacoes" | "registros" | "consulta" | "relatorios" | "configuracoes" | "sair";
+type MenuIconName = "dashboard" | "banco" | "licitacoes" | "propostas" | "registros" | "consulta" | "relatorios" | "configuracoes" | "sair";
 
 const menu: { href: string; label: string; icon: MenuIconName }[] = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/banco-precos", label: "Banco de preços", icon: "banco" },
   { href: "/licitacoes", label: "Licitações", icon: "licitacoes" },
+  { href: "/propostas", label: "Propostas", icon: "propostas" },
   { href: "/registros-anvisa", label: "Registros ANVISA", icon: "registros" },
   { href: "/consulta-rapida", label: "Consulta rápida", icon: "consulta" },
   { href: "/relatorios", label: "Relatórios", icon: "relatorios" },
@@ -41,6 +42,10 @@ function MenuIcon({ name }: { name: MenuIconName }) {
 
   if (name === "licitacoes") {
     return <svg {...common}><path d="M14.5 4.5l5 5"/><path d="M12 7l5 5"/><path d="M6.8 9.8l4-4 5.4 5.4-4 4z"/><path d="M11 14l-7 7"/><path d="M3 21h8"/><path d="M16.8 12.8l3.4 3.4"/></svg>;
+  }
+
+  if (name === "propostas") {
+    return <svg {...common}><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/><path d="M9 9h2"/></svg>;
   }
 
   if (name === "registros") {

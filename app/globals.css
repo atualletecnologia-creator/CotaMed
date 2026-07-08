@@ -3428,3 +3428,267 @@ input[type="file"]::file-selector-button {
     width: 100% !important;
   }
 }
+
+
+/* COTAMED - Gerador de Propostas */
+.proposta-screen {
+  display: grid;
+  gap: 22px;
+}
+
+.proposta-toolbar {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.proposta-toolbar h1 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 34px;
+  font-weight: 900;
+  letter-spacing: -.03em;
+}
+
+.proposta-toolbar p {
+  margin-top: 4px;
+  color: #64748b;
+  font-size: 15px;
+}
+
+.proposta-toolbar-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.proposta-form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.proposta-form-grid label {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.proposta-paper {
+  width: 210mm;
+  min-height: 297mm;
+  margin: 0 auto;
+  padding: 13mm 12mm 16mm;
+  background: #fff;
+  color: #111827;
+  box-shadow: 0 20px 80px rgba(15, 23, 42, .12);
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 12px;
+  line-height: 1.35;
+}
+
+.proposta-pdf-header {
+  display: grid;
+  grid-template-columns: 82px 1fr;
+  gap: 18px;
+  align-items: center;
+  color: #25347a;
+  text-align: center;
+}
+
+.proposta-logo-box {
+  width: 72px;
+  height: 72px;
+  border: 3px solid #25347a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.proposta-logo-box img {
+  width: 52px;
+  height: 52px;
+  object-fit: contain;
+}
+
+.proposta-pdf-header h2 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: .02em;
+}
+
+.proposta-pdf-header p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.proposta-meta {
+  margin-top: 12px;
+  text-align: right;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.proposta-dados {
+  margin-top: 30px;
+  display: grid;
+  gap: 8px;
+  font-size: 15px;
+  font-weight: 800;
+}
+
+.proposta-titulo {
+  margin: 58px 0 38px;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.proposta-intro {
+  margin: 0 0 24px;
+  text-align: justify;
+  font-size: 14px;
+  line-height: 1.7;
+}
+
+.proposta-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 11px;
+  page-break-inside: auto;
+}
+
+.proposta-table th,
+.proposta-table td {
+  border: 1px solid #111827;
+  padding: 5px 5px;
+  vertical-align: middle;
+}
+
+.proposta-table th {
+  text-align: center;
+  font-weight: 900;
+  background: #fff;
+}
+
+.proposta-table td {
+  text-align: center;
+}
+
+.proposta-table .descricao {
+  text-align: left;
+  width: 32%;
+}
+
+.proposta-table .total-row td {
+  font-size: 12px;
+  font-weight: 900;
+  text-align: right;
+}
+
+.proposta-table .total-row td:first-child {
+  text-align: center;
+}
+
+.proposta-table .extenso-row td {
+  text-align: center;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.proposta-declaracoes {
+  margin-top: 22px;
+  display: grid;
+  gap: 7px;
+  text-align: justify;
+  font-size: 13px;
+  line-height: 1.35;
+}
+
+.proposta-declaracoes p {
+  margin: 0;
+}
+
+.proposta-assinatura {
+  margin: 55px auto 0;
+  width: 360px;
+  text-align: center;
+  font-size: 13px;
+  display: grid;
+  gap: 2px;
+}
+
+.proposta-assinatura div {
+  border-top: 1px solid #111827;
+  margin-bottom: 4px;
+}
+
+.proposta-footer {
+  margin-top: 60px;
+  color: #25347a;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .proposta-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .proposta-paper {
+    width: 100%;
+    min-height: auto;
+    overflow-x: auto;
+  }
+}
+
+@media print {
+  body {
+    background: #fff !important;
+  }
+
+  .no-print,
+  .app-sidebar,
+  .sidebar-toggle,
+  .sidebar-backdrop {
+    display: none !important;
+  }
+
+  .app-shell,
+  .app-main,
+  .app-content {
+    display: block !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    background: #fff !important;
+  }
+
+  .proposta-screen {
+    display: block !important;
+  }
+
+  .proposta-paper {
+    width: 210mm !important;
+    min-height: 297mm !important;
+    margin: 0 !important;
+    padding: 10mm 9mm 12mm !important;
+    box-shadow: none !important;
+  }
+
+  .proposta-table tr,
+  .proposta-declaracoes p,
+  .proposta-assinatura {
+    page-break-inside: avoid;
+  }
+
+  @page {
+    size: A4;
+    margin: 0;
+  }
+}
