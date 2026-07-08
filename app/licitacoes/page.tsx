@@ -685,6 +685,7 @@ function esperarInterface() {
 
 
 const CHAVE_RASCUNHO_LICITACAO = "cotamed_rascunho_licitacao_24h";
+const CHAVE_COTACOES_SALVAS = "cotamed_cotacoes_salvas_local_v1";
 const TEMPO_RASCUNHO_LICITACAO = 24 * 60 * 60 * 1000;
 
 type RascunhoLicitacao = {
@@ -1271,6 +1272,38 @@ useEffect(() => {
     }
   }
 
+
+  function salvarCotacaoNesteComputador() {
+    if (!itensParaExportar.length) {
+      setErro("Nenhum item cotado para salvar.");
+      return;
+    }
+
+    const nome = window.prompt("Nome para identificar esta cotação:", arquivoNome || "Cotação sem nome");
+
+    if (!nome) return;
+
+    const cotacao = {
+      id: `${Date.now()}`,
+      nome,
+      arquivo_nome: arquivoNome || nome,
+      salvo_em: Date.now(),
+      total: itensParaExportar.reduce((acc, item) => acc + Number(item.valor_total || 0), 0),
+      quantidade_itens: itensParaExportar.length,
+      itens: itensParaExportar,
+    };
+
+    try {
+      const bruto = window.localStorage.getItem(CHAVE_COTACOES_SALVAS);
+      const antigas = bruto ? JSON.parse(bruto) : [];
+      const lista = [cotacao, ...antigas].slice(0, 20);
+      window.localStorage.setItem(CHAVE_COTACOES_SALVAS, JSON.stringify(lista));
+      setMensagem("Cotação salva neste computador para gerar proposta.");
+    } catch {
+      setErro("Não foi possível salvar a cotação neste computador.");
+    }
+  }
+
   function baixarPlanilhaPreenchida() {
     if (!itens.length) {
       setErro("Processe uma planilha antes de baixar.");
@@ -1444,6 +1477,7 @@ useEffect(() => {
                   <option value="excluidos">Excluídos</option>
                 </select>
 
+                <button onClick={salvarCotacaoNesteComputador} className="rounded-xl border border-green-200 px-4 py-2 text-green-700 hover:bg-green-50 text-sm">Salvar cotação</button>
                 <button onClick={baixarPlanilhaPreenchida} className="btn-primary text-sm">Baixar planilha</button>
                 <button onClick={baixarZipRegistros} className="rounded-xl border border-blue-200 px-4 py-2 text-cotamed-700 hover:bg-blue-50 text-sm">Baixar ZIP</button>
               </div>
