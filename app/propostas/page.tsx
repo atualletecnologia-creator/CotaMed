@@ -313,8 +313,9 @@ export default function PropostasPage() {
 
         <div className="proposta-doc">
           <section className="proposta-page proposta-page-cover">
+            <div className="proposta-page-number">1</div>
             <header className="proposta-pdf-header">
-              <div className="proposta-logo-box"><img src="/brand/cotamed-icon.svg" alt="Logo" /></div>
+              <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
 
               <div>
                 <h2>DOM BOSCO HOSPITALAR LTDA</h2>
@@ -370,8 +371,9 @@ export default function PropostasPage() {
           </section>
 
           <section className="proposta-page proposta-page-table">
+            <div className="proposta-page-number">2</div>
             <header className="proposta-pdf-header proposta-pdf-header-small">
-              <div className="proposta-logo-box"><img src="/brand/cotamed-icon.svg" alt="Logo" /></div>
+              <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
 
               <div>
                 <h2>DOM BOSCO HOSPITALAR LTDA</h2>
