@@ -4843,3 +4843,27 @@ input[type="file"]::file-selector-button {
     grid-template-columns: 1fr;
   }
 }
+
+
+/* COTAMED - cadastro de documentos sem palavras-chave manuais */
+.documentacao-auto-keywords {
+  grid-column: 1 / -1 !important;
+  padding: 14px 16px !important;
+  border: 1px solid #bfdbfe !important;
+  border-radius: 16px !important;
+  background: #eff6ff !important;
+  color: #1e3a8a !important;
+}
+
+.documentacao-auto-keywords strong {
+  display: block !important;
+  font-size: 14px !important;
+  font-weight: 900 !important;
+}
+
+.documentacao-auto-keywords span {
+  display: block !important;
+  margin-top: 4px !important;
+  font-size: 13px !important;
+  color: #1d4ed8 !important;
+}
