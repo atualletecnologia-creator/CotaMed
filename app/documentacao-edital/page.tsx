@@ -262,8 +262,8 @@ export default function DocumentacaoEditalPage() {
 
   return (
     <AppShell>
-      <section className="documentacao-page">
-        <div className="clean-hero">
+      <section className="documentacao-page documentacao-page-pro">
+        <div className="documentacao-hero">
           <div>
             <p className="clean-kicker">Documentação do edital</p>
             <h1>Organize os documentos da empresa na ordem do edital</h1>
@@ -275,19 +275,19 @@ export default function DocumentacaoEditalPage() {
           </button>
         </div>
 
-        <section className="banco-metric-grid">
-          <div className="banco-metric-card"><span className="text-sm text-slate-500">Documentos cadastrados</span><strong>{resumo.total}</strong></div>
-          <div className="banco-metric-card"><span className="text-sm text-slate-500">Identificados</span><strong>{resumo.encontrados}</strong></div>
-          <div className="banco-metric-card"><span className="text-sm text-slate-500">Não encontrados</span><strong>{resumo.naoEncontrados}</strong></div>
-          <div className="banco-metric-card"><span className="text-sm text-slate-500">Não solicitados</span><strong>{resumo.extras}</strong></div>
+        <section className="documentacao-metric-grid">
+          <div className="documentacao-metric-card"><span className="text-sm text-slate-500">Documentos cadastrados</span><strong>{resumo.total}</strong></div>
+          <div className="documentacao-metric-card"><span className="text-sm text-slate-500">Identificados</span><strong>{resumo.encontrados}</strong></div>
+          <div className="documentacao-metric-card"><span className="text-sm text-slate-500">Não encontrados</span><strong>{resumo.naoEncontrados}</strong></div>
+          <div className="documentacao-metric-card"><span className="text-sm text-slate-500">Não solicitados</span><strong>{resumo.extras}</strong></div>
         </section>
 
         <section className="documentacao-grid">
-          <div className="clean-card p-6">
+          <div className="documentacao-card">
             <h2 className="font-bold text-xl">Cadastrar documentos da empresa</h2>
             <p className="text-sm text-slate-500 mt-1">Os arquivos ficam salvos somente neste computador/navegador.</p>
 
-            <div className="grid min-w-0 gap-4 mt-5">
+            <div className="documentacao-form-grid mt-5">
               <div>
                 <label className="text-sm font-bold">Nome do documento</label>
                 <input className="input mt-2" placeholder="Ex.: Contrato Social" value={nome} onChange={(e) => setNome(e.target.value)} />
@@ -315,12 +315,12 @@ export default function DocumentacaoEditalPage() {
             {mensagem && <p className="text-green-700 text-sm mt-4">{mensagem}</p>}
           </div>
 
-          <div className="clean-card p-6">
+          <div className="documentacao-card">
             <h2 className="font-bold text-xl">Analisar documentação exigida</h2>
             <p className="text-sm text-slate-500 mt-1">Cole aqui o trecho do edital que fala sobre habilitação/documentos.</p>
 
             <textarea
-              className="input mt-5 min-h-[260px] p-4"
+              className="documentacao-textarea"
               value={editalTexto}
               onChange={(e) => setEditalTexto(e.target.value)}
               placeholder="Cole aqui o texto do edital..."
