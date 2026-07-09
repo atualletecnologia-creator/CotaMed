@@ -566,13 +566,85 @@ export default function BancoPrecos() {
         };
       });
 
-      const { error } = await supabase.from("produtos").insert(produtosParaSalvar);
-      if (error) {
-        setErro(error.message);
-        return;
+      let novos = 0;
+      let atualizados = 0;
+      let erros = 0;
+      const mensagensErro: string[] = [];
+
+      for (const produto of produtosParaSalvar) {
+        const { data: existente, error: erroBusca } = await supabase
+          .from("produtos")
+          .select("id")
+          .eq("user_id", userData.user.id)
+          .eq("descricao", produto.descricao)
+          .eq("marca", produto.marca || "")
+          .limit(1);
+
+        if (erroBusca) {
+          erros++;
+          mensagensErro.push(erroBusca.message);
+          continue;
+        }
+
+        if (existente && existente.length > 0) {
+          const { error } = await supabase
+            .from("produtos")
+            .update(produto)
+            .eq("id", existente[0].id);
+
+          if (error) {
+            erros++;
+            mensagensErro.push(error.message);
+          } else {
+            atualizados++;
+          }
+
+          continue;
+        }
+
+        const { error } = await supabase
+          .from("produtos")
+          .insert(produto);
+
+        if (error) {
+          // Segurança extra: se o índice único bloquear, tenta atualizar por descrição + marca.
+          if (String(error.message || "").includes("duplicate key")) {
+            const { data: duplicado } = await supabase
+              .from("produtos")
+              .select("id")
+              .eq("descricao", produto.descricao)
+              .eq("marca", produto.marca || "")
+              .limit(1);
+
+            if (duplicado && duplicado.length > 0) {
+              const { error: erroUpdate } = await supabase
+                .from("produtos")
+                .update(produto)
+                .eq("id", duplicado[0].id);
+
+              if (erroUpdate) {
+                erros++;
+                mensagensErro.push(erroUpdate.message);
+              } else {
+                atualizados++;
+              }
+
+              continue;
+            }
+          }
+
+          erros++;
+          mensagensErro.push(error.message);
+        } else {
+          novos++;
+        }
       }
 
-      setMensagem(`${produtosParaSalvar.length} produtos importados. ${vinculados} vinculados automaticamente ao registro ANVISA. ${semRegistro} sem vínculo automático.`);
+      if (erros > 0) {
+        setErro(`${erros} produto(s) não foram importados. Primeiro erro: ${mensagensErro[0] || "erro desconhecido"}`);
+      }
+
+      setMensagem(`${novos} produto(s) novo(s), ${atualizados} produto(s) atualizado(s). ${vinculados} vinculados automaticamente ao registro ANVISA. ${semRegistro} sem vínculo automático.`);
       await carregarDados();
     } finally {
       setImportando(false);
