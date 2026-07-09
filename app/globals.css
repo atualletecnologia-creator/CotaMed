@@ -4685,3 +4685,161 @@ input[type="file"]::file-selector-button {
     grid-template-columns: 1fr !important;
   }
 }
+
+
+/* COTAMED - Biblioteca Inteligente de Documentos */
+.documentacao-tabs {
+  display: inline-flex;
+  gap: 8px;
+  padding: 6px;
+  border: 1px solid #dbe7f5;
+  border-radius: 16px;
+  background: #fff;
+  width: fit-content;
+  box-shadow: 0 12px 30px rgba(15, 23, 42, .05);
+}
+
+.documentacao-tabs button {
+  height: 42px;
+  padding: 0 18px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: #64748b;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.documentacao-tabs button.active {
+  background: #2563eb;
+  color: #fff;
+}
+
+.documentacao-warning {
+  display: block;
+  border: 1px solid #fde68a;
+  border-radius: 12px;
+  background: #fffbeb;
+  color: #92400e;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.biblioteca-editor {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+  padding: 18px;
+  border: 1px solid #dbe7f5;
+  border-radius: 20px;
+  background: #f8fbff;
+}
+
+.biblioteca-editor .span-2 {
+  grid-column: span 2;
+}
+
+.biblioteca-editor label {
+  display: block;
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.documentacao-textarea.small {
+  min-height: 116px !important;
+  padding: 12px !important;
+  font-size: 13px !important;
+}
+
+@media (max-width: 1000px) {
+  .biblioteca-editor {
+    grid-template-columns: 1fr;
+  }
+
+  .biblioteca-editor .span-2 {
+    grid-column: span 1;
+  }
+
+  .documentacao-tabs {
+    width: 100%;
+  }
+
+  .documentacao-tabs button {
+    flex: 1;
+  }
+}
+
+
+/* COTAMED - Aprendizado da Documentação do Edital */
+.documentacao-upload-edital {
+  padding: 16px;
+  border: 1px dashed #93c5fd;
+  border-radius: 18px;
+  background: #eff6ff;
+}
+
+.documentacao-upload-edital label {
+  display: block;
+  color: #1e3a8a;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.documentacao-upload-edital span {
+  display: block;
+  margin-top: 8px;
+  color: #1d4ed8;
+  font-size: 13px;
+  font-weight: 800;
+}
+
+.aprendizado-lista {
+  display: grid;
+  gap: 14px;
+}
+
+.aprendizado-card {
+  display: grid;
+  grid-template-columns: 90px minmax(240px, 1fr) minmax(220px, .75fr) minmax(180px, .55fr);
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border: 1px solid #dbe7f5;
+  border-radius: 18px;
+  background: #f8fbff;
+}
+
+.aprendizado-check {
+  display: inline-flex !important;
+  align-items: center;
+  gap: 8px;
+  color: #166534 !important;
+  font-size: 13px !important;
+  font-weight: 900 !important;
+}
+
+.aprendizado-check input {
+  width: 17px;
+  height: 17px;
+}
+
+.aprendizado-trecho {
+  color: #0f172a;
+  font-size: 13px;
+  line-height: 1.45;
+  font-weight: 700;
+}
+
+.aprendizado-card label {
+  color: #0f172a;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+@media (max-width: 1100px) {
+  .aprendizado-card {
+    grid-template-columns: 1fr;
+  }
+}
