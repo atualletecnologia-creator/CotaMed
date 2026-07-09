@@ -4408,3 +4408,64 @@ input[type="file"]::file-selector-button {
     display: inline-flex !important;
   }
 }
+
+
+/* COTAMED - Documentação do Edital */
+.documentacao-page {
+  display: grid;
+  gap: 22px;
+}
+
+.documentacao-grid {
+  display: grid;
+  grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr);
+  gap: 22px;
+  align-items: start;
+}
+
+.documentacao-result-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, .8fr) minmax(0, .8fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.documentacao-result-card {
+  display: grid;
+  gap: 7px;
+  border: 1px solid #bbf7d0;
+  border-radius: 14px;
+  background: #f0fdf4;
+  padding: 14px;
+  color: #166534;
+  font-size: 13px;
+}
+
+.documentacao-alert {
+  display: block;
+  border: 1px solid #fecaca;
+  border-radius: 12px;
+  background: #fef2f2;
+  color: #991b1b;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.documentacao-extra {
+  display: block;
+  border: 1px solid #bfdbfe;
+  border-radius: 12px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 10px 12px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+@media (max-width: 1100px) {
+  .documentacao-grid,
+  .documentacao-result-grid {
+    grid-template-columns: 1fr;
+  }
+}
