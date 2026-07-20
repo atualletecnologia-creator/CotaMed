@@ -100,6 +100,25 @@ function pegarDescricao(linha: Record<string, unknown>) {
   );
 }
 
+function pegarMarcaSolicitada(linha: Record<string, unknown>) {
+  return maiusculo(
+    linha.marca ||
+      linha.marca_referencia ||
+      linha.marca_solicitada ||
+      linha.fabricante ||
+      ""
+  );
+}
+
+function pegarRegistroSolicitado(linha: Record<string, unknown>) {
+  return String(
+    linha.registro_anvisa ||
+      linha.registro ||
+      linha.anvisa ||
+      ""
+  ).replace(/\D/g, "").trim();
+}
+
 function pegarValorPorCabecalho(
   linha: Record<string, unknown>,
   exatos: string[],
@@ -591,82 +610,134 @@ function buscarProdutoPorAprendizado(descricao: string, produtos: Produto[]) {
   return melhor || null;
 }
 
-function scoreProdutoAprimorado(descricao: string, produto: Produto) {
-  const palavrasItem = palavrasAprendizado(descricao);
-  const palavrasProduto = palavrasAprendizado([
-    produto.descricao,
-    produto.apresentacao,
-    produto.marca,
-  ].filter(Boolean).join(" "));
+function extrairEspecificacoesCriticas(valor: unknown) {
+  const texto = normalizarAprendizado(valor)
+    .replace(/(\d),(\d)/g, "$1.$2")
+    .replace(/\s+/g, " ");
 
-  if (!palavrasItem.length || !palavrasProduto.length) return 0;
-
-  let iguais = 0;
-  let parciais = 0;
-
-  palavrasItem.forEach((palavra) => {
-    if (palavrasProduto.includes(palavra)) {
-      iguais++;
-      return;
-    }
-
-    if (palavrasProduto.some((p) => p.includes(palavra) || palavra.includes(p))) {
-      parciais++;
-    }
-  });
-
-  const scoreExato = (iguais / palavrasItem.length) * 100;
-  const scoreParcial = (parciais / palavrasItem.length) * 35;
-
-  const concentracaoItem = palavrasItem.find((p) => /\d+(MG|ML|G|MCG)?/.test(p));
-  const textoProduto = normalizarAprendizado([produto.descricao, produto.apresentacao].filter(Boolean).join(" "));
-
-  const bonusConcentracao = concentracaoItem && textoProduto.includes(concentracaoItem) ? 15 : 0;
-
-  return Math.min(100, Math.round(scoreExato + scoreParcial + bonusConcentracao));
+  const encontrados = texto.match(/\b\d+(?:\.\d+)?\s*(?:MCG|MG|G|KG|ML|L|UI|%|MM|CM|FR|GAUGE)\b/g) || [];
+  return Array.from(new Set(encontrados.map((item) => item.replace(/\s+/g, ""))));
 }
 
-function encontrarMelhorProdutoAprimorado(descricao: string, produtos: Produto[], tipoPreco: TipoPreco) {
+function extrairApresentacoes(valor: unknown) {
+  const texto = normalizarAprendizado(valor);
+  const termos = [
+    "COMPRIMIDO", "CAPSULA", "AMPOLA", "FRASCO", "SERINGA", "CATETER",
+    "LUVA", "CAIXA", "PACOTE", "SACHE", "BOLSA", "CREME", "POMADA",
+    "SOLUCAO", "SUSPENSAO", "INJETAVEL", "GEL", "SPRAY"
+  ];
+  return termos.filter((termo) => new RegExp(`\\b${termo}\\b`).test(texto));
+}
+
+function compatibilidadeMarca(marcaSolicitada: string, produto: Produto) {
+  const solicitada = normalizarAprendizado(marcaSolicitada);
+  const cadastrada = normalizarAprendizado(produto.marca);
+  if (!solicitada) return { compativel: true, pontos: 0 };
+  if (!cadastrada) return { compativel: false, pontos: 0 };
+  const igual = solicitada === cadastrada || solicitada.includes(cadastrada) || cadastrada.includes(solicitada);
+  return { compativel: igual, pontos: igual ? 15 : 0 };
+}
+
+function avaliarProdutoEstrito(
+  descricao: string,
+  produto: Produto,
+  marcaSolicitada = "",
+  registroSolicitado = ""
+) {
+  const textoItem = normalizarAprendizado(descricao);
+  const textoProduto = normalizarAprendizado([produto.descricao, produto.apresentacao].filter(Boolean).join(" "));
+  const registroProduto = String(produto.registro_anvisa || "").replace(/\D/g, "");
+
+  if (registroSolicitado) {
+    if (!registroProduto || registroProduto !== registroSolicitado) {
+      return { score: 0, bloqueado: true, motivo: "registro ANVISA diferente" };
+    }
+    return { score: 100, bloqueado: false, motivo: "registro ANVISA idêntico" };
+  }
+
+  const marca = compatibilidadeMarca(marcaSolicitada, produto);
+  if (!marca.compativel) {
+    return { score: 0, bloqueado: true, motivo: "marca diferente" };
+  }
+
+  const especificacoesItem = extrairEspecificacoesCriticas(textoItem);
+  const especificacoesProduto = extrairEspecificacoesCriticas(textoProduto);
+  for (const especificacao of especificacoesItem) {
+    if (!especificacoesProduto.includes(especificacao)) {
+      return { score: 0, bloqueado: true, motivo: `especificação diferente (${especificacao})` };
+    }
+  }
+
+  const palavrasItem = palavrasAprendizado(textoItem).filter((p) => !/^\d/.test(p));
+  const palavrasProduto = palavrasAprendizado(textoProduto).filter((p) => !/^\d/.test(p));
+  if (!palavrasItem.length || !palavrasProduto.length) {
+    return { score: 0, bloqueado: true, motivo: "descrição insuficiente" };
+  }
+
+  const fortesIgnoradas = new Set(["COMPRIMIDO", "CAPSULA", "AMPOLA", "FRASCO", "CAIXA", "PACOTE", "UNIDADE", "INJETAVEL", "SOLUCAO"]);
+  const fortesItem = palavrasItem.filter((p) => !fortesIgnoradas.has(p));
+  const fortesProduto = palavrasProduto.filter((p) => !fortesIgnoradas.has(p));
+  const primeiroItem = fortesItem[0] || palavrasItem[0];
+  const primeiroProduto = fortesProduto[0] || palavrasProduto[0];
+  const identidadeInicial = primeiroItem === primeiroProduto || primeiroItem.includes(primeiroProduto) || primeiroProduto.includes(primeiroItem);
+  if (!identidadeInicial) {
+    return { score: 0, bloqueado: true, motivo: "produto/princípio ativo diferente" };
+  }
+
+  const comuns = palavrasItem.filter((p) => palavrasProduto.includes(p)).length;
+  const coberturaItem = comuns / Math.max(1, palavrasItem.length);
+  const coberturaProduto = comuns / Math.max(1, palavrasProduto.length);
+  if (coberturaItem < 0.55) {
+    return { score: 0, bloqueado: true, motivo: "descrição sem correspondência suficiente" };
+  }
+
+  const apresentacoesItem = extrairApresentacoes(textoItem);
+  const apresentacoesProduto = extrairApresentacoes(textoProduto);
+  if (apresentacoesItem.length && apresentacoesProduto.length && !apresentacoesItem.some((a) => apresentacoesProduto.includes(a))) {
+    return { score: 0, bloqueado: true, motivo: "apresentação diferente" };
+  }
+
+  let score = 45;
+  score += Math.round(coberturaItem * 25);
+  score += Math.round(coberturaProduto * 10);
+  score += especificacoesItem.length ? 15 : 5;
+  score += marca.pontos;
+  if (textoItem === textoProduto) score = 100;
+
+  return { score: Math.min(100, score), bloqueado: false, motivo: "compatível" };
+}
+
+function encontrarMelhorProdutoAprimorado(
+  descricao: string,
+  produtos: Produto[],
+  tipoPreco: TipoPreco,
+  marcaSolicitada = "",
+  registroSolicitado = ""
+) {
   const aprendido = buscarProdutoPorAprendizado(descricao, produtos);
-  if (aprendido?.produto) {
-    return {
-      produto: aprendido.produto,
-      score: Math.min(100, Math.max(88, aprendido.score)),
-      origem: "aprendizado",
-    };
-  }
+  const avaliados = produtos
+    .map((produto) => {
+      const avaliacao = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
+      const bonusAprendizado = aprendido?.produto?.id === produto.id && !avaliacao.bloqueado ? 3 : 0;
+      return {
+        produto,
+        score: Math.min(100, avaliacao.score + bonusAprendizado),
+        bloqueado: avaliacao.bloqueado,
+        motivo: avaliacao.motivo,
+        custo: custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER,
+      };
+    })
+    .filter((c) => !c.bloqueado && c.score >= 90)
+    .sort((a, b) => b.score !== a.score ? b.score - a.score : a.custo - b.custo);
 
-  const candidatosAprimorados = produtos
-    .map((produto) => ({
-      produto,
-      score: scoreProdutoAprimorado(descricao, produto),
-      custo: custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER,
-    }))
-    .filter((c) => c.score >= 62)
-    .sort((a, b) => {
-      if (b.score !== a.score) return b.score - a.score;
-      return a.custo - b.custo;
-    });
+  const melhor = avaliados[0];
+  if (!melhor) return null;
 
-  if (candidatosAprimorados[0]) {
-    return {
-      produto: candidatosAprimorados[0].produto,
-      score: candidatosAprimorados[0].score,
-      origem: "busca_aprimorada",
-    };
-  }
-
-  const melhorOriginal = encontrarMelhorProduto(descricao, produtos);
-
-  if (melhorOriginal?.produto) {
-    return {
-      produto: melhorOriginal.produto,
-      score: melhorOriginal.score,
-      origem: "busca_local",
-    };
-  }
-
-  return null;
+  return {
+    produto: melhor.produto,
+    score: melhor.score,
+    origem: aprendido?.produto?.id === melhor.produto.id ? "aprendizado_validado" : "busca_estrita",
+  };
 }
 
 function Campo({ label, value }: { label: string; value: React.ReactNode }) {
@@ -1024,7 +1095,7 @@ useEffect(() => {
     );
   }
 
-  async function buscarComIa(descricao: string, produtos: Produto[]) {
+  async function buscarComIa(descricao: string, produtos: Produto[], marcaSolicitada = "", registroSolicitado = "") {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
     const candidatosLocais = encontrarCandidatos(descricao, produtos, 5).map((c) => c.produto);
@@ -1051,7 +1122,14 @@ useEffect(() => {
       const produto = candidatosLocais[Number(data.indice) - 1];
       if (!produto) return null;
 
-      return { produto, score: Number(data.confianca) || 0 };
+      const avaliacaoEstrita = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
+      const confiancaIa = Number(data.confianca) || 0;
+      const scoreFinal = Math.min(confiancaIa, avaliacaoEstrita.score);
+
+      // A IA nunca pode contornar as regras objetivas de produto, dose, apresentação ou marca.
+      if (avaliacaoEstrita.bloqueado || scoreFinal < 90) return null;
+
+      return { produto, score: scoreFinal };
     } catch {
       clearTimeout(timeout);
       return null;
@@ -1231,15 +1309,23 @@ useEffect(() => {
         const descricao = pegarDescricao(linha);
         const quantidade = pegarQuantidade(linha);
         const unidade = pegarUnidade(linha);
+        const marcaSolicitada = pegarMarcaSolicitada(linha);
+        const registroSolicitado = pegarRegistroSolicitado(linha);
 
         const tipoPrecoItem = resolverTipoPrecoPadrao(tipoPrecoPadrao, descricao, unidade);
-        const melhor = encontrarMelhorProdutoAprimorado(descricao, produtosValidos, tipoPrecoItem);
+        const melhor = encontrarMelhorProdutoAprimorado(
+          descricao,
+          produtosValidos,
+          tipoPrecoItem,
+          marcaSolicitada,
+          registroSolicitado
+        );
         let produto = melhor?.produto || null;
         let score = melhor?.score || 0;
         let origem = melhor?.origem || "busca_local";
 
-        if (usarIa && score < 70 && produtosValidos.length) {
-          const ia = await buscarComIa(descricao, produtosValidos);
+        if (usarIa && score < 90 && produtosValidos.length) {
+          const ia = await buscarComIa(descricao, produtosValidos, marcaSolicitada, registroSolicitado);
           if (ia && ia.score > score) {
             produto = ia.produto;
             score = ia.score;
@@ -1265,7 +1351,7 @@ useEffect(() => {
       });
 
       setItens(itensCorrigidos);
-      setMensagem(`${itensCorrigidos.length} itens processados. A busca usa aprendizado das seleções manuais anteriores.`);
+      setMensagem(`${itensCorrigidos.length} itens processados. Somente correspondências com 90% ou mais e sem divergência de produto, especificação, apresentação, registro ou marca foram cotadas automaticamente.`);
     } finally {
       setProcessando(false);
       setProgressoProcessamento("");
