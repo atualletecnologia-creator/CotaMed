@@ -346,7 +346,7 @@ function gerarPalavrasAutomaticas(nomeDocumento: string, nomeArquivo: string, ca
   const textoBase = normalizar(`${nomeDocumento} ${nomeArquivo.replace(/\.[^.]+$/, "")} ${categoria}`);
 
   const regrasRelacionadas = biblioteca
-    .map((regra) => ({ regra, pontos: pontuarRegra(textoBase, regra) }))
+    .map((regra) => ({ regra, pontos: pontuarRegraPorTrecho(regra, textoBase) }))
     .filter((item) => item.pontos > 0)
     .sort((a, b) => b.pontos - a.pontos)
     .slice(0, 3);
