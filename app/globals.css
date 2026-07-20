@@ -4867,3 +4867,143 @@ input[type="file"]::file-selector-button {
   font-size: 13px !important;
   color: #1d4ed8 !important;
 }
+
+/* COTAMED - Proposta visual fiel ao modelo aprovado */
+.proposta-doc {
+  grid-template-columns: repeat(2, 210mm);
+  align-items: start;
+  justify-content: center;
+  gap: 10mm;
+  overflow-x: auto;
+  padding: 4px 0 24px;
+}
+
+.proposta-page {
+  width: 210mm !important;
+  min-height: 297mm !important;
+  padding: 10mm 9mm 14mm !important;
+  border: 1px solid #d9dde5;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, .10) !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+}
+
+.proposta-page::before { display: none !important; }
+.proposta-page-cover::before {
+  display: block !important;
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 62%;
+  width: 300px;
+  height: 150px;
+  transform: translate(-50%, -50%) rotate(-20deg);
+  border-radius: 999px;
+  background: linear-gradient(90deg, rgba(244, 63, 94, .10) 0 50%, rgba(34, 197, 94, .10) 50% 100%);
+  filter: blur(1px);
+  z-index: 0;
+}
+
+.proposta-pdf-header,
+.proposta-pdf-header-small {
+  grid-template-columns: 62px minmax(0, 1fr) !important;
+  gap: 14px !important;
+  align-items: start !important;
+  color: #0027b8 !important;
+}
+
+.proposta-logo-box,
+.proposta-pdf-header-small .proposta-logo-box {
+  width: 58px !important;
+  height: 58px !important;
+  border: 0 !important;
+}
+
+.proposta-logo-box img,
+.proposta-pdf-header-small .proposta-logo-box img {
+  width: 58px !important;
+  height: 58px !important;
+}
+
+.proposta-pdf-header h2,
+.proposta-pdf-header-small h2 {
+  color: #0027b8 !important;
+  font-size: 20px !important;
+  font-weight: 800 !important;
+  letter-spacing: 0 !important;
+  line-height: 1.1 !important;
+}
+
+.proposta-pdf-header p,
+.proposta-pdf-header-small p {
+  color: #0027b8 !important;
+  font-size: 8.5px !important;
+  font-weight: 500 !important;
+  line-height: 1.3 !important;
+}
+
+.proposta-meta { margin-top: 12px !important; font-size: 9px !important; font-weight: 500 !important; }
+.proposta-dados { margin-top: 22px !important; gap: 6px !important; font-size: 11px !important; }
+.proposta-titulo { margin: 42px 0 30px !important; font-size: 15px !important; }
+.proposta-titulo-tabela { margin: 22px 0 12px !important; color: #0027b8; }
+.proposta-intro { font-size: 10px !important; line-height: 1.75 !important; margin: 0 0 28px !important; }
+
+.proposta-contato { margin-top: auto !important; border-color: #7d8798 !important; font-size: 9px !important; }
+.proposta-contato h3 { color: #0027b8; font-size: 9px !important; padding: 3px 5px !important; border-color: #7d8798 !important; }
+.proposta-contato-grid span { padding: 4px 6px !important; border-color: #7d8798 !important; }
+
+.proposta-table { font-size: 7.4px !important; line-height: 1.25 !important; }
+.proposta-table th,
+.proposta-table td { border-color: #aab0ba !important; padding: 5px 3px !important; }
+.proposta-table th { color: #0027b8 !important; font-size: 7px !important; }
+.proposta-table .total-row td { color: #0027b8; font-size: 8px !important; }
+.proposta-table .total-row td:last-child { color: #111827; }
+.proposta-table .extenso-row td { font-size: 8px !important; font-weight: 400 !important; padding: 8px 4px !important; }
+
+.proposta-declaracoes-resumo { margin-top: 14px !important; gap: 7px !important; font-size: 8.8px !important; line-height: 1.45 !important; }
+.proposta-declaracoes h2 { margin: 0 0 4px; text-align: center; color: #0027b8; font-size: 13px; }
+.proposta-declaracoes-completas { margin-top: 28px !important; gap: 12px !important; font-size: 10px !important; line-height: 1.5 !important; }
+
+.proposta-page-declarations { display: flex; flex-direction: column; }
+.proposta-page-declarations .proposta-assinatura { margin-top: auto !important; }
+.proposta-assinatura { width: 330px !important; font-size: 10px !important; }
+.proposta-assinatura em { font-size: 8px !important; }
+
+.proposta-footer {
+  position: absolute !important;
+  left: 9mm !important;
+  right: 9mm !important;
+  bottom: 7mm !important;
+  margin: 0 !important;
+  padding-top: 7px;
+  border-top: 1px solid #7d8798;
+  color: #0027b8 !important;
+  font-size: 8px !important;
+}
+
+.proposta-page-number {
+  position: absolute;
+  right: 7mm;
+  bottom: 5.5mm;
+  z-index: 3 !important;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #0027b8;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+@media (max-width: 1750px) {
+  .proposta-doc { grid-template-columns: 210mm; }
+}
+
+@media print {
+  .proposta-doc { display: block !important; overflow: visible !important; padding: 0 !important; }
+  .proposta-page { border: 0 !important; box-shadow: none !important; }
+  .proposta-footer { position: absolute !important; }
+  body::after { display: none !important; content: none !important; }
+}

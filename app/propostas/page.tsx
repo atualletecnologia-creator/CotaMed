@@ -161,7 +161,6 @@ export default function PropostasPage() {
   const [dataProposta, setDataProposta] = useState(hoje);
   const [validade, setValidade] = useState("60");
   const [condicoesPagamento, setCondicoesPagamento] = useState("Conforme o edital");
-  const [localEntrega, setLocalEntrega] = useState("Conforme o edital");
   const [erro, setErro] = useState("");
 
   useEffect(() => {
@@ -294,10 +293,6 @@ export default function PropostasPage() {
               <input className="input mt-2" value={condicoesPagamento} onChange={(e) => setCondicoesPagamento(e.target.value)} />
             </div>
 
-            <div>
-              <label>Local, horário e prazo de entrega</label>
-              <input className="input mt-2" value={localEntrega} onChange={(e) => setLocalEntrega(e.target.value)} />
-            </div>
           </div>
 
           <div className="proposta-assinatura-info">
@@ -313,7 +308,7 @@ export default function PropostasPage() {
 
         <div className="proposta-doc">
           <section className="proposta-page proposta-page-cover">
-            <div className="proposta-page-number">1</div>
+            <div className="proposta-page-number">1/3</div>
             <header className="proposta-pdf-header">
               <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
 
@@ -371,7 +366,7 @@ export default function PropostasPage() {
           </section>
 
           <section className="proposta-page proposta-page-table">
-            <div className="proposta-page-number">2</div>
+            <div className="proposta-page-number">2/3</div>
             <header className="proposta-pdf-header proposta-pdf-header-small">
               <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
 
@@ -418,19 +413,41 @@ export default function PropostasPage() {
               </tbody>
             </table>
 
-            <div className="proposta-declaracoes">
-              <p>• DECLARO, sob as penas da lei, em especial o art. 299 do Código Penal Brasileiro, que todas as declarações abaixo são verdadeiras;</p>
-              <p>• Validade da proposta: {validade} dias, a contar da data de sua apresentação;</p>
-              <p>• DECLARO que a proposta apresentada foi elaborada de maneira independente pela empresa DOM BOSCO HOSPITALAR LTDA, e o conteúdo da proposta não foi, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;</p>
-              <p>• DECLARO que não tentei, por qualquer meio ou por qualquer pessoa, influir na decisão de qualquer outro participante potencial ou de fato quanto a participar ou não da referida licitação;</p>
-              <p>• DECLARO que o conteúdo da proposta apresentada não será, no todo ou em parte, direta ou indiretamente, comunicado ou discutido com qualquer outro participante potencial ou de fato antes da adjudicação do objeto da referida licitação;</p>
-              <p>• DECLARO que estou plenamente ciente do teor e da extensão desta declaração e que detém plenos poderes e informações para firmá-la;</p>
-              <p>• DECLARO que nos preços acima propostos estão incluídas todas as despesas diretas e indiretas, inclusive tributos e/ou impostos, encargos sociais e trabalhistas incidentes, taxa de administração, previsão de lucro, seguro, frete e outros necessários ao cumprimento integral dos objetos da aquisição;</p>
-              <p>• Declaramos que estamos de pleno acordo com todas as obrigações e responsabilidades, bem como todas as condições estabelecidas no Edital e seus Anexos;</p>
-              <p>• DECLARO que caso nos seja adjudicado o objeto da licitação, comprometemo-nos a entregar os produtos no prazo e condições estipuladas no Termo de Referência deste Edital;</p>
-              <p>• DECLARO conhecer os termos do instrumento convocatório que rege a presente licitação;</p>
-              <p>• Condições de pagamento: {condicoesPagamento};</p>
-              <p>• Local, horário e prazo de entrega dos produtos: {localEntrega}.</p>
+            <div className="proposta-declaracoes proposta-declaracoes-resumo">
+              <h2>DECLARAÇÕES</h2>
+              <p>• Declaramos que nos preços propostos estão inclusos todos os custos e despesas, tais como: custos diretos e indiretos, tributos incidentes, taxa de administração, materiais, serviços, encargos sociais, trabalhistas, seguros, transportes, fretes, embalagens, lucro e outros necessários ao cumprimento integral do objeto deste edital e seus anexos.</p>
+              <p>• Declaramos que o prazo de validade da proposta é de {validade} ({validade}) dias, contados da data de abertura da licitação.</p>
+              <p>• Declaramos que os produtos ofertados atendem a todas as especificações técnicas e exigências do edital.</p>
+              <p>• Declaramos que temos pleno conhecimento e aceitamos todas as condições do edital e seus anexos.</p>
+              <p>• Declaramos que os dados bancários informados são de nossa titularidade.</p>
+            </div>
+
+            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM &nbsp;&nbsp; | &nbsp;&nbsp; TELEFONE: (61) 3205-9003</footer>
+          </section>
+
+          <section className="proposta-page proposta-page-declarations">
+            <div className="proposta-page-number">3/3</div>
+            <header className="proposta-pdf-header proposta-pdf-header-small">
+              <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
+              <div>
+                <h2>DOM BOSCO HOSPITALAR LTDA</h2>
+                <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
+                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO CEP: 72.870-324</p>
+                <p>CNPJ: 35.020.039/0001-55 &nbsp;&nbsp; I.E.: 10.775.504-1</p>
+              </div>
+            </header>
+
+            <h1 className="proposta-titulo proposta-titulo-tabela">DECLARAÇÕES COMPLEMENTARES</h1>
+
+            <div className="proposta-declaracoes proposta-declaracoes-completas">
+              <p>• DECLARO, sob as penas da lei, em especial o art. 299 do Código Penal Brasileiro, que todas as informações desta proposta são verdadeiras.</p>
+              <p>• DECLARO que a proposta foi elaborada de maneira independente pela empresa DOM BOSCO HOSPITALAR LTDA e que seu conteúdo não foi informado, discutido ou recebido de qualquer outro participante potencial.</p>
+              <p>• DECLARO que não tentei influir na decisão de qualquer outro participante quanto à participação na presente licitação.</p>
+              <p>• DECLARO que o conteúdo desta proposta não será comunicado ou discutido com outro participante antes da adjudicação do objeto.</p>
+              <p>• DECLARO estar plenamente ciente do teor e da extensão destas declarações e possuir plenos poderes para firmá-las.</p>
+              <p>• Declaramos estar de pleno acordo com todas as obrigações, responsabilidades e condições estabelecidas no Edital e seus Anexos.</p>
+              <p>• DECLARO que, caso nos seja adjudicado o objeto, entregaremos os produtos nos prazos e condições estipulados no Termo de Referência.</p>
+              <p>• Condições de pagamento: {condicoesPagamento}.</p>
             </div>
 
             <div className="proposta-assinatura">
@@ -441,7 +458,7 @@ export default function PropostasPage() {
               <span>SÓCIO-PROPRIETÁRIO</span>
               <span>CPF: 750.848.216-68</span>
               <span>RG: M6776966 SSP/MG</span>
-              <em>Assinar digitalmente com certificado ICP-Brasil após gerar o PDF.</em>
+              <em>Documento preparado para assinatura digital ICP-Brasil.</em>
             </div>
 
             <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM &nbsp;&nbsp; | &nbsp;&nbsp; TELEFONE: (61) 3205-9003</footer>
