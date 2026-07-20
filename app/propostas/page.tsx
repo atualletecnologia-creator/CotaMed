@@ -114,14 +114,14 @@ function paginarItensProposta(itens: ItemProposta[]) {
   const paginas: ItemProposta[][] = [];
   let paginaAtual: ItemProposta[] = [];
   let pesoAtual = 0;
-  const pesoMaximo = 112;
+  const pesoMaximo = 82;
 
   for (const item of itens) {
     const descricao = limparTexto(item.descricao);
     const linhasEstimadas = Math.max(1, Math.ceil(descricao.length / 52));
     const pesoItem = 13 + linhasEstimadas * 8;
 
-    if (paginaAtual.length > 0 && (paginaAtual.length >= 6 || pesoAtual + pesoItem > pesoMaximo)) {
+    if (paginaAtual.length > 0 && (paginaAtual.length >= 4 || pesoAtual + pesoItem > pesoMaximo)) {
       paginas.push(paginaAtual);
       paginaAtual = [];
       pesoAtual = 0;

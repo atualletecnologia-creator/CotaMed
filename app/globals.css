@@ -5185,3 +5185,87 @@ input[type="file"]::file-selector-button {
     line-height: 1.35 !important;
   }
 }
+
+
+/* PROPOSTA CORREÇÃO DEFINITIVA — regras finais sem sobrescrita */
+@media screen {
+  .proposta-doc {
+    display: flex !important;
+    flex-wrap: wrap !important;
+    align-items: flex-start !important;
+    justify-content: center !important;
+    gap: 30px !important;
+    overflow-x: auto !important;
+    padding: 24px 18px 44px !important;
+  }
+
+  .proposta-page {
+    flex: 0 0 820px !important;
+    width: 820px !important;
+    height: 1160px !important;
+    min-height: 1160px !important;
+    padding: 38px 43px 58px !important;
+    overflow: hidden !important;
+    font-size: 14px !important;
+    line-height: 1.55 !important;
+  }
+
+  .proposta-pdf-header {
+    grid-template-columns: 105px 1fr 105px !important;
+  }
+  .proposta-logo-oficial {
+    width: 88px !important;
+    height: 88px !important;
+  }
+  .proposta-pdf-header-small .proposta-logo-oficial {
+    width: 76px !important;
+    height: 76px !important;
+  }
+  .proposta-empresa h2 { font-size: 25px !important; }
+  .proposta-empresa p { font-size: 11.5px !important; }
+  .proposta-pdf-header-small .proposta-empresa h2 { font-size: 23px !important; }
+  .proposta-pdf-header-small .proposta-empresa p { font-size: 10.8px !important; }
+  .proposta-meta { font-size: 11.5px !important; }
+  .proposta-dados { font-size: 15px !important; }
+  .proposta-titulo { font-size: 22px !important; }
+  .proposta-intro { font-size: 14px !important; line-height: 1.72 !important; }
+  .proposta-contato { left: 43px !important; right: 43px !important; bottom: 94px !important; font-size: 12px !important; }
+  .proposta-contato h3 { font-size: 13px !important; }
+  .proposta-footer { left: 43px !important; right: 43px !important; bottom: 31px !important; font-size: 11px !important; }
+  .proposta-page-number { right: 23px !important; bottom: 21px !important; width: 48px !important; height: 48px !important; font-size: 12px !important; }
+
+  .proposta-titulo-tabela { font-size: 19px !important; }
+  .proposta-table { font-size: 11px !important; line-height: 1.38 !important; }
+  .proposta-table th { font-size: 10px !important; }
+  .proposta-table th, .proposta-table td { padding: 8px 5px !important; }
+  .proposta-table .total-row td { font-size: 11.5px !important; }
+  .proposta-table .extenso-row td { font-size: 11px !important; }
+
+  .proposta-titulo-declaracoes { font-size: 21px !important; }
+  .proposta-declaracoes { font-size: 14px !important; line-height: 1.7 !important; gap: 18px !important; }
+  .proposta-assinatura { font-size: 13px !important; }
+  .proposta-assinatura strong { font-size: 13px !important; }
+}
+
+@media screen and (max-width: 900px) {
+  .proposta-page {
+    flex-basis: 760px !important;
+    width: 760px !important;
+    height: 1075px !important;
+    min-height: 1075px !important;
+  }
+}
+
+@media print {
+  .proposta-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    padding: 10mm 11mm 15mm !important;
+    font-size: 12px !important;
+  }
+  .proposta-intro { font-size: 12.2px !important; }
+  .proposta-table { font-size: 9.4px !important; }
+  .proposta-table th { font-size: 8.4px !important; }
+  .proposta-declaracoes { font-size: 12px !important; }
+}
