@@ -110,25 +110,30 @@ function numeroParaExtenso(valor: number) {
 
 
 
-const DECLARACOES_PROPOSTA = [
-  "DECLARO, sob as penas da lei, em especial o art. 299 do Código Penal Brasileiro, que todas as declarações abaixo são verdadeiras;",
-  "Validade da proposta: 90 (noventa) dias, a contar da data de sua apresentação;",
-  "DECLARO que a proposta apresentada foi elaborada de maneira independente pela empresa DOM BOSCO HOSPITALAR LTDA, e o conteúdo da proposta não foi, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
-  "DECLARO que a intenção de apresentar a proposta elaborada não foi informada, discutida ou recebida de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
-  "DECLARO que não tentei, por qualquer meio ou por qualquer pessoa, influir na decisão de qualquer outro participante potencial ou de fato quanto a participar ou não da referida licitação;",
-  "DECLARO que o conteúdo da proposta apresentada não será, no todo ou em parte, direta ou indiretamente, comunicado ou discutido com qualquer outro participante potencial ou de fato antes da adjudicação do objeto da referida licitação;",
-  "DECLARO que o conteúdo da proposta não será, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer integrante da Comissão de Licitações antes da abertura oficial das propostas;",
-  "DECLARO que estou plenamente ciente do teor e da extensão desta declaração e que detenho plenos poderes e informações para firmá-la;",
-  "DECLARO que nos preços acima propostos estão incluídas todas as despesas diretas e indiretas, inclusive tributos e/ou impostos, encargos sociais e trabalhistas incidentes, taxa de administração, previsão de lucro, seguro, frete e outros necessários ao cumprimento integral dos objetos da aquisição;",
-  "Declaramos que estamos de pleno acordo com todas as obrigações e responsabilidades, bem como todas as condições estabelecidas no Edital e seus Anexos;",
-  "DECLARO que caso nos seja adjudicado o objeto da licitação, comprometemo-nos a entregar os produtos no prazo e condições estipuladas no Termo de Referência deste Edital;",
-  "DECLARO conhecer os termos do instrumento convocatório que rege a presente licitação;",
-  "Condições de pagamento: Conforme o edital;",
-  "Local, horário e prazo de entrega dos produtos: Conforme o edital.",
-];
+function criarDeclaracoesProposta(validade: string, condicoesPagamento: string) {
+  const validadeLimpa = limparTexto(validade) || "90";
+  const pagamentoLimpo = limparTexto(condicoesPagamento) || "Conforme o edital";
+
+  return [
+    "DECLARO, sob as penas da lei, em especial o art. 299 do Código Penal Brasileiro, que todas as declarações abaixo são verdadeiras;",
+    `Validade da proposta: ${validadeLimpa} (${validadeLimpa === "90" ? "noventa" : validadeLimpa}) dias, a contar da data de sua apresentação;`,
+    "DECLARO que a proposta apresentada foi elaborada de maneira independente pela empresa DOM BOSCO HOSPITALAR LTDA, e o conteúdo da proposta não foi, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
+    "DECLARO que a intenção de apresentar a proposta elaborada não foi informada, discutida ou recebida de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
+    "DECLARO que não tentei, por qualquer meio ou por qualquer pessoa, influir na decisão de qualquer outro participante potencial ou de fato quanto a participar ou não da referida licitação;",
+    "DECLARO que o conteúdo da proposta apresentada não será, no todo ou em parte, direta ou indiretamente, comunicado ou discutido com qualquer outro participante potencial ou de fato antes da adjudicação do objeto da referida licitação;",
+    "DECLARO que o conteúdo da proposta não será, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer integrante da Comissão de Licitações antes da abertura oficial das propostas;",
+    "DECLARO que estou plenamente ciente do teor e da extensão desta declaração e que detenho plenos poderes e informações para firmá-la;",
+    "DECLARO que nos preços acima propostos estão incluídas todas as despesas diretas e indiretas, inclusive tributos e/ou impostos, encargos sociais e trabalhistas incidentes, taxa de administração, previsão de lucro, seguro, frete e outros necessários ao cumprimento integral dos objetos da aquisição;",
+    "Declaramos que estamos de pleno acordo com todas as obrigações e responsabilidades, bem como todas as condições estabelecidas no Edital e seus Anexos;",
+    "DECLARO que caso nos seja adjudicado o objeto da licitação, comprometemo-nos a entregar os produtos no prazo e condições estipuladas no Termo de Referência deste Edital;",
+    "DECLARO conhecer os termos do instrumento convocatório que rege a presente licitação;",
+    `Condições de pagamento: ${pagamentoLimpo};`,
+    "Local, horário e prazo de entrega dos produtos: Conforme o edital.",
+  ];
+}
 
 function paginarItensProposta(itens: ItemProposta[]) {
-  if (!itens.length) return [];
+  if (!itens.length) return [[]];
 
   const paginas: ItemProposta[][] = [];
   let paginaAtual: ItemProposta[] = [];
@@ -210,7 +215,7 @@ export default function PropostasPage() {
   const [processo, setProcesso] = useState("");
   const [abertura, setAbertura] = useState("");
   const [dataProposta, setDataProposta] = useState(hoje);
-  const [validade, setValidade] = useState("60");
+  const [validade, setValidade] = useState("90");
   const [condicoesPagamento, setCondicoesPagamento] = useState("Conforme o edital");
   const [erro, setErro] = useState("");
 
@@ -241,7 +246,8 @@ export default function PropostasPage() {
   }, [itensProposta]);
 
   const paginasItens = useMemo(() => paginarItensProposta(itensProposta), [itensProposta]);
-  const paginasDeclaracoes = useMemo(() => paginarDeclaracoes(DECLARACOES_PROPOSTA), []);
+  const declaracoesProposta = useMemo(() => criarDeclaracoesProposta(validade, condicoesPagamento), [validade, condicoesPagamento]);
+  const paginasDeclaracoes = useMemo(() => paginarDeclaracoes(declaracoesProposta), [declaracoesProposta]);
   const totalPaginasProposta = 1 + paginasItens.length + paginasDeclaracoes.length;
 
   const descricaoPregao = `${modalidade} ${numeroPregao}`.trim();
@@ -340,7 +346,7 @@ export default function PropostasPage() {
 
             <div>
               <label>Validade da proposta</label>
-              <input className="input mt-2" placeholder="Ex.: 60" value={validade} onChange={(e) => setValidade(e.target.value)} />
+              <div className="proposta-validade-input"><input className="input mt-2" type="number" min="1" placeholder="Ex.: 90" value={validade} onChange={(e) => setValidade(e.target.value)} /><span>dias</span></div>
             </div>
 
             <div>
@@ -471,6 +477,11 @@ export default function PropostasPage() {
                           </tr>
                         );
                       })}
+                      {itensPagina.length === 0 && Array.from({ length: 6 }).map((_, index) => (
+                        <tr className="proposta-empty-row" key={`vazio-${index}`}>
+                          <td>{index + 1}</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+                        </tr>
+                      ))}
                       {ultimaPaginaTabela && (
                         <>
                           <tr className="total-row"><td colSpan={7}>VALOR TOTAL DA PROPOSTA</td><td>{dinheiro(valorGlobal)}</td></tr>
@@ -507,9 +518,9 @@ export default function PropostasPage() {
                   DECLARAÇÕES{paginaDeclaracao > 0 ? " — CONTINUAÇÃO" : ""}
                 </h1>
 
-                <ol className="proposta-declaracoes">
+                <ul className="proposta-declaracoes">
                   {declaracoes.map((declaracao, index) => <li key={index}>{declaracao}</li>)}
-                </ol>
+                </ul>
 
                 {ultimaPaginaDeclaracoes && (
                   <div className="proposta-assinatura">

@@ -5571,3 +5571,71 @@ input[type="file"]::file-selector-button {
     font-size: 10px !important;
   }
 }
+
+/* Ajuste final solicitado: página da proposta sempre visível, fontes maiores e declarações em tópicos */
+.proposta-validade-input {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.proposta-validade-input .input { flex: 1; }
+.proposta-validade-input span { margin-top: 8px; font-weight: 700; color: #475569; }
+
+.proposta-page-cover .proposta-intro {
+  font-size: 14.5px !important;
+  line-height: 1.72 !important;
+}
+.proposta-page-cover .proposta-dados {
+  font-size: 16px !important;
+  line-height: 1.55 !important;
+}
+.proposta-page-cover .proposta-contato {
+  font-size: 12.8px !important;
+}
+.proposta-page-cover .proposta-contato h3 {
+  font-size: 14px !important;
+}
+.proposta-page-table .proposta-table {
+  font-size: 11.3px !important;
+  line-height: 1.38 !important;
+}
+.proposta-page-table .proposta-table th {
+  font-size: 10.4px !important;
+}
+.proposta-page-table .proposta-table th,
+.proposta-page-table .proposta-table td {
+  padding: 8px 5px !important;
+}
+.proposta-empty-row td {
+  height: 54px !important;
+}
+.proposta-page-declaracoes .proposta-declaracoes {
+  list-style: disc !important;
+  padding-left: 24px !important;
+  margin: 0 !important;
+  font-size: 11.6px !important;
+  line-height: 1.35 !important;
+  display: block !important;
+}
+.proposta-page-declaracoes .proposta-declaracoes li {
+  margin: 0 0 5px 0 !important;
+  padding-left: 3px !important;
+}
+.proposta-page-declaracoes .proposta-assinatura {
+  font-size: 12.2px !important;
+  line-height: 1.2 !important;
+}
+.proposta-page-declaracoes .proposta-assinatura strong {
+  font-size: 12.2px !important;
+}
+
+@media print {
+  .proposta-page-cover .proposta-intro { font-size: 11.5pt !important; }
+  .proposta-page-cover .proposta-dados { font-size: 12pt !important; }
+  .proposta-page-table .proposta-table { font-size: 8.7pt !important; }
+  .proposta-page-table .proposta-table th { font-size: 8pt !important; }
+  .proposta-page-declaracoes .proposta-declaracoes {
+    font-size: 8.5pt !important;
+    line-height: 1.25 !important;
+  }
+}
