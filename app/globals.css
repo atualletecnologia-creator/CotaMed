@@ -5385,3 +5385,143 @@ input[type="file"]::file-selector-button {
     line-height: 1.52 !important;
   }
 }
+
+/* PROPOSTA V7 — primeira página completa e declarações em uma única folha */
+.proposta-page-cover {
+  position: relative !important;
+  padding: 10mm 14mm 18mm !important;
+}
+
+.proposta-page-cover .proposta-pdf-header {
+  margin-bottom: 4mm !important;
+}
+
+.proposta-page-cover .proposta-meta {
+  margin-top: 1mm !important;
+  margin-bottom: 4mm !important;
+}
+
+.proposta-page-cover .proposta-dados {
+  margin-top: 2mm !important;
+  margin-bottom: 8mm !important;
+  line-height: 1.45 !important;
+}
+
+.proposta-page-cover .proposta-titulo {
+  margin: 5mm 0 7mm !important;
+}
+
+.proposta-page-cover .proposta-intro {
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 10.5px !important;
+  line-height: 1.55 !important;
+  text-align: justify !important;
+}
+
+.proposta-page-cover .proposta-contato {
+  position: absolute !important;
+  left: 14mm !important;
+  right: 14mm !important;
+  bottom: 23mm !important;
+  width: auto !important;
+  max-height: none !important;
+  margin: 0 !important;
+  font-size: 8.7px !important;
+  line-height: 1.18 !important;
+  background: #fff !important;
+  z-index: 3 !important;
+}
+
+.proposta-page-cover .proposta-contato h3 {
+  min-height: 5.5mm !important;
+  padding: 1.1mm 2mm !important;
+  margin: 0 !important;
+  font-size: 9.4px !important;
+  line-height: 1.05 !important;
+}
+
+.proposta-page-cover .proposta-contato-grid span {
+  min-height: 6.3mm !important;
+  padding: 1.15mm 2mm !important;
+  line-height: 1.12 !important;
+  display: flex !important;
+  align-items: center !important;
+  gap: 1.2mm !important;
+}
+
+.proposta-page-cover .proposta-footer {
+  bottom: 7mm !important;
+}
+
+.proposta-page-declaracoes {
+  padding: 9mm 12mm 17mm !important;
+}
+
+.proposta-page-declaracoes .proposta-pdf-header-small {
+  margin-bottom: 1.5mm !important;
+}
+
+.proposta-page-declaracoes .proposta-titulo-declaracoes {
+  margin: 2.5mm 0 3mm !important;
+  font-size: 13px !important;
+}
+
+.proposta-page-declaracoes .proposta-declaracoes {
+  display: block !important;
+  margin: 0 !important;
+  padding-left: 6mm !important;
+  font-size: 8.15px !important;
+  line-height: 1.18 !important;
+  text-align: justify !important;
+  list-style-position: outside !important;
+}
+
+.proposta-page-declaracoes .proposta-declaracoes li {
+  margin: 0 0 1.05mm 0 !important;
+  padding-left: 1.2mm !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+.proposta-page-declaracoes .proposta-assinatura {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 18mm !important;
+  transform: translateX(-50%) !important;
+  width: 90mm !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: 8.5px !important;
+}
+
+@media screen {
+  .proposta-page-cover .proposta-intro {
+    font-size: 12px !important;
+  }
+  .proposta-page-cover .proposta-contato {
+    font-size: 10.5px !important;
+  }
+  .proposta-page-cover .proposta-contato h3 {
+    font-size: 11px !important;
+  }
+  .proposta-page-declaracoes .proposta-declaracoes {
+    font-size: 10.2px !important;
+    line-height: 1.22 !important;
+  }
+}
+
+@media print {
+  .proposta-page-cover .proposta-intro {
+    font-size: 10.5px !important;
+    line-height: 1.55 !important;
+  }
+  .proposta-page-cover .proposta-contato {
+    font-size: 8.7px !important;
+  }
+  .proposta-page-declaracoes .proposta-declaracoes {
+    font-size: 8.15px !important;
+    line-height: 1.18 !important;
+  }
+}

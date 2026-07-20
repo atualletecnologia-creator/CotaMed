@@ -155,24 +155,8 @@ function paginarItensProposta(itens: ItemProposta[]) {
 }
 
 function paginarDeclaracoes(declaracoes: string[]) {
-  const paginas: string[][] = [];
-  let paginaAtual: string[] = [];
-  let pesoAtual = 0;
-  const pesoMaximo = 1180;
-
-  for (const declaracao of declaracoes) {
-    const peso = declaracao.length + 95;
-    if (paginaAtual.length > 0 && pesoAtual + peso > pesoMaximo) {
-      paginas.push(paginaAtual);
-      paginaAtual = [];
-      pesoAtual = 0;
-    }
-    paginaAtual.push(declaracao);
-    pesoAtual += peso;
-  }
-
-  if (paginaAtual.length) paginas.push(paginaAtual);
-  return paginas;
+  // O modelo aprovado mantém todas as declarações em uma única página.
+  return declaracoes.length ? [declaracoes] : [];
 }
 
 function carregarCotacoesLocais(): CotacaoLocal[] {
@@ -523,9 +507,9 @@ export default function PropostasPage() {
                   DECLARAÇÕES{paginaDeclaracao > 0 ? " — CONTINUAÇÃO" : ""}
                 </h1>
 
-                <div className="proposta-declaracoes">
-                  {declaracoes.map((declaracao, index) => <p key={index}>• {declaracao}</p>)}
-                </div>
+                <ol className="proposta-declaracoes">
+                  {declaracoes.map((declaracao, index) => <li key={index}>{declaracao}</li>)}
+                </ol>
 
                 {ultimaPaginaDeclaracoes && (
                   <div className="proposta-assinatura">
