@@ -556,7 +556,6 @@ export default function BancoPrecos() {
         existentesPorChave.set(chaveProduto(produto.descricao, produto.marca), produto);
       });
 
-      // Remove repetições dentro da própria planilha, mantendo a última linha.
       const linhasUnicas = new Map<string, Record<string, unknown>>();
 
       linhasNormalizadas.forEach((linha) => {
@@ -605,27 +604,20 @@ export default function BancoPrecos() {
 
         if (registroEncontrado) vinculados++;
 
-        // Preserva vínculo ANVISA/PDF já existente quando a planilha não trouxer outro vínculo.
-        const registroAnvisa =
-          registroEncontrado?.registro_anvisa
-            ? maiusculo(registroEncontrado.registro_anvisa)
-            : produtoBase.registro_anvisa || existente?.registro_anvisa || null;
-
-        const vencimentoRegistro =
-          registroEncontrado?.vencimento_registro || existente?.vencimento_registro || null;
-
-        const pdfUrl =
-          registroEncontrado?.pdf_path || existente?.pdf_url || null;
-
         const payload = {
           user_id: userData.user.id,
           item: descricao,
           descricao,
           apresentacao: produtoBase.apresentacao,
           marca: produtoBase.marca,
-          registro_anvisa: registroAnvisa,
-          vencimento_registro: vencimentoRegistro,
-          pdf_url: pdfUrl,
+          registro_anvisa:
+            registroEncontrado?.registro_anvisa
+              ? maiusculo(registroEncontrado.registro_anvisa)
+              : produtoBase.registro_anvisa || existente?.registro_anvisa || null,
+          vencimento_registro:
+            registroEncontrado?.vencimento_registro || existente?.vencimento_registro || null,
+          pdf_url:
+            registroEncontrado?.pdf_path || existente?.pdf_url || null,
           unidade: maiusculo(normalizada.unidade) || null,
           quantidade_por_caixa: quantidadePorCaixa || null,
           custo_unitario: custoUnitario || null,
@@ -645,34 +637,33 @@ export default function BancoPrecos() {
             mensagensErro.push(`${descricao}: ${error.message}`);
           } else {
             atualizados++;
+            existentesPorChave.set(chave, { ...existente, ...payload });
           }
 
           continue;
         }
 
-        const { data: inserido, error } = await supabase
+        // Não solicita retorno da linha inserida. Em alguns projetos, o SELECT após INSERT
+        // pode ser bloqueado pela política RLS mesmo quando o INSERT foi concluído.
+        const { error: erroInsert } = await supabase
           .from("produtos")
-          .insert(payload)
-          .select("id, descricao, marca, registro_anvisa, vencimento_registro, pdf_url")
-          .single();
+          .insert(payload);
 
-        if (!error && inserido) {
+        if (!erroInsert) {
           novos++;
-          existentesPorChave.set(chave, inserido);
+          existentesPorChave.set(chave, payload);
           continue;
         }
 
-        // Caso o índice único encontre um registro antigo que não apareceu na busca do usuário,
-        // localiza a chave e atualiza em vez de interromper a importação.
-        if (String(error?.message || "").includes("duplicate key")) {
-          const { data: duplicados, error: erroDuplicado } = await supabase
+        if (String(erroInsert.message || "").includes("duplicate key")) {
+          const { data: duplicados, error: erroBuscaDuplicado } = await supabase
             .from("produtos")
             .select("id, registro_anvisa, vencimento_registro, pdf_url")
             .eq("descricao", descricao)
             .eq("marca", marca || "")
             .limit(1);
 
-          if (!erroDuplicado && duplicados && duplicados.length > 0) {
+          if (!erroBuscaDuplicado && duplicados && duplicados.length > 0) {
             const duplicado = duplicados[0];
 
             const payloadPreservado = {
@@ -700,21 +691,20 @@ export default function BancoPrecos() {
         }
 
         erros++;
-        mensagensErro.push(`${descricao}: ${error?.message || "erro desconhecido"}`);
+        mensagensErro.push(`${descricao}: ${erroInsert.message || "erro desconhecido"}`);
       }
 
-      const totalPlanilha = linhasNormalizadas.length;
-      const repetidosNaPlanilha = totalPlanilha - linhasUnicas.size;
+      const repetidosNaPlanilha = linhasNormalizadas.length - linhasUnicas.size;
 
       setMensagem(
         `Importação concluída: ${novos} novo(s), ${atualizados} atualizado(s), ` +
         `${ignorados} ignorado(s), ${vinculados} vínculo(s) ANVISA identificado(s)` +
-        `${repetidosNaPlanilha > 0 ? ` e ${repetidosNaPlanilha} repetição(ões) consolidada(s) na planilha` : ""}.`
+        `${repetidosNaPlanilha > 0 ? ` e ${repetidosNaPlanilha} repetição(ões) consolidada(s)` : ""}.`
       );
 
       if (erros > 0) {
         setErro(
-          `${erros} produto(s) apresentaram erro. Primeiro erro: ` +
+          `${erros} produto(s) não foram gravados. Primeiro erro: ` +
           `${mensagensErro[0] || "erro desconhecido"}`
         );
       }
