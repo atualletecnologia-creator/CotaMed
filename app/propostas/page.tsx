@@ -310,19 +310,16 @@ export default function PropostasPage() {
           <section className="proposta-page proposta-page-cover">
             <div className="proposta-page-number">1/3</div>
             <header className="proposta-pdf-header">
-              <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
-
-              <div>
+              <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
+              <div className="proposta-empresa">
                 <h2>DOM BOSCO HOSPITALAR LTDA</h2>
                 <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
-                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO CEP: 72.870-324</p>
-                <p>CNPJ: 35.020.039/0001-55 &nbsp;&nbsp; I.E.: 10.775.504-1</p>
+                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO&nbsp;&nbsp; CEP: 72.870-324</p>
+                <p>CNPJ: 35.020.039/0001-55&nbsp;&nbsp;&nbsp; I.E.: 10.775.504-1</p>
               </div>
             </header>
 
-            <div className="proposta-meta">
-              <p>VALPARAÍSO DE GOIÁS, {dataPorExtenso(dataProposta)}</p>
-            </div>
+            <div className="proposta-meta">VALPARAÍSO DE GOIÁS, {dataPorExtenso(dataProposta)}</div>
 
             <div className="proposta-dados">
               <p>{orgao} {municipio}</p>
@@ -352,9 +349,8 @@ export default function PropostasPage() {
                 <span><b>CPF:</b> 750.848.216-68</span>
                 <span className="span-2"><b>Celular:</b> (61) 99880-6200</span>
               </div>
-
               <h3>DADOS BANCÁRIOS</h3>
-              <div className="proposta-contato-grid">
+              <div className="proposta-contato-grid proposta-banco-grid">
                 <span><b>Banco:</b> Sicoob</span>
                 <span><b>Número:</b> 756</span>
                 <span><b>Agência:</b> 5004</span>
@@ -362,19 +358,18 @@ export default function PropostasPage() {
               </div>
             </section>
 
-            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM &nbsp;&nbsp; | &nbsp;&nbsp; TELEFONE: (61) 3205-9003</footer>
+            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
           </section>
 
           <section className="proposta-page proposta-page-table">
             <div className="proposta-page-number">2/3</div>
             <header className="proposta-pdf-header proposta-pdf-header-small">
-              <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
-
-              <div>
+              <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
+              <div className="proposta-empresa">
                 <h2>DOM BOSCO HOSPITALAR LTDA</h2>
                 <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
-                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO CEP: 72.870-324</p>
-                <p>CNPJ: 35.020.039/0001-55 &nbsp;&nbsp; I.E.: 10.775.504-1</p>
+                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO&nbsp;&nbsp; CEP: 72.870-324</p>
+                <p>CNPJ: 35.020.039/0001-55&nbsp;&nbsp;&nbsp; I.E.: 10.775.504-1</p>
               </div>
             </header>
 
@@ -382,86 +377,58 @@ export default function PropostasPage() {
 
             <table className="proposta-table">
               <thead>
-                <tr>
-                  <th>Item</th>
-                  <th>Descrição</th>
-                  <th>Qtd</th>
-                  <th>Unid</th>
-                  <th>Registro</th>
-                  <th>Marca</th>
-                  <th>Vl Unit</th>
-                  <th>Vl Total</th>
-                </tr>
+                <tr><th>ITEM</th><th>DESCRIÇÃO</th><th>UND</th><th>QTD</th><th>REGISTRO</th><th>MARCA</th><th>VL UNIT</th><th>VL TOTAL</th></tr>
               </thead>
-
               <tbody>
                 {itensProposta.map((item, index) => (
                   <tr key={`${item.numero_item}-${index}`}>
                     <td>{item.numero_item || index + 1}</td>
                     <td className="descricao">{limparTexto(item.descricao)}</td>
-                    <td>{Number(item.quantidade || 0)}</td>
                     <td>{limparTexto(item.unidade)}</td>
+                    <td>{Number(item.quantidade || 0)}</td>
                     <td>{limparTexto(item.registro_anvisa) || "ISENTO"}</td>
                     <td>{limparTexto(item.marca) || "-"}</td>
                     <td>{dinheiro(item.valor_unitario)}</td>
                     <td>{dinheiro(item.valor_total)}</td>
                   </tr>
                 ))}
-
-                <tr className="total-row"><td colSpan={7}>TOTAL</td><td>{dinheiro(valorGlobal)}</td></tr>
+                <tr className="total-row"><td colSpan={7}>VALOR TOTAL DA PROPOSTA</td><td>{dinheiro(valorGlobal)}</td></tr>
                 <tr className="extenso-row"><td colSpan={8}>{numeroParaExtenso(valorGlobal)}</td></tr>
               </tbody>
             </table>
 
-            <div className="proposta-declaracoes proposta-declaracoes-resumo">
-              <h2>DECLARAÇÕES</h2>
+            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
+          </section>
+
+          <section className="proposta-page proposta-page-declaracoes">
+            <div className="proposta-page-number">3/3</div>
+            <header className="proposta-pdf-header proposta-pdf-header-small">
+              <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
+              <div className="proposta-empresa">
+                <h2>DOM BOSCO HOSPITALAR LTDA</h2>
+                <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
+                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO&nbsp;&nbsp; CEP: 72.870-324</p>
+                <p>CNPJ: 35.020.039/0001-55&nbsp;&nbsp;&nbsp; I.E.: 10.775.504-1</p>
+              </div>
+            </header>
+
+            <h1 className="proposta-titulo proposta-titulo-declaracoes">DECLARAÇÕES</h1>
+            <div className="proposta-declaracoes">
               <p>• Declaramos que nos preços propostos estão inclusos todos os custos e despesas, tais como: custos diretos e indiretos, tributos incidentes, taxa de administração, materiais, serviços, encargos sociais, trabalhistas, seguros, transportes, fretes, embalagens, lucro e outros necessários ao cumprimento integral do objeto deste edital e seus anexos.</p>
               <p>• Declaramos que o prazo de validade da proposta é de {validade} ({validade}) dias, contados da data de abertura da licitação.</p>
               <p>• Declaramos que os produtos ofertados atendem a todas as especificações técnicas e exigências do edital.</p>
               <p>• Declaramos que temos pleno conhecimento e aceitamos todas as condições do edital e seus anexos.</p>
               <p>• Declaramos que os dados bancários informados são de nossa titularidade.</p>
-            </div>
-
-            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM &nbsp;&nbsp; | &nbsp;&nbsp; TELEFONE: (61) 3205-9003</footer>
-          </section>
-
-          <section className="proposta-page proposta-page-declarations">
-            <div className="proposta-page-number">3/3</div>
-            <header className="proposta-pdf-header proposta-pdf-header-small">
-              <div className="proposta-logo-box"><img src="/proposta/dom-bosco-logo.png" alt="Logo" /></div>
-              <div>
-                <h2>DOM BOSCO HOSPITALAR LTDA</h2>
-                <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
-                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO CEP: 72.870-324</p>
-                <p>CNPJ: 35.020.039/0001-55 &nbsp;&nbsp; I.E.: 10.775.504-1</p>
-              </div>
-            </header>
-
-            <h1 className="proposta-titulo proposta-titulo-tabela">DECLARAÇÕES COMPLEMENTARES</h1>
-
-            <div className="proposta-declaracoes proposta-declaracoes-completas">
-              <p>• DECLARO, sob as penas da lei, em especial o art. 299 do Código Penal Brasileiro, que todas as informações desta proposta são verdadeiras.</p>
-              <p>• DECLARO que a proposta foi elaborada de maneira independente pela empresa DOM BOSCO HOSPITALAR LTDA e que seu conteúdo não foi informado, discutido ou recebido de qualquer outro participante potencial.</p>
-              <p>• DECLARO que não tentei influir na decisão de qualquer outro participante quanto à participação na presente licitação.</p>
-              <p>• DECLARO que o conteúdo desta proposta não será comunicado ou discutido com outro participante antes da adjudicação do objeto.</p>
-              <p>• DECLARO estar plenamente ciente do teor e da extensão destas declarações e possuir plenos poderes para firmá-las.</p>
-              <p>• Declaramos estar de pleno acordo com todas as obrigações, responsabilidades e condições estabelecidas no Edital e seus Anexos.</p>
-              <p>• DECLARO que, caso nos seja adjudicado o objeto, entregaremos os produtos nos prazos e condições estipulados no Termo de Referência.</p>
               <p>• Condições de pagamento: {condicoesPagamento}.</p>
             </div>
 
             <div className="proposta-assinatura">
               <div></div>
-              <strong>DOM BOSCO HOSPITALAR LTDA</strong>
-              <span>CNPJ: 35.020.039/0001-55</span>
-              <span>JOSÉ ADMILSON DE OLIVEIRA</span>
-              <span>SÓCIO-PROPRIETÁRIO</span>
-              <span>CPF: 750.848.216-68</span>
-              <span>RG: M6776966 SSP/MG</span>
-              <em>Documento preparado para assinatura digital ICP-Brasil.</em>
+              <strong>JOSÉ ADMILSON DE OLIVEIRA</strong>
+              <span>REPRESENTANTE LEGAL</span>
             </div>
 
-            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM &nbsp;&nbsp; | &nbsp;&nbsp; TELEFONE: (61) 3205-9003</footer>
+            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
           </section>
         </div>
 
