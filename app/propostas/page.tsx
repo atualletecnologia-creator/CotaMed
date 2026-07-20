@@ -110,13 +110,53 @@ function numeroParaExtenso(valor: number) {
 
 
 
+
+function numeroInteiroParaExtenso(valor: number) {
+  const numero = Math.max(0, Math.floor(Number(valor) || 0));
+  const unidades = ["zero", "um", "dois", "três", "quatro", "cinco", "seis", "sete", "oito", "nove"];
+  const especiais = ["dez", "onze", "doze", "treze", "quatorze", "quinze", "dezesseis", "dezessete", "dezoito", "dezenove"];
+  const dezenas = ["", "", "vinte", "trinta", "quarenta", "cinquenta", "sessenta", "setenta", "oitenta", "noventa"];
+  const centenas = ["", "cento", "duzentos", "trezentos", "quatrocentos", "quinhentos", "seiscentos", "setecentos", "oitocentos", "novecentos"];
+
+  function ate999(n: number): string {
+    if (n < 10) return unidades[n];
+    if (n < 20) return especiais[n - 10];
+    if (n === 100) return "cem";
+
+    const partes: string[] = [];
+    const c = Math.floor(n / 100);
+    const resto = n % 100;
+    const d = Math.floor(resto / 10);
+    const u = resto % 10;
+
+    if (c) partes.push(centenas[c]);
+    if (resto >= 10 && resto < 20) partes.push(especiais[resto - 10]);
+    else {
+      if (d) partes.push(dezenas[d]);
+      if (u) partes.push(unidades[u]);
+    }
+
+    return partes.join(" e ");
+  }
+
+  if (numero < 1000) return ate999(numero);
+
+  const milhares = Math.floor(numero / 1000);
+  const resto = numero % 1000;
+  const parteMilhar = milhares === 1 ? "mil" : `${numeroInteiroParaExtenso(milhares)} mil`;
+
+  if (!resto) return parteMilhar;
+  const conector = resto < 100 || resto % 100 === 0 ? " e " : ", ";
+  return `${parteMilhar}${conector}${ate999(resto)}`;
+}
+
 function criarDeclaracoesProposta(validade: string, condicoesPagamento: string) {
   const validadeLimpa = limparTexto(validade) || "90";
   const pagamentoLimpo = limparTexto(condicoesPagamento) || "Conforme o edital";
 
   return [
     "DECLARO, sob as penas da lei, em especial o art. 299 do Código Penal Brasileiro, que todas as declarações abaixo são verdadeiras;",
-    `Validade da proposta: ${validadeLimpa} (${validadeLimpa === "90" ? "noventa" : validadeLimpa}) dias, a contar da data de sua apresentação;`,
+    `Validade da proposta: ${validadeLimpa} (${numeroInteiroParaExtenso(Number(validadeLimpa))}) dias, a contar da data de sua apresentação;`,
     "DECLARO que a proposta apresentada foi elaborada de maneira independente pela empresa DOM BOSCO HOSPITALAR LTDA, e o conteúdo da proposta não foi, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
     "DECLARO que a intenção de apresentar a proposta elaborada não foi informada, discutida ou recebida de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
     "DECLARO que não tentei, por qualquer meio ou por qualquer pessoa, influir na decisão de qualquer outro participante potencial ou de fato quanto a participar ou não da referida licitação;",
