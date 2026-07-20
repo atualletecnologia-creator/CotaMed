@@ -513,9 +513,13 @@ export default function PropostasPage() {
 
                 {ultimaPaginaDeclaracoes && (
                   <div className="proposta-assinatura">
-                    <div></div>
+                    <div className="proposta-assinatura-linha"></div>
+                    <strong>DOM BOSCO HOSPITALAR LTDA</strong>
+                    <strong>CNPJ: 35.020.039/0001-55</strong>
                     <strong>JOSÉ ADMILSON DE OLIVEIRA</strong>
-                    <span>REPRESENTANTE LEGAL</span>
+                    <strong>SÓCIO-PROPRIETÁRIO</strong>
+                    <strong>CPF: 750.848.216-68</strong>
+                    <strong>RG: M6776966 SSP/MG</strong>
                   </div>
                 )}
 

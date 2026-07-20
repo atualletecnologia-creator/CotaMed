@@ -5525,3 +5525,49 @@ input[type="file"]::file-selector-button {
     line-height: 1.18 !important;
   }
 }
+
+
+/* Assinatura final conforme modelo aprovado */
+.proposta-page-declaracoes .proposta-assinatura {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 17mm !important;
+  transform: translateX(-50%) !important;
+  width: 92mm !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  text-align: center !important;
+  color: #111827 !important;
+  font-size: 10px !important;
+  line-height: 1.15 !important;
+  font-family: Arial, Helvetica, sans-serif !important;
+  font-weight: 700 !important;
+}
+
+.proposta-page-declaracoes .proposta-assinatura-linha {
+  width: 100% !important;
+  height: 0 !important;
+  margin: 0 0 1.6mm 0 !important;
+  border-top: 1px solid #111 !important;
+}
+
+.proposta-page-declaracoes .proposta-assinatura strong {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  font-size: inherit !important;
+  line-height: inherit !important;
+  font-weight: 700 !important;
+}
+
+@media screen {
+  .proposta-page-declaracoes .proposta-assinatura {
+    font-size: 12px !important;
+  }
+}
+
+@media print {
+  .proposta-page-declaracoes .proposta-assinatura {
+    font-size: 10px !important;
+  }
+}
