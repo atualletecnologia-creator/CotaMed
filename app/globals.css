@@ -5269,3 +5269,119 @@ input[type="file"]::file-selector-button {
   .proposta-table th { font-size: 8.4px !important; }
   .proposta-declaracoes { font-size: 12px !important; }
 }
+
+/* PROPOSTA V6 — paginação segura de tabela e declarações oficiais */
+.proposta-page {
+  overflow: hidden !important;
+}
+
+.proposta-page-table {
+  padding: 14mm 10mm 18mm !important;
+}
+
+.proposta-page-table .proposta-table-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: visible !important;
+  box-sizing: border-box !important;
+}
+
+.proposta-page-table .proposta-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  border-collapse: collapse !important;
+  font-size: 9px !important;
+  line-height: 1.28 !important;
+}
+
+.proposta-page-table .proposta-table th,
+.proposta-page-table .proposta-table td {
+  padding: 2.2mm 1mm !important;
+  box-sizing: border-box !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  hyphens: auto !important;
+  vertical-align: middle !important;
+}
+
+.proposta-page-table .proposta-table th {
+  font-size: 7.8px !important;
+  line-height: 1.15 !important;
+}
+
+.proposta-page-table .proposta-table td:nth-child(7),
+.proposta-page-table .proposta-table td:nth-child(8) {
+  white-space: normal !important;
+}
+
+.proposta-page-table .proposta-table col.col-item { width: 5% !important; }
+.proposta-page-table .proposta-table col.col-descricao { width: 33% !important; }
+.proposta-page-table .proposta-table col.col-und { width: 6% !important; }
+.proposta-page-table .proposta-table col.col-qtd { width: 7% !important; }
+.proposta-page-table .proposta-table col.col-registro { width: 14% !important; }
+.proposta-page-table .proposta-table col.col-marca { width: 11% !important; }
+.proposta-page-table .proposta-table col.col-unitario { width: 12% !important; }
+.proposta-page-table .proposta-table col.col-total { width: 12% !important; }
+
+.proposta-page-declaracoes {
+  padding: 14mm 14mm 20mm !important;
+}
+
+.proposta-page-declaracoes .proposta-titulo-declaracoes {
+  margin: 7mm 0 6mm !important;
+}
+
+.proposta-page-declaracoes .proposta-declaracoes {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 4mm !important;
+  font-size: 10.4px !important;
+  line-height: 1.52 !important;
+  text-align: justify !important;
+  overflow: visible !important;
+}
+
+.proposta-page-declaracoes .proposta-declaracoes p {
+  margin: 0 !important;
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+
+.proposta-page-declaracoes .proposta-assinatura {
+  margin-top: auto !important;
+  padding-bottom: 5mm !important;
+}
+
+@media screen {
+  .proposta-page-table .proposta-table {
+    font-size: 11px !important;
+  }
+  .proposta-page-table .proposta-table th {
+    font-size: 9.4px !important;
+  }
+  .proposta-page-declaracoes .proposta-declaracoes {
+    font-size: 13px !important;
+    line-height: 1.55 !important;
+  }
+}
+
+@media print {
+  .proposta-page {
+    width: 210mm !important;
+    height: 297mm !important;
+    min-height: 297mm !important;
+    max-height: 297mm !important;
+    overflow: hidden !important;
+  }
+  .proposta-page-table .proposta-table {
+    font-size: 9px !important;
+  }
+  .proposta-page-table .proposta-table th {
+    font-size: 7.8px !important;
+  }
+  .proposta-page-declaracoes .proposta-declaracoes {
+    font-size: 10.4px !important;
+    line-height: 1.52 !important;
+  }
+}

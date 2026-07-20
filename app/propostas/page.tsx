@@ -110,18 +110,37 @@ function numeroParaExtenso(valor: number) {
 
 
 
+const DECLARACOES_PROPOSTA = [
+  "DECLARO, sob as penas da lei, em especial o art. 299 do Código Penal Brasileiro, que todas as declarações abaixo são verdadeiras;",
+  "Validade da proposta: 90 (noventa) dias, a contar da data de sua apresentação;",
+  "DECLARO que a proposta apresentada foi elaborada de maneira independente pela empresa DOM BOSCO HOSPITALAR LTDA, e o conteúdo da proposta não foi, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
+  "DECLARO que a intenção de apresentar a proposta elaborada não foi informada, discutida ou recebida de qualquer outro participante potencial, por qualquer meio ou por qualquer pessoa;",
+  "DECLARO que não tentei, por qualquer meio ou por qualquer pessoa, influir na decisão de qualquer outro participante potencial ou de fato quanto a participar ou não da referida licitação;",
+  "DECLARO que o conteúdo da proposta apresentada não será, no todo ou em parte, direta ou indiretamente, comunicado ou discutido com qualquer outro participante potencial ou de fato antes da adjudicação do objeto da referida licitação;",
+  "DECLARO que o conteúdo da proposta não será, no todo ou em parte, direta ou indiretamente, informado, discutido ou recebido de qualquer integrante da Comissão de Licitações antes da abertura oficial das propostas;",
+  "DECLARO que estou plenamente ciente do teor e da extensão desta declaração e que detenho plenos poderes e informações para firmá-la;",
+  "DECLARO que nos preços acima propostos estão incluídas todas as despesas diretas e indiretas, inclusive tributos e/ou impostos, encargos sociais e trabalhistas incidentes, taxa de administração, previsão de lucro, seguro, frete e outros necessários ao cumprimento integral dos objetos da aquisição;",
+  "Declaramos que estamos de pleno acordo com todas as obrigações e responsabilidades, bem como todas as condições estabelecidas no Edital e seus Anexos;",
+  "DECLARO que caso nos seja adjudicado o objeto da licitação, comprometemo-nos a entregar os produtos no prazo e condições estipuladas no Termo de Referência deste Edital;",
+  "DECLARO conhecer os termos do instrumento convocatório que rege a presente licitação;",
+  "Condições de pagamento: Conforme o edital;",
+  "Local, horário e prazo de entrega dos produtos: Conforme o edital.",
+];
+
 function paginarItensProposta(itens: ItemProposta[]) {
+  if (!itens.length) return [];
+
   const paginas: ItemProposta[][] = [];
   let paginaAtual: ItemProposta[] = [];
   let pesoAtual = 0;
-  const pesoMaximo = 82;
+  const pesoMaximo = 62;
 
   for (const item of itens) {
     const descricao = limparTexto(item.descricao);
-    const linhasEstimadas = Math.max(1, Math.ceil(descricao.length / 52));
-    const pesoItem = 13 + linhasEstimadas * 8;
+    const linhasEstimadas = Math.max(1, Math.ceil(descricao.length / 42));
+    const pesoItem = 12 + linhasEstimadas * 7;
 
-    if (paginaAtual.length > 0 && (paginaAtual.length >= 4 || pesoAtual + pesoItem > pesoMaximo)) {
+    if (paginaAtual.length > 0 && (paginaAtual.length >= 3 || pesoAtual + pesoItem > pesoMaximo)) {
       paginas.push(paginaAtual);
       paginaAtual = [];
       pesoAtual = 0;
@@ -131,7 +150,28 @@ function paginarItensProposta(itens: ItemProposta[]) {
     pesoAtual += pesoItem;
   }
 
-  if (paginaAtual.length || paginas.length === 0) paginas.push(paginaAtual);
+  if (paginaAtual.length) paginas.push(paginaAtual);
+  return paginas;
+}
+
+function paginarDeclaracoes(declaracoes: string[]) {
+  const paginas: string[][] = [];
+  let paginaAtual: string[] = [];
+  let pesoAtual = 0;
+  const pesoMaximo = 1180;
+
+  for (const declaracao of declaracoes) {
+    const peso = declaracao.length + 95;
+    if (paginaAtual.length > 0 && pesoAtual + peso > pesoMaximo) {
+      paginas.push(paginaAtual);
+      paginaAtual = [];
+      pesoAtual = 0;
+    }
+    paginaAtual.push(declaracao);
+    pesoAtual += peso;
+  }
+
+  if (paginaAtual.length) paginas.push(paginaAtual);
   return paginas;
 }
 
@@ -217,7 +257,8 @@ export default function PropostasPage() {
   }, [itensProposta]);
 
   const paginasItens = useMemo(() => paginarItensProposta(itensProposta), [itensProposta]);
-  const totalPaginasProposta = 3 + paginasItens.length;
+  const paginasDeclaracoes = useMemo(() => paginarDeclaracoes(DECLARACOES_PROPOSTA), []);
+  const totalPaginasProposta = 1 + paginasItens.length + paginasDeclaracoes.length;
 
   const descricaoPregao = `${modalidade} ${numeroPregao}`.trim();
 
@@ -461,23 +502,9 @@ export default function PropostasPage() {
             );
           })}
 
-          {[0, 1].map((paginaDeclaracao) => {
+          {paginasDeclaracoes.map((declaracoes, paginaDeclaracao) => {
             const numeroPagina = paginasItens.length + 2 + paginaDeclaracao;
-            const declaracoes = paginaDeclaracao === 0
-              ? [
-                  <>Declaramos que nos preços propostos estão inclusos todos os custos e despesas, inclusive custos diretos e indiretos, tributos, taxas, materiais, serviços, encargos sociais e trabalhistas, seguros, transportes, fretes, embalagens, lucro e quaisquer outros necessários ao cumprimento integral do objeto do edital e de seus anexos.</>,
-                  <>Declaramos que a presente proposta tem validade de {validade} dias, contados da data de abertura da licitação.</>,
-                  <>Declaramos que os produtos ofertados atendem integralmente às especificações técnicas, quantidades, unidades, registros e demais exigências previstas no edital.</>,
-                  <>Declaramos que conhecemos e aceitamos, sem ressalvas, todas as condições, obrigações e regras estabelecidas no edital e em seus anexos.</>,
-                  <>Declaramos que os dados bancários informados pertencem à empresa proponente e estão corretos para fins de pagamento.</>,
-                ]
-              : [
-                  <>Declaramos que as condições de pagamento propostas são: {condicoesPagamento}.</>,
-                  <>Declaramos, sob as penas da lei, que não existem fatos impeditivos para nossa habilitação e contratação com a Administração Pública.</>,
-                  <>Declaramos que não empregamos menor de 18 anos em trabalho noturno, perigoso ou insalubre, nem menor de 16 anos, salvo na condição de aprendiz a partir dos 14 anos.</>,
-                  <>Declaramos que esta proposta foi elaborada de forma independente e que seu conteúdo não foi, no todo ou em parte, informado, discutido ou recebido de qualquer outro participante.</>,
-                  <>Declaramos que manteremos todas as condições de habilitação e qualificação exigidas durante a vigência da contratação.</>,
-                ];
+            const ultimaPaginaDeclaracoes = paginaDeclaracao === paginasDeclaracoes.length - 1;
 
             return (
               <section className="proposta-page proposta-page-declaracoes" key={`declaracoes-${paginaDeclaracao}`}>
@@ -493,14 +520,14 @@ export default function PropostasPage() {
                 </header>
 
                 <h1 className="proposta-titulo proposta-titulo-declaracoes">
-                  DECLARAÇÕES{paginaDeclaracao === 1 ? " — CONTINUAÇÃO" : ""}
+                  DECLARAÇÕES{paginaDeclaracao > 0 ? " — CONTINUAÇÃO" : ""}
                 </h1>
 
                 <div className="proposta-declaracoes">
                   {declaracoes.map((declaracao, index) => <p key={index}>• {declaracao}</p>)}
                 </div>
 
-                {paginaDeclaracao === 1 && (
+                {ultimaPaginaDeclaracoes && (
                   <div className="proposta-assinatura">
                     <div></div>
                     <strong>JOSÉ ADMILSON DE OLIVEIRA</strong>
