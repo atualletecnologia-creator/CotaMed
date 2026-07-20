@@ -5106,3 +5106,82 @@ input[type="file"]::file-selector-button {
   body::after { display: none !important; content: none !important; }
   @page { size: A4 portrait; margin: 0; }
 }
+
+/* PROPOSTA AJUSTE FINAL: fonte legível, paginação automática e tabela contida */
+.proposta-page {
+  font-size: 12px !important;
+  line-height: 1.5 !important;
+  padding: 10mm 11mm 15mm !important;
+}
+.proposta-empresa h2 { font-size: 20px !important; }
+.proposta-empresa p { font-size: 9.4px !important; line-height: 1.4 !important; }
+.proposta-pdf-header-small .proposta-empresa h2 { font-size: 19px !important; }
+.proposta-pdf-header-small .proposta-empresa p { font-size: 9px !important; }
+.proposta-logo-oficial { width: 24mm !important; height: 24mm !important; }
+.proposta-pdf-header-small .proposta-logo-oficial { width: 22mm !important; height: 22mm !important; }
+.proposta-meta { font-size: 10px !important; }
+.proposta-dados { font-size: 13px !important; gap: 2.6mm !important; }
+.proposta-titulo { font-size: 18px !important; }
+.proposta-intro { font-size: 12.2px !important; line-height: 1.68 !important; padding: 0 2mm !important; }
+.proposta-contato { font-size: 10.4px !important; }
+.proposta-contato h3 { font-size: 11px !important; }
+.proposta-contato-grid span { min-height: 8.5mm !important; padding: 1.8mm 2.5mm !important; }
+.proposta-footer { font-size: 9.8px !important; }
+.proposta-page-number { width: 13mm !important; height: 13mm !important; font-size: 10.5px !important; }
+
+.proposta-table-wrap {
+  width: 100% !important;
+  max-width: 100% !important;
+  overflow: hidden !important;
+}
+.proposta-table {
+  width: 100% !important;
+  max-width: 100% !important;
+  table-layout: fixed !important;
+  font-size: 9.4px !important;
+  line-height: 1.35 !important;
+}
+.proposta-table col.col-item { width: 5.5% !important; }
+.proposta-table col.col-descricao { width: 34% !important; }
+.proposta-table col.col-und { width: 6.5% !important; }
+.proposta-table col.col-qtd { width: 7% !important; }
+.proposta-table col.col-registro { width: 14% !important; }
+.proposta-table col.col-marca { width: 11% !important; }
+.proposta-table col.col-unitario { width: 10.5% !important; }
+.proposta-table col.col-total { width: 11.5% !important; }
+.proposta-table th,
+.proposta-table td {
+  box-sizing: border-box !important;
+  padding: 2.2mm 1.1mm !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word !important;
+  white-space: normal !important;
+}
+.proposta-table th { font-size: 8.4px !important; }
+.proposta-table td:nth-child(7),
+.proposta-table td:nth-child(8),
+.proposta-table th:nth-child(7),
+.proposta-table th:nth-child(8) { white-space: nowrap !important; }
+.proposta-table .total-row td { font-size: 10px !important; }
+.proposta-table .extenso-row td { font-size: 9.6px !important; }
+
+.proposta-titulo-declaracoes { font-size: 17px !important; margin-bottom: 8mm !important; }
+.proposta-declaracoes {
+  margin: 0 5mm !important;
+  gap: 5mm !important;
+  font-size: 12px !important;
+  line-height: 1.65 !important;
+}
+.proposta-assinatura { font-size: 11px !important; bottom: 35mm !important; }
+.proposta-assinatura strong { font-size: 11px !important; }
+
+@media print {
+  .proposta-page {
+    padding: 10mm 11mm 15mm !important;
+    overflow: hidden !important;
+  }
+  .proposta-table {
+    font-size: 9.4px !important;
+    line-height: 1.35 !important;
+  }
+}

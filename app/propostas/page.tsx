@@ -108,6 +108,33 @@ function numeroParaExtenso(valor: number) {
   return `${textoReais} e ${inteiroExtenso(centavos)} ${centavos === 1 ? "centavo" : "centavos"}`;
 }
 
+
+
+function paginarItensProposta(itens: ItemProposta[]) {
+  const paginas: ItemProposta[][] = [];
+  let paginaAtual: ItemProposta[] = [];
+  let pesoAtual = 0;
+  const pesoMaximo = 112;
+
+  for (const item of itens) {
+    const descricao = limparTexto(item.descricao);
+    const linhasEstimadas = Math.max(1, Math.ceil(descricao.length / 52));
+    const pesoItem = 13 + linhasEstimadas * 8;
+
+    if (paginaAtual.length > 0 && (paginaAtual.length >= 6 || pesoAtual + pesoItem > pesoMaximo)) {
+      paginas.push(paginaAtual);
+      paginaAtual = [];
+      pesoAtual = 0;
+    }
+
+    paginaAtual.push(item);
+    pesoAtual += pesoItem;
+  }
+
+  if (paginaAtual.length || paginas.length === 0) paginas.push(paginaAtual);
+  return paginas;
+}
+
 function carregarCotacoesLocais(): CotacaoLocal[] {
   if (typeof window === "undefined") return [];
 
@@ -188,6 +215,9 @@ export default function PropostasPage() {
   const valorGlobal = useMemo(() => {
     return itensProposta.reduce((total, item) => total + Number(item.valor_total || 0), 0);
   }, [itensProposta]);
+
+  const paginasItens = useMemo(() => paginarItensProposta(itensProposta), [itensProposta]);
+  const totalPaginasProposta = 3 + paginasItens.length;
 
   const descricaoPregao = `${modalidade} ${numeroPregao}`.trim();
 
@@ -308,7 +338,7 @@ export default function PropostasPage() {
 
         <div className="proposta-doc">
           <section className="proposta-page proposta-page-cover">
-            <div className="proposta-page-number">1/3</div>
+            <div className="proposta-page-number">1/{totalPaginasProposta}</div>
             <header className="proposta-pdf-header">
               <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
               <div className="proposta-empresa">
@@ -361,75 +391,127 @@ export default function PropostasPage() {
             <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
           </section>
 
-          <section className="proposta-page proposta-page-table">
-            <div className="proposta-page-number">2/3</div>
-            <header className="proposta-pdf-header proposta-pdf-header-small">
-              <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
-              <div className="proposta-empresa">
-                <h2>DOM BOSCO HOSPITALAR LTDA</h2>
-                <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
-                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO&nbsp;&nbsp; CEP: 72.870-324</p>
-                <p>CNPJ: 35.020.039/0001-55&nbsp;&nbsp;&nbsp; I.E.: 10.775.504-1</p>
-              </div>
-            </header>
+          {paginasItens.map((itensPagina, paginaIndex) => {
+            const ultimaPaginaTabela = paginaIndex === paginasItens.length - 1;
+            const numeroPagina = paginaIndex + 2;
+            const deslocamento = paginasItens
+              .slice(0, paginaIndex)
+              .reduce((total, pagina) => total + pagina.length, 0);
 
-            <h1 className="proposta-titulo proposta-titulo-tabela">PROPOSTA DE PREÇOS</h1>
+            return (
+              <section className="proposta-page proposta-page-table" key={`tabela-${paginaIndex}`}>
+                <div className="proposta-page-number">{numeroPagina}/{totalPaginasProposta}</div>
+                <header className="proposta-pdf-header proposta-pdf-header-small">
+                  <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
+                  <div className="proposta-empresa">
+                    <h2>DOM BOSCO HOSPITALAR LTDA</h2>
+                    <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
+                    <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO&nbsp;&nbsp; CEP: 72.870-324</p>
+                    <p>CNPJ: 35.020.039/0001-55&nbsp;&nbsp;&nbsp; I.E.: 10.775.504-1</p>
+                  </div>
+                </header>
 
-            <table className="proposta-table">
-              <thead>
-                <tr><th>ITEM</th><th>DESCRIÇÃO</th><th>UND</th><th>QTD</th><th>REGISTRO</th><th>MARCA</th><th>VL UNIT</th><th>VL TOTAL</th></tr>
-              </thead>
-              <tbody>
-                {itensProposta.map((item, index) => (
-                  <tr key={`${item.numero_item}-${index}`}>
-                    <td>{item.numero_item || index + 1}</td>
-                    <td className="descricao">{limparTexto(item.descricao)}</td>
-                    <td>{limparTexto(item.unidade)}</td>
-                    <td>{Number(item.quantidade || 0)}</td>
-                    <td>{limparTexto(item.registro_anvisa) || "ISENTO"}</td>
-                    <td>{limparTexto(item.marca) || "-"}</td>
-                    <td>{dinheiro(item.valor_unitario)}</td>
-                    <td>{dinheiro(item.valor_total)}</td>
-                  </tr>
-                ))}
-                <tr className="total-row"><td colSpan={7}>VALOR TOTAL DA PROPOSTA</td><td>{dinheiro(valorGlobal)}</td></tr>
-                <tr className="extenso-row"><td colSpan={8}>{numeroParaExtenso(valorGlobal)}</td></tr>
-              </tbody>
-            </table>
+                <h1 className="proposta-titulo proposta-titulo-tabela">
+                  PROPOSTA DE PREÇOS{paginasItens.length > 1 ? ` — ${paginaIndex + 1}/${paginasItens.length}` : ""}
+                </h1>
 
-            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
-          </section>
+                <div className="proposta-table-wrap">
+                  <table className="proposta-table">
+                    <colgroup>
+                      <col className="col-item" />
+                      <col className="col-descricao" />
+                      <col className="col-und" />
+                      <col className="col-qtd" />
+                      <col className="col-registro" />
+                      <col className="col-marca" />
+                      <col className="col-unitario" />
+                      <col className="col-total" />
+                    </colgroup>
+                    <thead>
+                      <tr><th>ITEM</th><th>DESCRIÇÃO</th><th>UND</th><th>QTD</th><th>REGISTRO</th><th>MARCA</th><th>VL UNIT</th><th>VL TOTAL</th></tr>
+                    </thead>
+                    <tbody>
+                      {itensPagina.map((item, index) => {
+                        const indiceGlobal = deslocamento + index;
+                        return (
+                          <tr key={`${item.numero_item}-${indiceGlobal}`}>
+                            <td>{item.numero_item || indiceGlobal + 1}</td>
+                            <td className="descricao">{limparTexto(item.descricao)}</td>
+                            <td>{limparTexto(item.unidade)}</td>
+                            <td>{Number(item.quantidade || 0)}</td>
+                            <td>{limparTexto(item.registro_anvisa) || "ISENTO"}</td>
+                            <td>{limparTexto(item.marca) || "-"}</td>
+                            <td>{dinheiro(item.valor_unitario)}</td>
+                            <td>{dinheiro(item.valor_total)}</td>
+                          </tr>
+                        );
+                      })}
+                      {ultimaPaginaTabela && (
+                        <>
+                          <tr className="total-row"><td colSpan={7}>VALOR TOTAL DA PROPOSTA</td><td>{dinheiro(valorGlobal)}</td></tr>
+                          <tr className="extenso-row"><td colSpan={8}>{numeroParaExtenso(valorGlobal)}</td></tr>
+                        </>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
 
-          <section className="proposta-page proposta-page-declaracoes">
-            <div className="proposta-page-number">3/3</div>
-            <header className="proposta-pdf-header proposta-pdf-header-small">
-              <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
-              <div className="proposta-empresa">
-                <h2>DOM BOSCO HOSPITALAR LTDA</h2>
-                <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
-                <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO&nbsp;&nbsp; CEP: 72.870-324</p>
-                <p>CNPJ: 35.020.039/0001-55&nbsp;&nbsp;&nbsp; I.E.: 10.775.504-1</p>
-              </div>
-            </header>
+                <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
+              </section>
+            );
+          })}
 
-            <h1 className="proposta-titulo proposta-titulo-declaracoes">DECLARAÇÕES</h1>
-            <div className="proposta-declaracoes">
-              <p>• Declaramos que nos preços propostos estão inclusos todos os custos e despesas, tais como: custos diretos e indiretos, tributos incidentes, taxa de administração, materiais, serviços, encargos sociais, trabalhistas, seguros, transportes, fretes, embalagens, lucro e outros necessários ao cumprimento integral do objeto deste edital e seus anexos.</p>
-              <p>• Declaramos que o prazo de validade da proposta é de {validade} ({validade}) dias, contados da data de abertura da licitação.</p>
-              <p>• Declaramos que os produtos ofertados atendem a todas as especificações técnicas e exigências do edital.</p>
-              <p>• Declaramos que temos pleno conhecimento e aceitamos todas as condições do edital e seus anexos.</p>
-              <p>• Declaramos que os dados bancários informados são de nossa titularidade.</p>
-              <p>• Condições de pagamento: {condicoesPagamento}.</p>
-            </div>
+          {[0, 1].map((paginaDeclaracao) => {
+            const numeroPagina = paginasItens.length + 2 + paginaDeclaracao;
+            const declaracoes = paginaDeclaracao === 0
+              ? [
+                  <>Declaramos que nos preços propostos estão inclusos todos os custos e despesas, inclusive custos diretos e indiretos, tributos, taxas, materiais, serviços, encargos sociais e trabalhistas, seguros, transportes, fretes, embalagens, lucro e quaisquer outros necessários ao cumprimento integral do objeto do edital e de seus anexos.</>,
+                  <>Declaramos que a presente proposta tem validade de {validade} dias, contados da data de abertura da licitação.</>,
+                  <>Declaramos que os produtos ofertados atendem integralmente às especificações técnicas, quantidades, unidades, registros e demais exigências previstas no edital.</>,
+                  <>Declaramos que conhecemos e aceitamos, sem ressalvas, todas as condições, obrigações e regras estabelecidas no edital e em seus anexos.</>,
+                  <>Declaramos que os dados bancários informados pertencem à empresa proponente e estão corretos para fins de pagamento.</>,
+                ]
+              : [
+                  <>Declaramos que as condições de pagamento propostas são: {condicoesPagamento}.</>,
+                  <>Declaramos, sob as penas da lei, que não existem fatos impeditivos para nossa habilitação e contratação com a Administração Pública.</>,
+                  <>Declaramos que não empregamos menor de 18 anos em trabalho noturno, perigoso ou insalubre, nem menor de 16 anos, salvo na condição de aprendiz a partir dos 14 anos.</>,
+                  <>Declaramos que esta proposta foi elaborada de forma independente e que seu conteúdo não foi, no todo ou em parte, informado, discutido ou recebido de qualquer outro participante.</>,
+                  <>Declaramos que manteremos todas as condições de habilitação e qualificação exigidas durante a vigência da contratação.</>,
+                ];
 
-            <div className="proposta-assinatura">
-              <div></div>
-              <strong>JOSÉ ADMILSON DE OLIVEIRA</strong>
-              <span>REPRESENTANTE LEGAL</span>
-            </div>
+            return (
+              <section className="proposta-page proposta-page-declaracoes" key={`declaracoes-${paginaDeclaracao}`}>
+                <div className="proposta-page-number">{numeroPagina}/{totalPaginasProposta}</div>
+                <header className="proposta-pdf-header proposta-pdf-header-small">
+                  <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
+                  <div className="proposta-empresa">
+                    <h2>DOM BOSCO HOSPITALAR LTDA</h2>
+                    <p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p>
+                    <p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO&nbsp;&nbsp; CEP: 72.870-324</p>
+                    <p>CNPJ: 35.020.039/0001-55&nbsp;&nbsp;&nbsp; I.E.: 10.775.504-1</p>
+                  </div>
+                </header>
 
-            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
-          </section>
+                <h1 className="proposta-titulo proposta-titulo-declaracoes">
+                  DECLARAÇÕES{paginaDeclaracao === 1 ? " — CONTINUAÇÃO" : ""}
+                </h1>
+
+                <div className="proposta-declaracoes">
+                  {declaracoes.map((declaracao, index) => <p key={index}>• {declaracao}</p>)}
+                </div>
+
+                {paginaDeclaracao === 1 && (
+                  <div className="proposta-assinatura">
+                    <div></div>
+                    <strong>JOSÉ ADMILSON DE OLIVEIRA</strong>
+                    <span>REPRESENTANTE LEGAL</span>
+                  </div>
+                )}
+
+                <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
+              </section>
+            );
+          })}
         </div>
 
         <section className="clean-card p-6 no-print">
