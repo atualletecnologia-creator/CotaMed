@@ -488,113 +488,161 @@ export default function BancoPrecos() {
     try {
       setErro("");
       setMensagem("");
+
       if (!file) return;
 
       setImportando(true);
+
       const { data: userData, error: userError } = await supabase.auth.getUser();
+
       if (userError || !userData.user) {
         setErro("Usuário não autenticado.");
         return;
       }
 
-      const { data: registrosAtualizados, error: registrosError } = await supabase.from("registros_anvisa").select("*").order("created_at", { ascending: false });
+      const [{ data: registrosAtualizados, error: registrosError }, { data: produtosExistentes, error: produtosError }] = await Promise.all([
+        supabase.from("registros_anvisa").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("produtos")
+          .select("id, user_id, descricao, marca, registro_anvisa, vencimento_registro, pdf_url")
+          .eq("user_id", userData.user.id),
+      ]);
+
       if (registrosError) {
         setErro(registrosError.message);
+        return;
+      }
+
+      if (produtosError) {
+        setErro(produtosError.message);
         return;
       }
 
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
       const primeiraAba = workbook.SheetNames[0];
-      const sheet = workbook.Sheets[primeiraAba];
-      const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 
-      const linhasOrdenadas = linhas
-        .map((linha) => {
-          const normalizada: Record<string, unknown> = {};
-          Object.entries(linha).forEach(([chave, valor]) => {
-            normalizada[normalizarCabecalho(chave)] = valor;
-          });
-          return normalizada;
-        })
-        .filter((linha) => String(linha.descricao || "").trim())
-        .sort((a, b) => String(a.descricao || "").localeCompare(String(b.descricao || ""), "pt-BR"));
-
-      if (!linhasOrdenadas.length) {
-        setErro("Nenhum produto válido encontrado. Verifique se existe a coluna descricao.");
+      if (!primeiraAba) {
+        setErro("A planilha não possui nenhuma aba.");
         return;
       }
 
-      let vinculados = 0;
-      let semRegistro = 0;
+      const sheet = workbook.Sheets[primeiraAba];
+      const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 
-      const produtosParaSalvar = linhasOrdenadas.map((normalizada) => {
-        const descricao = maiusculo(normalizada.descricao);
+      const linhasNormalizadas = linhas
+        .map((linha) => {
+          const normalizada: Record<string, unknown> = {};
+
+          Object.entries(linha).forEach(([chave, valor]) => {
+            normalizada[normalizarCabecalho(chave)] = valor;
+          });
+
+          return normalizada;
+        })
+        .filter((linha) => String(linha.descricao || "").trim());
+
+      if (!linhasNormalizadas.length) {
+        setErro("Nenhum produto válido encontrado. A planilha precisa ter a coluna descricao.");
+        return;
+      }
+
+      const chaveProduto = (descricao: unknown, marca: unknown) =>
+        `${maiusculo(descricao).trim()}|||${maiusculo(marca).trim()}`;
+
+      const existentesPorChave = new Map<string, any>();
+
+      (produtosExistentes || []).forEach((produto) => {
+        existentesPorChave.set(chaveProduto(produto.descricao, produto.marca), produto);
+      });
+
+      // Remove repetições dentro da própria planilha, mantendo a última linha.
+      const linhasUnicas = new Map<string, Record<string, unknown>>();
+
+      linhasNormalizadas.forEach((linha) => {
+        linhasUnicas.set(chaveProduto(linha.descricao, linha.marca), linha);
+      });
+
+      let novos = 0;
+      let atualizados = 0;
+      let ignorados = 0;
+      let vinculados = 0;
+      let erros = 0;
+      const mensagensErro: string[] = [];
+
+      for (const normalizada of Array.from(linhasUnicas.values())) {
+        const descricao = maiusculo(normalizada.descricao).trim();
+        const marca = maiusculo(normalizada.marca).trim();
         const quantidadePorCaixa = numero(normalizada.quantidade_por_caixa);
+
         let custoUnitario = numero(normalizada.custo_unitario);
         let custoCaixa = numero(normalizada.custo_caixa);
 
-        if ((!custoUnitario || custoUnitario <= 0) && custoCaixa && quantidadePorCaixa) custoUnitario = custoCaixa / quantidadePorCaixa;
-        if ((!custoCaixa || custoCaixa <= 0) && custoUnitario && quantidadePorCaixa) custoCaixa = custoUnitario * quantidadePorCaixa;
+        if ((!custoUnitario || custoUnitario <= 0) && custoCaixa && quantidadePorCaixa) {
+          custoUnitario = custoCaixa / quantidadePorCaixa;
+        }
+
+        if ((!custoCaixa || custoCaixa <= 0) && custoUnitario && quantidadePorCaixa) {
+          custoCaixa = custoUnitario * quantidadePorCaixa;
+        }
+
+        if (!descricao) {
+          ignorados++;
+          continue;
+        }
+
+        const chave = chaveProduto(descricao, marca);
+        const existente = existentesPorChave.get(chave);
 
         const produtoBase: Partial<Produto> = {
           descricao,
           apresentacao: maiusculo(normalizada.apresentacao) || null,
-          marca: maiusculo(normalizada.marca) || null,
+          marca: marca || null,
           registro_anvisa: maiusculo(normalizada.registro_anvisa) || null,
         };
 
         const registroEncontrado = encontrarRegistroAutomatico(produtoBase, registrosAtualizados || []);
-        if (registroEncontrado) vinculados++;
-        else semRegistro++;
 
-        return {
+        if (registroEncontrado) vinculados++;
+
+        // Preserva vínculo ANVISA/PDF já existente quando a planilha não trouxer outro vínculo.
+        const registroAnvisa =
+          registroEncontrado?.registro_anvisa
+            ? maiusculo(registroEncontrado.registro_anvisa)
+            : produtoBase.registro_anvisa || existente?.registro_anvisa || null;
+
+        const vencimentoRegistro =
+          registroEncontrado?.vencimento_registro || existente?.vencimento_registro || null;
+
+        const pdfUrl =
+          registroEncontrado?.pdf_path || existente?.pdf_url || null;
+
+        const payload = {
           user_id: userData.user.id,
           item: descricao,
           descricao,
           apresentacao: produtoBase.apresentacao,
           marca: produtoBase.marca,
-          registro_anvisa: registroEncontrado?.registro_anvisa ? maiusculo(registroEncontrado.registro_anvisa) : produtoBase.registro_anvisa || null,
-          vencimento_registro: registroEncontrado?.vencimento_registro || null,
-          pdf_url: registroEncontrado?.pdf_path || null,
+          registro_anvisa: registroAnvisa,
+          vencimento_registro: vencimentoRegistro,
+          pdf_url: pdfUrl,
           unidade: maiusculo(normalizada.unidade) || null,
-          quantidade_por_caixa: quantidadePorCaixa,
-          custo_unitario: custoUnitario,
-          custo_caixa: custoCaixa,
+          quantidade_por_caixa: quantidadePorCaixa || null,
+          custo_unitario: custoUnitario || null,
+          custo_caixa: custoCaixa || null,
           data_atualizacao_custo: new Date().toISOString(),
           origem_preco: maiusculo(file.name),
         };
-      });
 
-      let novos = 0;
-      let atualizados = 0;
-      let erros = 0;
-      const mensagensErro: string[] = [];
-
-      for (const produto of produtosParaSalvar) {
-        const { data: existente, error: erroBusca } = await supabase
-          .from("produtos")
-          .select("id")
-          .eq("user_id", userData.user.id)
-          .eq("descricao", produto.descricao)
-          .eq("marca", produto.marca || "")
-          .limit(1);
-
-        if (erroBusca) {
-          erros++;
-          mensagensErro.push(erroBusca.message);
-          continue;
-        }
-
-        if (existente && existente.length > 0) {
+        if (existente?.id) {
           const { error } = await supabase
             .from("produtos")
-            .update(produto)
-            .eq("id", existente[0].id);
+            .update(payload)
+            .eq("id", existente.id);
 
           if (error) {
             erros++;
-            mensagensErro.push(error.message);
+            mensagensErro.push(`${descricao}: ${error.message}`);
           } else {
             atualizados++;
           }
@@ -602,54 +650,83 @@ export default function BancoPrecos() {
           continue;
         }
 
-        const { error } = await supabase
+        const { data: inserido, error } = await supabase
           .from("produtos")
-          .insert(produto);
+          .insert(payload)
+          .select("id, descricao, marca, registro_anvisa, vencimento_registro, pdf_url")
+          .single();
 
-        if (error) {
-          // Segurança extra: se o índice único bloquear, tenta atualizar por descrição + marca.
-          if (String(error.message || "").includes("duplicate key")) {
-            const { data: duplicado } = await supabase
+        if (!error && inserido) {
+          novos++;
+          existentesPorChave.set(chave, inserido);
+          continue;
+        }
+
+        // Caso o índice único encontre um registro antigo que não apareceu na busca do usuário,
+        // localiza a chave e atualiza em vez de interromper a importação.
+        if (String(error?.message || "").includes("duplicate key")) {
+          const { data: duplicados, error: erroDuplicado } = await supabase
+            .from("produtos")
+            .select("id, registro_anvisa, vencimento_registro, pdf_url")
+            .eq("descricao", descricao)
+            .eq("marca", marca || "")
+            .limit(1);
+
+          if (!erroDuplicado && duplicados && duplicados.length > 0) {
+            const duplicado = duplicados[0];
+
+            const payloadPreservado = {
+              ...payload,
+              registro_anvisa: payload.registro_anvisa || duplicado.registro_anvisa || null,
+              vencimento_registro: payload.vencimento_registro || duplicado.vencimento_registro || null,
+              pdf_url: payload.pdf_url || duplicado.pdf_url || null,
+            };
+
+            const { error: erroUpdate } = await supabase
               .from("produtos")
-              .select("id")
-              .eq("descricao", produto.descricao)
-              .eq("marca", produto.marca || "")
-              .limit(1);
+              .update(payloadPreservado)
+              .eq("id", duplicado.id);
 
-            if (duplicado && duplicado.length > 0) {
-              const { error: erroUpdate } = await supabase
-                .from("produtos")
-                .update(produto)
-                .eq("id", duplicado[0].id);
-
-              if (erroUpdate) {
-                erros++;
-                mensagensErro.push(erroUpdate.message);
-              } else {
-                atualizados++;
-              }
-
+            if (!erroUpdate) {
+              atualizados++;
+              existentesPorChave.set(chave, { ...duplicado, ...payloadPreservado });
               continue;
             }
-          }
 
-          erros++;
-          mensagensErro.push(error.message);
-        } else {
-          novos++;
+            erros++;
+            mensagensErro.push(`${descricao}: ${erroUpdate.message}`);
+            continue;
+          }
         }
+
+        erros++;
+        mensagensErro.push(`${descricao}: ${error?.message || "erro desconhecido"}`);
       }
+
+      const totalPlanilha = linhasNormalizadas.length;
+      const repetidosNaPlanilha = totalPlanilha - linhasUnicas.size;
+
+      setMensagem(
+        `Importação concluída: ${novos} novo(s), ${atualizados} atualizado(s), ` +
+        `${ignorados} ignorado(s), ${vinculados} vínculo(s) ANVISA identificado(s)` +
+        `${repetidosNaPlanilha > 0 ? ` e ${repetidosNaPlanilha} repetição(ões) consolidada(s) na planilha` : ""}.`
+      );
 
       if (erros > 0) {
-        setErro(`${erros} produto(s) não foram importados. Primeiro erro: ${mensagensErro[0] || "erro desconhecido"}`);
+        setErro(
+          `${erros} produto(s) apresentaram erro. Primeiro erro: ` +
+          `${mensagensErro[0] || "erro desconhecido"}`
+        );
       }
 
-      setMensagem(`${novos} produto(s) novo(s), ${atualizados} produto(s) atualizado(s). ${vinculados} vinculados automaticamente ao registro ANVISA. ${semRegistro} sem vínculo automático.`);
       await carregarDados();
+    } catch (e: any) {
+      setErro(e?.message || "Erro ao importar a planilha.");
     } finally {
       setImportando(false);
     }
   }
+
 
   async function vincularRegistroManual(produto: Produto, registroId: string) {
     try {
