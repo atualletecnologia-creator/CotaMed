@@ -342,12 +342,36 @@ async function extrairTextoArquivoEdital(file: File) {
   return await file.text();
 }
 
+function gerarPalavrasAutomaticas(nomeDocumento: string, nomeArquivo: string, categoria: string, biblioteca: RegraDocumento[]) {
+  const textoBase = normalizar(`${nomeDocumento} ${nomeArquivo.replace(/\.[^.]+$/, "")} ${categoria}`);
+
+  const regrasRelacionadas = biblioteca
+    .map((regra) => ({ regra, pontos: pontuarRegra(textoBase, regra) }))
+    .filter((item) => item.pontos > 0)
+    .sort((a, b) => b.pontos - a.pontos)
+    .slice(0, 3);
+
+  const termosArquivo = textoBase
+    .split(/[^a-z0-9]+/i)
+    .map((termo) => termo.trim())
+    .filter((termo) => termo.length >= 3);
+
+  const termosBiblioteca = regrasRelacionadas.flatMap(({ regra }) => [
+    regra.documento,
+    ...regra.palavrasChave,
+    ...regra.termosEquivalentes,
+  ]);
+
+  return Array.from(new Set([...termosArquivo, ...termosBiblioteca].map((termo) => normalizar(termo)).filter(Boolean)))
+    .slice(0, 40)
+    .join(", ");
+}
+
 export default function DocumentacaoEditalPage() {
   const [documentos, setDocumentos] = useState<DocumentoEmpresa[]>([]);
   const [biblioteca, setBiblioteca] = useState<RegraDocumento[]>(BIBLIOTECA_PADRAO);
   const [categoria, setCategoria] = useState(CATEGORIAS[0]);
   const [nome, setNome] = useState("");
-  const [palavras, setPalavras] = useState("");
   const [editalTexto, setEditalTexto] = useState("");
   const [resultado, setResultado] = useState<ResultadoOrganizacao | null>(null);
   const [aba, setAba] = useState<"organizar" | "biblioteca">("organizar");
@@ -388,19 +412,19 @@ export default function DocumentacaoEditalPage() {
       return;
     }
     const base64 = await arquivoParaBase64(file);
+    const palavrasAutomaticas = gerarPalavrasAutomaticas(nome.trim(), file.name, categoria, biblioteca);
     const doc: DocumentoEmpresa = {
       id: `${Date.now()}`,
       nome: nome.trim(),
       categoria,
-      palavras: palavras.trim(),
+      palavras: palavrasAutomaticas,
       arquivoNome: file.name,
       tipo: file.type || "application/pdf",
       base64,
     };
     salvarDocumentos([doc, ...documentos]);
     setNome("");
-    setPalavras("");
-    setMensagem("Documento cadastrado neste computador.");
+    setMensagem("Documento cadastrado. As palavras-chave foram identificadas automaticamente.");
   }
 
   function excluirDocumento(id: string) {
@@ -665,7 +689,7 @@ export default function DocumentacaoEditalPage() {
           <div>
             <p className="clean-kicker">Documentação do edital</p>
             <h1>Organize os documentos com biblioteca inteligente</h1>
-            <p>Cadastre os documentos da empresa, alimente palavras-chave e gere um ZIP com a ordem do edital e uma pasta de documentos não solicitados.</p>
+            <p>Cadastre os documentos da empresa e gere um ZIP com a ordem do edital e uma pasta de documentos não solicitados.</p>
           </div>
           <button type="button" className="btn-clean btn-clean-primary" onClick={baixarZip} disabled={!resultado}>Baixar ZIP</button>
         </div>
@@ -699,10 +723,6 @@ export default function DocumentacaoEditalPage() {
                     <select className="input mt-2" value={categoria} onChange={(e) => setCategoria(e.target.value)}>
                       {CATEGORIAS.map((cat) => <option key={cat}>{cat}</option>)}
                     </select>
-                  </div>
-                  <div>
-                    <label>Palavras-chave do arquivo</label>
-                    <input className="input mt-2" placeholder="Ex.: fgts, crf, regularidade" value={palavras} onChange={(e) => setPalavras(e.target.value)} />
                   </div>
                   <div>
                     <label>Arquivo PDF/documento</label>

@@ -485,67 +485,79 @@ export default function BancoPrecos() {
   }
 
   async function importarPlanilha(file: File | null) {
-    setErro("");
-    setMensagem("");
-
-    if (!file) return;
-
-    setImportando(true);
-
     try {
-      const { data: sessao, error: erroUsuario } = await supabase.auth.getUser();
-      const usuario = sessao.user;
+      setErro("");
+      setMensagem("");
 
-      if (erroUsuario || !usuario) {
-        throw new Error(erroUsuario?.message || "Usuário não autenticado.");
+      if (!file) return;
+
+      setImportando(true);
+
+      const { data: userData, error: userError } = await supabase.auth.getUser();
+
+      if (userError || !userData.user) {
+        setErro("Usuário não autenticado.");
+        return;
+      }
+
+      const [{ data: registrosAtualizados, error: registrosError }, { data: produtosExistentes, error: produtosError }] = await Promise.all([
+        supabase.from("registros_anvisa").select("*").order("created_at", { ascending: false }),
+        supabase
+          .from("produtos")
+          .select("id, user_id, descricao, marca, registro_anvisa, vencimento_registro, pdf_url")
+          .eq("user_id", userData.user.id),
+      ]);
+
+      if (registrosError) {
+        setErro(registrosError.message);
+        return;
+      }
+
+      if (produtosError) {
+        setErro(produtosError.message);
+        return;
       }
 
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(buffer, { type: "array" });
-      const nomeAba = workbook.SheetNames[0];
+      const primeiraAba = workbook.SheetNames[0];
 
-      if (!nomeAba) throw new Error("A planilha não possui nenhuma aba.");
+      if (!primeiraAba) {
+        setErro("A planilha não possui nenhuma aba.");
+        return;
+      }
 
-      const linhasOriginais = XLSX.utils.sheet_to_json<Record<string, unknown>>(
-        workbook.Sheets[nomeAba],
-        { defval: "" }
-      );
+      const sheet = workbook.Sheets[primeiraAba];
+      const linhas = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: "" });
 
-      const linhasNormalizadas = linhasOriginais
+      const linhasNormalizadas = linhas
         .map((linha) => {
           const normalizada: Record<string, unknown> = {};
+
           Object.entries(linha).forEach(([chave, valor]) => {
             normalizada[normalizarCabecalho(chave)] = valor;
           });
+
           return normalizada;
         })
         .filter((linha) => String(linha.descricao || "").trim());
 
       if (!linhasNormalizadas.length) {
-        throw new Error("Nenhum produto válido encontrado. A planilha precisa ter a coluna descricao.");
+        setErro("Nenhum produto válido encontrado. A planilha precisa ter a coluna descricao.");
+        return;
       }
-
-      const [{ data: registros, error: erroRegistros }, { data: existentes, error: erroExistentes }] =
-        await Promise.all([
-          supabase.from("registros_anvisa").select("*").order("created_at", { ascending: false }),
-          supabase
-            .from("produtos")
-            .select("id, descricao, marca, registro_anvisa, vencimento_registro, pdf_url")
-            .eq("user_id", usuario.id),
-        ]);
-
-      if (erroRegistros) throw erroRegistros;
-      if (erroExistentes) throw erroExistentes;
 
       const chaveProduto = (descricao: unknown, marca: unknown) =>
         `${maiusculo(descricao).trim()}|||${maiusculo(marca).trim()}`;
 
       const existentesPorChave = new Map<string, any>();
-      (existentes || []).forEach((produto) => {
+
+      (produtosExistentes || []).forEach((produto) => {
         existentesPorChave.set(chaveProduto(produto.descricao, produto.marca), produto);
       });
 
       const linhasUnicas = new Map<string, Record<string, unknown>>();
+
       linhasNormalizadas.forEach((linha) => {
         linhasUnicas.set(chaveProduto(linha.descricao, linha.marca), linha);
       });
@@ -554,116 +566,146 @@ export default function BancoPrecos() {
       let atualizados = 0;
       let ignorados = 0;
       let vinculados = 0;
-      let falhas = 0;
-      let processados = 0;
-      const detalhesFalha: string[] = [];
+      let erros = 0;
+      const mensagensErro: string[] = [];
 
-      for (const linha of Array.from(linhasUnicas.values())) {
-        processados++;
+      for (const normalizada of Array.from(linhasUnicas.values())) {
+        const descricao = maiusculo(normalizada.descricao).trim();
+        const marca = maiusculo(normalizada.marca).trim();
+        const quantidadePorCaixa = numero(normalizada.quantidade_por_caixa);
 
-        const descricao = maiusculo(linha.descricao).trim();
-        const marca = maiusculo(linha.marca).trim();
+        let custoUnitario = numero(normalizada.custo_unitario);
+        let custoCaixa = numero(normalizada.custo_caixa);
+
+        if ((!custoUnitario || custoUnitario <= 0) && custoCaixa && quantidadePorCaixa) {
+          custoUnitario = custoCaixa / quantidadePorCaixa;
+        }
+
+        if ((!custoCaixa || custoCaixa <= 0) && custoUnitario && quantidadePorCaixa) {
+          custoCaixa = custoUnitario * quantidadePorCaixa;
+        }
 
         if (!descricao) {
           ignorados++;
           continue;
         }
 
-        const quantidadePorCaixa = numero(linha.quantidade_por_caixa);
-        let custoUnitario = numero(linha.custo_unitario);
-        let custoCaixa = numero(linha.custo_caixa);
-
-        if ((!custoUnitario || custoUnitario <= 0) && custoCaixa && quantidadePorCaixa) {
-          custoUnitario = custoCaixa / quantidadePorCaixa;
-        }
-        if ((!custoCaixa || custoCaixa <= 0) && custoUnitario && quantidadePorCaixa) {
-          custoCaixa = custoUnitario * quantidadePorCaixa;
-        }
-
         const chave = chaveProduto(descricao, marca);
         const existente = existentesPorChave.get(chave);
+
         const produtoBase: Partial<Produto> = {
           descricao,
-          apresentacao: maiusculo(linha.apresentacao) || null,
+          apresentacao: maiusculo(normalizada.apresentacao) || null,
           marca: marca || null,
-          registro_anvisa: maiusculo(linha.registro_anvisa) || null,
+          registro_anvisa: maiusculo(normalizada.registro_anvisa) || null,
         };
 
-        const registroEncontrado = encontrarRegistroAutomatico(produtoBase, registros || []);
+        const registroEncontrado = encontrarRegistroAutomatico(produtoBase, registrosAtualizados || []);
+
         if (registroEncontrado) vinculados++;
 
         const payload = {
-          user_id: usuario.id,
+          user_id: userData.user.id,
           item: descricao,
           descricao,
           apresentacao: produtoBase.apresentacao,
           marca: produtoBase.marca,
-          registro_anvisa: registroEncontrado?.registro_anvisa
-            ? maiusculo(registroEncontrado.registro_anvisa)
-            : produtoBase.registro_anvisa || existente?.registro_anvisa || null,
+          registro_anvisa:
+            registroEncontrado?.registro_anvisa
+              ? maiusculo(registroEncontrado.registro_anvisa)
+              : produtoBase.registro_anvisa || existente?.registro_anvisa || null,
           vencimento_registro:
             registroEncontrado?.vencimento_registro || existente?.vencimento_registro || null,
-          pdf_url: registroEncontrado?.pdf_path || existente?.pdf_url || null,
-          unidade: maiusculo(linha.unidade) || "UNIDADE",
+          pdf_url:
+            registroEncontrado?.pdf_path || existente?.pdf_url || null,
+          unidade: maiusculo(normalizada.unidade) || null,
           quantidade_por_caixa: quantidadePorCaixa || null,
           custo_unitario: custoUnitario || null,
           custo_caixa: custoCaixa || null,
-          data_atualizacao_custo: new Date().toISOString().slice(0, 10),
+          data_atualizacao_custo: new Date().toISOString(),
           origem_preco: maiusculo(file.name),
         };
 
         if (existente?.id) {
-          const { data: atualizado, error } = await supabase
+          const { error } = await supabase
             .from("produtos")
             .update(payload)
-            .eq("id", existente.id)
-            .eq("user_id", usuario.id)
-            .select("id")
-            .maybeSingle();
+            .eq("id", existente.id);
 
-          if (error || !atualizado?.id) {
-            falhas++;
-            detalhesFalha.push(
-              `${descricao}: ${error?.message || "a atualização não alterou nenhuma linha"}`
-            );
-            continue;
+          if (error) {
+            erros++;
+            mensagensErro.push(`${descricao}: ${error.message}`);
+          } else {
+            atualizados++;
+            existentesPorChave.set(chave, { ...existente, ...payload });
           }
 
-          atualizados++;
-          existentesPorChave.set(chave, { ...existente, ...payload });
           continue;
         }
 
-        const { data: inserido, error } = await supabase
+        // Não solicita retorno da linha inserida. Em alguns projetos, o SELECT após INSERT
+        // pode ser bloqueado pela política RLS mesmo quando o INSERT foi concluído.
+        const { error: erroInsert } = await supabase
           .from("produtos")
-          .insert(payload)
-          .select("id")
-          .maybeSingle();
+          .insert(payload);
 
-        if (error || !inserido?.id) {
-          falhas++;
-          detalhesFalha.push(
-            `${descricao}: ${error?.message || "a inserção não retornou a linha gravada"}`
-          );
+        if (!erroInsert) {
+          novos++;
+          existentesPorChave.set(chave, payload);
           continue;
         }
 
-        novos++;
-        existentesPorChave.set(chave, { id: inserido.id, ...payload });
+        if (String(erroInsert.message || "").includes("duplicate key")) {
+          const { data: duplicados, error: erroBuscaDuplicado } = await supabase
+            .from("produtos")
+            .select("id, registro_anvisa, vencimento_registro, pdf_url")
+            .eq("descricao", descricao)
+            .eq("marca", marca || "")
+            .limit(1);
+
+          if (!erroBuscaDuplicado && duplicados && duplicados.length > 0) {
+            const duplicado = duplicados[0];
+
+            const payloadPreservado = {
+              ...payload,
+              registro_anvisa: payload.registro_anvisa || duplicado.registro_anvisa || null,
+              vencimento_registro: payload.vencimento_registro || duplicado.vencimento_registro || null,
+              pdf_url: payload.pdf_url || duplicado.pdf_url || null,
+            };
+
+            const { error: erroUpdate } = await supabase
+              .from("produtos")
+              .update(payloadPreservado)
+              .eq("id", duplicado.id);
+
+            if (!erroUpdate) {
+              atualizados++;
+              existentesPorChave.set(chave, { ...duplicado, ...payloadPreservado });
+              continue;
+            }
+
+            erros++;
+            mensagensErro.push(`${descricao}: ${erroUpdate.message}`);
+            continue;
+          }
+        }
+
+        erros++;
+        mensagensErro.push(`${descricao}: ${erroInsert.message || "erro desconhecido"}`);
       }
 
-      const repetidos = linhasNormalizadas.length - linhasUnicas.size;
-      const resumo =
-        `Importação V3 concluída: ${processados} processado(s), ${novos} novo(s), ` +
-        `${atualizados} atualizado(s), ${ignorados} ignorado(s), ${falhas} falha(s), ` +
-        `${vinculados} vínculo(s) ANVISA identificado(s)` +
-        `${repetidos ? ` e ${repetidos} repetição(ões) consolidada(s)` : ""}.`;
+      const repetidosNaPlanilha = linhasNormalizadas.length - linhasUnicas.size;
 
-      setMensagem(resumo);
+      setMensagem(
+        `Importação concluída: ${novos} novo(s), ${atualizados} atualizado(s), ` +
+        `${ignorados} ignorado(s), ${vinculados} vínculo(s) ANVISA identificado(s)` +
+        `${repetidosNaPlanilha > 0 ? ` e ${repetidosNaPlanilha} repetição(ões) consolidada(s)` : ""}.`
+      );
 
-      if (falhas > 0) {
+      if (erros > 0) {
         setErro(
-          `${falhas} produto(s) não foram gravados. Primeiro erro: ${detalhesFalha[0]}`
+          `${erros} produto(s) não foram gravados. Primeiro erro: ` +
+          `${mensagensErro[0] || "erro desconhecido"}`
         );
       }
 
