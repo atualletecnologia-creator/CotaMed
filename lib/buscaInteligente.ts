@@ -193,7 +193,7 @@ export function encontrarMelhorProduto(descricao: string, produtos: ProdutoBusca
 }
 
 export function classificarConfianca(score: number) {
-  if (score >= 85) return "alto";
-  if (score >= 75) return "medio";
+  if (score >= 82) return "alto";
+  if (score >= 68) return "medio";
   return "baixo";
 }

@@ -610,32 +610,158 @@ function buscarProdutoPorAprendizado(descricao: string, produtos: Produto[]) {
   return melhor || null;
 }
 
-function extrairEspecificacoesCriticas(valor: unknown) {
-  const texto = normalizarAprendizado(valor)
+function normalizarUnidadesBusca(valor: unknown) {
+  return normalizarAprendizado(valor)
     .replace(/(\d),(\d)/g, "$1.$2")
-    .replace(/\s+/g, " ");
-
-  const encontrados = texto.match(/\b\d+(?:\.\d+)?\s*(?:MCG|MG|G|KG|ML|L|UI|%|MM|CM|FR|GAUGE)\b/g) || [];
-  return Array.from(new Set(encontrados.map((item) => item.replace(/\s+/g, ""))));
+    .replace(/\bMICROGRAMAS?\b/g, "MCG")
+    .replace(/\bMILIGRAMAS?\b/g, "MG")
+    .replace(/\bGRAMAS?\b/g, "G")
+    .replace(/\bMILILITROS?\b/g, "ML")
+    .replace(/\bLITROS?\b/g, "L")
+    .replace(/\bUNIDADES? INTERNACIONAIS?\b/g, "UI")
+    .replace(/\bGA\b/g, "G")
+    .replace(/\s+/g, " ")
+    .trim();
 }
 
-function extrairApresentacoes(valor: unknown) {
-  const texto = normalizarAprendizado(valor);
-  const termos = [
-    "COMPRIMIDO", "CAPSULA", "AMPOLA", "FRASCO", "SERINGA", "CATETER",
-    "LUVA", "CAIXA", "PACOTE", "SACHE", "BOLSA", "CREME", "POMADA",
-    "SOLUCAO", "SUSPENSAO", "INJETAVEL", "GEL", "SPRAY"
+type AtributosBusca = {
+  texto: string;
+  tokens: string[];
+  tokensFortes: string[];
+  medidas: Record<string, string[]>;
+  apresentacoes: string[];
+  caracteristicas: string[];
+};
+
+const PALAVRAS_FRACAS_BUSCA = new Set([
+  "DE", "DA", "DO", "DAS", "DOS", "PARA", "POR", "COM", "SEM", "EM", "E", "A", "O",
+  "MATERIAL", "PRODUTO", "HOSPITALAR", "DESCARTAVEL", "ESTERIL", "ATOXICO", "APIROGENICO",
+  "USO", "UNICO", "INDIVIDUAL", "EMBALAGEM", "CONTENDO", "CONFORME", "NORMA", "REGISTRO",
+  "ANVISA", "FABRICANTE", "MARCA", "QUALIDADE", "PRIMEIRA", "PROCEDENCIA", "NACIONAL",
+  "IMPORTADO", "ADULTO", "PEDIATRICO", "TAMANHO", "TIPO", "MODELO"
+]);
+
+const APRESENTACOES_EQUIVALENTES: Record<string, string> = {
+  "COMP": "COMPRIMIDO", "COMPR": "COMPRIMIDO", "COMPRIMIDOS": "COMPRIMIDO",
+  "CAPS": "CAPSULA", "CAPSULAS": "CAPSULA",
+  "AMP": "AMPOLA", "AMPOLAS": "AMPOLA",
+  "FR": "FRASCO", "FRASCOS": "FRASCO",
+  "CX": "CAIXA", "PCT": "PACOTE", "UND": "UNIDADE", "UN": "UNIDADE",
+  "LL": "LUERLOCK", "LUER": "LUER", "LOCK": "LOCK",
+};
+
+function tokenCanonicoBusca(token: string) {
+  return APRESENTACOES_EQUIVALENTES[token] || token;
+}
+
+function extrairAtributosBusca(valor: unknown): AtributosBusca {
+  const texto = normalizarUnidadesBusca(valor)
+    .replace(/\bLUER\s+LOCK\b/g, "LUERLOCK")
+    .replace(/\bLUER\s+SLIP\b/g, "LUERSLIP")
+    .replace(/\bC\s*\/\s*(\d+)\b/g, "CAIXA $1")
+    .replace(/\bCX\s*(\d+)\b/g, "CAIXA $1")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const brutos = texto.split(" ").map(tokenCanonicoBusca).filter(Boolean);
+  const tokens = Array.from(new Set(brutos.filter((t) => t.length > 1 && !PALAVRAS_FRACAS_BUSCA.has(t))));
+
+  const genericos = new Set([
+    "COMPRIMIDO", "CAPSULA", "AMPOLA", "FRASCO", "CAIXA", "PACOTE", "UNIDADE", "INJETAVEL",
+    "SOLUCAO", "SUSPENSAO", "CREME", "POMADA", "GEL", "SPRAY", "SERINGA", "CATETER", "LUVA",
+    "AGULHA", "EQUIPO", "CURATIVO", "BOLSA"
+  ]);
+
+  const tokensFortes = tokens.filter((t) => !genericos.has(t) && !/^\d/.test(t) && !/^(MG|MCG|G|KG|ML|L|UI|MM|CM|FR|G)$/.test(t));
+
+  const medidas: Record<string, string[]> = {};
+  const regex = /\b(\d+(?:\.\d+)?)\s*(MCG|MG|KG|ML|L|UI|%|MM|CM|FR|G)\b/g;
+  let match: RegExpExecArray | null;
+  while ((match = regex.exec(texto))) {
+    const valorNumero = Number(match[1]);
+    const unidade = match[2];
+    let categoria = unidade;
+    let valorNormalizado = valorNumero;
+
+    if (unidade === "MCG") { categoria = "MASSA_MG"; valorNormalizado = valorNumero / 1000; }
+    else if (unidade === "MG") { categoria = "MASSA_MG"; }
+    else if (unidade === "G") { categoria = "MASSA_MG"; valorNormalizado = valorNumero * 1000; }
+    else if (unidade === "KG") { categoria = "MASSA_MG"; valorNormalizado = valorNumero * 1000000; }
+    else if (unidade === "ML") { categoria = "VOLUME_ML"; }
+    else if (unidade === "L") { categoria = "VOLUME_ML"; valorNormalizado = valorNumero * 1000; }
+    else if (unidade === "MM") { categoria = "COMPRIMENTO_MM"; }
+    else if (unidade === "CM") { categoria = "COMPRIMENTO_MM"; valorNormalizado = valorNumero * 10; }
+
+    const chave = String(Number(valorNormalizado.toFixed(6)));
+    medidas[categoria] = Array.from(new Set([...(medidas[categoria] || []), chave]));
+  }
+
+  const termosApresentacao = [
+    "COMPRIMIDO", "CAPSULA", "AMPOLA", "FRASCO", "SERINGA", "CATETER", "LUVA", "AGULHA",
+    "EQUIPO", "CAIXA", "PACOTE", "SACHE", "BOLSA", "CREME", "POMADA", "SOLUCAO",
+    "SUSPENSAO", "INJETAVEL", "GEL", "SPRAY"
   ];
-  return termos.filter((termo) => new RegExp(`\\b${termo}\\b`).test(texto));
+  const apresentacoes = termosApresentacao.filter((termo) => tokens.includes(termo));
+
+  const caracteristicas = ["LUERLOCK", "LUERSLIP", "MACROGOTAS", "MICROGOTAS", "TRIFACETADA", "HIPODERMICA", "CIRURGICA", "PROCEDIMENTO"]
+    .filter((termo) => texto.includes(termo));
+
+  return { texto, tokens, tokensFortes, medidas, apresentacoes, caracteristicas };
+}
+
+function similaridadeDice(a: string, b: string) {
+  const x = a.replace(/\s+/g, " ").trim();
+  const y = b.replace(/\s+/g, " ").trim();
+  if (!x || !y) return 0;
+  if (x === y) return 1;
+  if (x.length < 2 || y.length < 2) return 0;
+
+  const bigramas = (texto: string) => {
+    const mapa = new Map<string, number>();
+    for (let i = 0; i < texto.length - 1; i++) {
+      const b = texto.slice(i, i + 2);
+      mapa.set(b, (mapa.get(b) || 0) + 1);
+    }
+    return mapa;
+  };
+
+  const bx = bigramas(x);
+  const by = bigramas(y);
+  let intersecao = 0;
+  bx.forEach((qtd, chave) => { intersecao += Math.min(qtd, by.get(chave) || 0); });
+  return (2 * intersecao) / Math.max(1, (x.length - 1) + (y.length - 1));
+}
+
+function tokensCompativeis(a: string, b: string) {
+  if (a === b) return true;
+  if (a.length >= 5 && b.length >= 5 && (a.includes(b) || b.includes(a))) return true;
+  return similaridadeDice(a, b) >= 0.82;
+}
+
+function contarCorrespondencias(origem: string[], destino: string[]) {
+  return origem.filter((token) => destino.some((outro) => tokensCompativeis(token, outro))).length;
+}
+
+function avaliarMedidas(item: AtributosBusca, produto: AtributosBusca) {
+  let categoriasComparadas = 0;
+  let categoriasIguais = 0;
+  for (const [categoria, valoresItem] of Object.entries(item.medidas)) {
+    const valoresProduto = produto.medidas[categoria];
+    if (!valoresProduto?.length) continue;
+    categoriasComparadas++;
+    if (valoresItem.some((v) => valoresProduto.includes(v))) categoriasIguais++;
+    else return { bloqueado: true, pontos: 0, motivo: `medida incompatível (${categoria.toLowerCase()})` };
+  }
+  return { bloqueado: false, pontos: categoriasComparadas ? 18 + categoriasIguais * 3 : 0, motivo: "medidas compatíveis" };
 }
 
 function compatibilidadeMarca(marcaSolicitada: string, produto: Produto) {
   const solicitada = normalizarAprendizado(marcaSolicitada);
   const cadastrada = normalizarAprendizado(produto.marca);
   if (!solicitada) return { compativel: true, pontos: 0 };
-  if (!cadastrada) return { compativel: false, pontos: 0 };
-  const igual = solicitada === cadastrada || solicitada.includes(cadastrada) || cadastrada.includes(solicitada);
-  return { compativel: igual, pontos: igual ? 15 : 0 };
+  if (!cadastrada) return { compativel: true, pontos: -4 };
+  const igual = solicitada === cadastrada || solicitada.includes(cadastrada) || cadastrada.includes(solicitada) || similaridadeDice(solicitada, cadastrada) >= 0.88;
+  return { compativel: igual, pontos: igual ? 12 : 0 };
 }
 
 function avaliarProdutoEstrito(
@@ -644,67 +770,102 @@ function avaliarProdutoEstrito(
   marcaSolicitada = "",
   registroSolicitado = ""
 ) {
-  const textoItem = normalizarAprendizado(descricao);
-  const textoProduto = normalizarAprendizado([produto.descricao, produto.apresentacao].filter(Boolean).join(" "));
+  const item = extrairAtributosBusca(descricao);
+  const candidato = extrairAtributosBusca([produto.descricao, produto.apresentacao].filter(Boolean).join(" "));
   const registroProduto = String(produto.registro_anvisa || "").replace(/\D/g, "");
 
   if (registroSolicitado) {
-    if (!registroProduto || registroProduto !== registroSolicitado) {
+    if (registroProduto && registroProduto === registroSolicitado) {
+      return { score: 100, bloqueado: false, motivo: "registro ANVISA idêntico" };
+    }
+    if (registroProduto && registroProduto !== registroSolicitado) {
       return { score: 0, bloqueado: true, motivo: "registro ANVISA diferente" };
     }
-    return { score: 100, bloqueado: false, motivo: "registro ANVISA idêntico" };
   }
 
   const marca = compatibilidadeMarca(marcaSolicitada, produto);
-  if (!marca.compativel) {
-    return { score: 0, bloqueado: true, motivo: "marca diferente" };
-  }
+  if (!marca.compativel) return { score: 0, bloqueado: true, motivo: "marca diferente" };
 
-  const especificacoesItem = extrairEspecificacoesCriticas(textoItem);
-  const especificacoesProduto = extrairEspecificacoesCriticas(textoProduto);
-  for (const especificacao of especificacoesItem) {
-    if (!especificacoesProduto.includes(especificacao)) {
-      return { score: 0, bloqueado: true, motivo: `especificação diferente (${especificacao})` };
-    }
-  }
+  const medidas = avaliarMedidas(item, candidato);
+  if (medidas.bloqueado) return { score: 0, bloqueado: true, motivo: medidas.motivo };
 
-  const palavrasItem = palavrasAprendizado(textoItem).filter((p) => !/^\d/.test(p));
-  const palavrasProduto = palavrasAprendizado(textoProduto).filter((p) => !/^\d/.test(p));
-  if (!palavrasItem.length || !palavrasProduto.length) {
+  if (!item.tokens.length || !candidato.tokens.length) {
     return { score: 0, bloqueado: true, motivo: "descrição insuficiente" };
   }
 
-  const fortesIgnoradas = new Set(["COMPRIMIDO", "CAPSULA", "AMPOLA", "FRASCO", "CAIXA", "PACOTE", "UNIDADE", "INJETAVEL", "SOLUCAO"]);
-  const fortesItem = palavrasItem.filter((p) => !fortesIgnoradas.has(p));
-  const fortesProduto = palavrasProduto.filter((p) => !fortesIgnoradas.has(p));
-  const primeiroItem = fortesItem[0] || palavrasItem[0];
-  const primeiroProduto = fortesProduto[0] || palavrasProduto[0];
-  const identidadeInicial = primeiroItem === primeiroProduto || primeiroItem.includes(primeiroProduto) || primeiroProduto.includes(primeiroItem);
-  if (!identidadeInicial) {
-    return { score: 0, bloqueado: true, motivo: "produto/princípio ativo diferente" };
+  const comunsItem = contarCorrespondencias(item.tokens, candidato.tokens);
+  const comunsCandidato = contarCorrespondencias(candidato.tokens, item.tokens);
+  const coberturaItem = comunsItem / Math.max(1, item.tokens.length);
+  const coberturaCandidato = comunsCandidato / Math.max(1, candidato.tokens.length);
+
+  const fortesComuns = contarCorrespondencias(item.tokensFortes, candidato.tokensFortes);
+  const coberturaFortesItem = item.tokensFortes.length ? fortesComuns / item.tokensFortes.length : 0;
+  const coberturaFortesCandidato = candidato.tokensFortes.length ? fortesComuns / candidato.tokensFortes.length : 0;
+
+  const similaridadeTexto = similaridadeDice(item.texto, candidato.texto);
+
+  // Pelo menos uma identidade forte precisa existir. Isso bloqueia produtos sem relação,
+  // mas permite variações longas no descritivo do edital.
+  if (item.tokensFortes.length && candidato.tokensFortes.length && fortesComuns === 0 && similaridadeTexto < 0.58) {
+    return { score: 0, bloqueado: true, motivo: "produto principal diferente" };
   }
 
-  const comuns = palavrasItem.filter((p) => palavrasProduto.includes(p)).length;
-  const coberturaItem = comuns / Math.max(1, palavrasItem.length);
-  const coberturaProduto = comuns / Math.max(1, palavrasProduto.length);
-  if (coberturaItem < 0.55) {
-    return { score: 0, bloqueado: true, motivo: "descrição sem correspondência suficiente" };
+  const apresentacoesComuns = item.apresentacoes.some((a) => candidato.apresentacoes.includes(a));
+  if (item.apresentacoes.length && candidato.apresentacoes.length && !apresentacoesComuns) {
+    const genericos = new Set(["CAIXA", "PACOTE", "UNIDADE", "SOLUCAO", "INJETAVEL"]);
+    const especificasItem = item.apresentacoes.filter((a) => !genericos.has(a));
+    const especificasProduto = candidato.apresentacoes.filter((a) => !genericos.has(a));
+    if (especificasItem.length && especificasProduto.length) {
+      return { score: 0, bloqueado: true, motivo: "apresentação diferente" };
+    }
   }
 
-  const apresentacoesItem = extrairApresentacoes(textoItem);
-  const apresentacoesProduto = extrairApresentacoes(textoProduto);
-  if (apresentacoesItem.length && apresentacoesProduto.length && !apresentacoesItem.some((a) => apresentacoesProduto.includes(a))) {
-    return { score: 0, bloqueado: true, motivo: "apresentação diferente" };
-  }
+  const conflitoCaracteristica = item.caracteristicas.some((carac) =>
+    candidato.caracteristicas.length > 0 && !candidato.caracteristicas.includes(carac)
+  );
+  if (conflitoCaracteristica) return { score: 0, bloqueado: true, motivo: "característica técnica diferente" };
 
-  let score = 45;
-  score += Math.round(coberturaItem * 25);
-  score += Math.round(coberturaProduto * 10);
-  score += especificacoesItem.length ? 15 : 5;
+  let score = 0;
+  score += Math.round(coberturaItem * 32);
+  score += Math.round(coberturaCandidato * 12);
+  score += Math.round(coberturaFortesItem * 23);
+  score += Math.round(coberturaFortesCandidato * 8);
+  score += Math.round(similaridadeTexto * 12);
+  score += medidas.pontos;
   score += marca.pontos;
-  if (textoItem === textoProduto) score = 100;
+  if (apresentacoesComuns) score += 5;
+  if (item.texto === candidato.texto) score = 100;
 
-  return { score: Math.min(100, score), bloqueado: false, motivo: "compatível" };
+  // Descrições muito longas do edital não devem derrubar um cadastro resumido.
+  if (coberturaFortesItem >= 0.75 && coberturaFortesCandidato >= 0.75 && !medidas.bloqueado) score = Math.max(score, 84);
+  if (coberturaFortesItem === 1 && coberturaFortesCandidato === 1 && similaridadeTexto >= 0.55) score = Math.max(score, 88);
+
+  return { score: Math.max(0, Math.min(100, Math.round(score))), bloqueado: false, motivo: "compatível" };
+}
+
+function ordenarCandidatosAprimorados(
+  descricao: string,
+  produtos: Produto[],
+  tipoPreco: TipoPreco,
+  marcaSolicitada = "",
+  registroSolicitado = ""
+) {
+  const aprendido = buscarProdutoPorAprendizado(descricao, produtos);
+  return produtos
+    .map((produto) => {
+      const avaliacao = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
+      const bonusAprendizado = aprendido?.produto?.id === produto.id && !avaliacao.bloqueado ? Math.min(8, 3 + Math.floor((aprendido.score || 0) / 25)) : 0;
+      return {
+        produto,
+        score: Math.min(100, avaliacao.score + bonusAprendizado),
+        bloqueado: avaliacao.bloqueado,
+        motivo: avaliacao.motivo,
+        custo: custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER,
+        aprendido: aprendido?.produto?.id === produto.id,
+      };
+    })
+    .filter((c) => !c.bloqueado && c.score >= 48)
+    .sort((a, b) => b.score !== a.score ? b.score - a.score : a.custo - b.custo);
 }
 
 function encontrarMelhorProdutoAprimorado(
@@ -714,29 +875,22 @@ function encontrarMelhorProdutoAprimorado(
   marcaSolicitada = "",
   registroSolicitado = ""
 ) {
-  const aprendido = buscarProdutoPorAprendizado(descricao, produtos);
-  const avaliados = produtos
-    .map((produto) => {
-      const avaliacao = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
-      const bonusAprendizado = aprendido?.produto?.id === produto.id && !avaliacao.bloqueado ? 3 : 0;
-      return {
-        produto,
-        score: Math.min(100, avaliacao.score + bonusAprendizado),
-        bloqueado: avaliacao.bloqueado,
-        motivo: avaliacao.motivo,
-        custo: custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER,
-      };
-    })
-    .filter((c) => !c.bloqueado && c.score >= 90)
-    .sort((a, b) => b.score !== a.score ? b.score - a.score : a.custo - b.custo);
-
+  const avaliados = ordenarCandidatosAprimorados(descricao, produtos, tipoPreco, marcaSolicitada, registroSolicitado);
   const melhor = avaliados[0];
   if (!melhor) return null;
+
+  const segundo = avaliados[1];
+  const vantagem = segundo ? melhor.score - segundo.score : 100;
+
+  // 82+ é automático quando há vantagem clara. Entre 72 e 81 o produto é sugerido
+  // como "Conferir". Abaixo disso não é preenchido sem ajuda da IA.
+  if (melhor.score < 72) return null;
+  if (melhor.score < 82 && vantagem < 7 && !melhor.aprendido) return null;
 
   return {
     produto: melhor.produto,
     score: melhor.score,
-    origem: aprendido?.produto?.id === melhor.produto.id ? "aprendizado_validado" : "busca_estrita",
+    origem: melhor.aprendido ? "aprendizado_validado" : melhor.score >= 82 ? "busca_hibrida" : "busca_hibrida_revisar",
   };
 }
 
@@ -1098,7 +1252,13 @@ useEffect(() => {
   async function buscarComIa(descricao: string, produtos: Produto[], marcaSolicitada = "", registroSolicitado = "") {
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 5000);
-    const candidatosLocais = encontrarCandidatos(descricao, produtos, 5).map((c) => c.produto);
+    const candidatosLocais = ordenarCandidatosAprimorados(
+      descricao,
+      produtos,
+      "unitario",
+      marcaSolicitada,
+      registroSolicitado
+    ).slice(0, 10).map((c) => c.produto);
 
     if (!candidatosLocais.length) {
       clearTimeout(timeout);
@@ -1124,10 +1284,10 @@ useEffect(() => {
 
       const avaliacaoEstrita = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
       const confiancaIa = Number(data.confianca) || 0;
-      const scoreFinal = Math.min(confiancaIa, avaliacaoEstrita.score);
+      const scoreFinal = Math.round((confiancaIa * 0.35) + (avaliacaoEstrita.score * 0.65));
 
       // A IA nunca pode contornar as regras objetivas de produto, dose, apresentação ou marca.
-      if (avaliacaoEstrita.bloqueado || scoreFinal < 90) return null;
+      if (avaliacaoEstrita.bloqueado || avaliacaoEstrita.score < 65 || scoreFinal < 74) return null;
 
       return { produto, score: scoreFinal };
     } catch {
@@ -1324,7 +1484,7 @@ useEffect(() => {
         let score = melhor?.score || 0;
         let origem = melhor?.origem || "busca_local";
 
-        if (usarIa && score < 90 && produtosValidos.length) {
+        if (usarIa && score < 84 && produtosValidos.length) {
           const ia = await buscarComIa(descricao, produtosValidos, marcaSolicitada, registroSolicitado);
           if (ia && ia.score > score) {
             produto = ia.produto;
@@ -1351,7 +1511,7 @@ useEffect(() => {
       });
 
       setItens(itensCorrigidos);
-      setMensagem(`${itensCorrigidos.length} itens processados. Somente correspondências com 90% ou mais e sem divergência de produto, especificação, apresentação, registro ou marca foram cotadas automaticamente.`);
+      setMensagem(`${itensCorrigidos.length} itens processados. A busca híbrida comparou nome principal, medidas, apresentação, marca, registro ANVISA e variações do descritivo. Correspondências duvidosas foram marcadas para conferência em vez de serem descartadas.`);
     } finally {
       setProcessando(false);
       setProgressoProcessamento("");
