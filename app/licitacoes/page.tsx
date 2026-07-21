@@ -624,6 +624,13 @@ function normalizarUnidadesBusca(valor: unknown) {
     .trim();
 }
 
+type EquivalenciaFarmaceutica = {
+  concentracoesMgPorMl: number[];
+  dosesTotaisMg: number[];
+  volumesMl: number[];
+  possuiRelacaoMassaVolume: boolean;
+};
+
 type AtributosBusca = {
   texto: string;
   tokens: string[];
@@ -631,7 +638,151 @@ type AtributosBusca = {
   medidas: Record<string, string[]>;
   apresentacoes: string[];
   caracteristicas: string[];
+  farmaceutico: EquivalenciaFarmaceutica;
 };
+
+
+function quaseIgual(a: number, b: number, toleranciaRelativa = 0.015) {
+  if (!Number.isFinite(a) || !Number.isFinite(b)) return false;
+  const escala = Math.max(1, Math.abs(a), Math.abs(b));
+  return Math.abs(a - b) <= escala * toleranciaRelativa;
+}
+
+function massaParaMg(valor: number, unidade: string) {
+  if (unidade === "MCG") return valor / 1000;
+  if (unidade === "G") return valor * 1000;
+  if (unidade === "KG") return valor * 1000000;
+  return valor;
+}
+
+function volumeParaMl(valor: number, unidade: string) {
+  return unidade === "L" ? valor * 1000 : valor;
+}
+
+function valoresUnicos(valores: number[]) {
+  const saida: number[] = [];
+  valores.forEach((valor) => {
+    if (Number.isFinite(valor) && valor > 0 && !saida.some((existente) => quaseIgual(existente, valor, 0.000001))) {
+      saida.push(Number(valor.toFixed(6)));
+    }
+  });
+  return saida;
+}
+
+/**
+ * Converte apresentações farmacêuticas diferentes para bases comparáveis.
+ * Exemplos reconhecidos:
+ * - 25 mg/mL + ampola 3 mL = 75 mg/3 mL
+ * - 75 mg/3 mL = 25 mg/mL
+ * - 1 g = 1000 mg
+ *
+ * Também mantém uma equivalência controlada para a grafia abreviada comum
+ * "25 mg/3 mL" quando o cadastro correspondente informa 75 mg/3 mL.
+ * Essa flexibilização só é usada junto com a validação do princípio ativo.
+ */
+function extrairEquivalenciaFarmaceutica(valor: unknown): EquivalenciaFarmaceutica {
+  const bruto = String(valor || "")
+    .toUpperCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/(\d),(\d)/g, "$1.$2")
+    .replace(/\bMICROGRAMAS?\b/g, "MCG")
+    .replace(/\bMILIGRAMAS?\b/g, "MG")
+    .replace(/\bGRAMAS?\b/g, "G")
+    .replace(/\bMILILITROS?\b/g, "ML")
+    .replace(/\bLITROS?\b/g, "L")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  const concentracoes: number[] = [];
+  const totais: number[] = [];
+  const volumes: number[] = [];
+  let possuiRelacao = false;
+
+  const relacao = /(\d+(?:\.\d+)?)\s*(MCG|MG|G|KG)\s*\/\s*(?:(\d+(?:\.\d+)?)\s*)?(ML|L)\b/g;
+  let match: RegExpExecArray | null;
+  while ((match = relacao.exec(bruto))) {
+    possuiRelacao = true;
+    const massaMg = massaParaMg(Number(match[1]), match[2]);
+    const volumeMl = volumeParaMl(Number(match[3] || "1"), match[4]);
+    if (volumeMl > 0) {
+      concentracoes.push(massaMg / volumeMl);
+      totais.push(massaMg);
+      volumes.push(volumeMl);
+
+      // Alguns editais escrevem "25 mg/3 mL" querendo indicar 25 mg por mL
+      // em ampola de 3 mL. Mantemos também esse candidato calculado (25 x 3 = 75),
+      // mas ele nunca é usado isoladamente: nome do fármaco e apresentação ainda
+      // precisam ser compatíveis.
+      if (volumeMl > 1) totais.push(massaMg * volumeMl);
+    }
+  }
+
+  const massaSolta = /(\d+(?:\.\d+)?)\s*(MCG|MG|G|KG)\b/g;
+  while ((match = massaSolta.exec(bruto))) {
+    const antes = bruto.slice(Math.max(0, match.index - 2), match.index);
+    if (antes.includes("/")) continue;
+    totais.push(massaParaMg(Number(match[1]), match[2]));
+  }
+
+  const volumeSolto = /(\d+(?:\.\d+)?)\s*(ML|L)\b/g;
+  while ((match = volumeSolto.exec(bruto))) {
+    const antes = bruto.slice(Math.max(0, match.index - 2), match.index);
+    if (antes.includes("/")) continue;
+    volumes.push(volumeParaMl(Number(match[1]), match[2]));
+  }
+
+  const volumesUnicos = valoresUnicos(volumes);
+  const concentracoesUnicas = valoresUnicos(concentracoes);
+  const totaisUnicos = valoresUnicos(totais);
+
+  // Se existe concentração explícita por 1 mL e um volume de apresentação,
+  // calcula também a quantidade total da ampola/frasco.
+  concentracoesUnicas.forEach((concentracao) => {
+    volumesUnicos.forEach((volume) => totaisUnicos.push(Number((concentracao * volume).toFixed(6))));
+  });
+
+  return {
+    concentracoesMgPorMl: valoresUnicos(concentracoesUnicas),
+    dosesTotaisMg: valoresUnicos(totaisUnicos),
+    volumesMl: volumesUnicos,
+    possuiRelacaoMassaVolume: possuiRelacao,
+  };
+}
+
+function avaliarEquivalenciaFarmaceutica(item: EquivalenciaFarmaceutica, produto: EquivalenciaFarmaceutica) {
+  const ambosFarmaceuticos = item.possuiRelacaoMassaVolume || produto.possuiRelacaoMassaVolume;
+  if (!ambosFarmaceuticos) return { comparado: false, compativel: true, pontos: 0, motivo: "" };
+
+  const volumeComparavel = item.volumesMl.length && produto.volumesMl.length;
+  const volumeIgual = !volumeComparavel || item.volumesMl.some((a) => produto.volumesMl.some((b) => quaseIgual(a, b)));
+
+  const concentracaoIgual = item.concentracoesMgPorMl.some((a) =>
+    produto.concentracoesMgPorMl.some((b) => quaseIgual(a, b))
+  );
+  const totalIgual = item.dosesTotaisMg.some((a) =>
+    produto.dosesTotaisMg.some((b) => quaseIgual(a, b))
+  );
+
+  if ((concentracaoIgual || totalIgual) && volumeIgual) {
+    return {
+      comparado: true,
+      compativel: true,
+      pontos: concentracaoIgual && totalIgual ? 26 : 22,
+      motivo: concentracaoIgual ? "concentração farmacêutica equivalente" : "dose total equivalente",
+    };
+  }
+
+  // Se os dois lados têm dados farmacêuticos suficientes e nenhum cálculo bate,
+  // bloqueia para evitar trocar dosagem.
+  const itemTemDose = item.concentracoesMgPorMl.length || item.dosesTotaisMg.length;
+  const produtoTemDose = produto.concentracoesMgPorMl.length || produto.dosesTotaisMg.length;
+  if (itemTemDose && produtoTemDose) {
+    return { comparado: true, compativel: false, pontos: 0, motivo: "concentração/dose farmacêutica incompatível" };
+  }
+
+  return { comparado: false, compativel: true, pontos: 0, motivo: "" };
+}
 
 const PALAVRAS_FRACAS_BUSCA = new Set([
   "DE", "DA", "DO", "DAS", "DOS", "PARA", "POR", "COM", "SEM", "EM", "E", "A", "O",
@@ -706,7 +857,8 @@ function extrairAtributosBusca(valor: unknown): AtributosBusca {
   const caracteristicas = ["LUERLOCK", "LUERSLIP", "MACROGOTAS", "MICROGOTAS", "TRIFACETADA", "HIPODERMICA", "CIRURGICA", "PROCEDIMENTO"]
     .filter((termo) => texto.includes(termo));
 
-  return { texto, tokens, tokensFortes, medidas, apresentacoes, caracteristicas };
+  const farmaceutico = extrairEquivalenciaFarmaceutica(valor);
+  return { texto, tokens, tokensFortes, medidas, apresentacoes, caracteristicas, farmaceutico };
 }
 
 function similaridadeDice(a: string, b: string) {
@@ -743,6 +895,32 @@ function contarCorrespondencias(origem: string[], destino: string[]) {
 }
 
 function avaliarMedidas(item: AtributosBusca, produto: AtributosBusca) {
+  const equivalenciaFarmaceutica = avaliarEquivalenciaFarmaceutica(item.farmaceutico, produto.farmaceutico);
+  if (equivalenciaFarmaceutica.comparado) {
+    if (!equivalenciaFarmaceutica.compativel) {
+      return { bloqueado: true, pontos: 0, motivo: equivalenciaFarmaceutica.motivo };
+    }
+
+    // Massa e volume já foram validados pela equivalência farmacêutica. As demais
+    // categorias (calibre, comprimento, UI, porcentagem etc.) continuam rígidas.
+    let extrasComparados = 0;
+    for (const [categoria, valoresItem] of Object.entries(item.medidas)) {
+      if (categoria === "MASSA_MG" || categoria === "VOLUME_ML") continue;
+      const valoresProduto = produto.medidas[categoria];
+      if (!valoresProduto?.length) continue;
+      extrasComparados++;
+      if (!valoresItem.some((v) => valoresProduto.includes(v))) {
+        return { bloqueado: true, pontos: 0, motivo: `medida incompatível (${categoria.toLowerCase()})` };
+      }
+    }
+
+    return {
+      bloqueado: false,
+      pontos: equivalenciaFarmaceutica.pontos + Math.min(6, extrasComparados * 3),
+      motivo: equivalenciaFarmaceutica.motivo,
+    };
+  }
+
   let categoriasComparadas = 0;
   let categoriasIguais = 0;
   for (const [categoria, valoresItem] of Object.entries(item.medidas)) {
