@@ -20,7 +20,6 @@ type Produto = {
   vencimento_registro?: string | null;
   custo_unitario?: number | null;
   custo_caixa?: number | null;
-  quantidade_por_caixa?: number | null;
   pdf_url?: string | null;
 };
 
@@ -34,7 +33,6 @@ type ItemLicitacao = {
   registro_anvisa?: string | null;
   vencimento_registro?: string | null;
   custo_usado?: number | null;
-  quantidade_por_caixa?: number | null;
   tipo_preco?: TipoPreco;
   valor_unitario?: number | null;
   valor_total?: number | null;
@@ -320,7 +318,6 @@ function montarItemCotado(params: {
     registro_anvisa: produto.registro_anvisa,
     vencimento_registro: produto.vencimento_registro,
     custo_usado: custo || null,
-    quantidade_por_caixa: produto.quantidade_por_caixa || null,
     tipo_preco: tipoPreco,
     valor_unitario: valorUnitario,
     valor_total: valorTotal,
@@ -366,7 +363,12 @@ function produtosBuscaManualMenorCusto(
         produto.registro_anvisa,
       ].filter(Boolean).join(" "));
 
-      return !termo || texto.includes(termo) || termo.includes(normalizarBuscaProduto(produto.descricao));
+      return (
+        !termo ||
+        texto.includes(termo) ||
+        termo.includes(normalizarBuscaProduto(produto.descricao)) ||
+        combinaBuscaManual(produto, descricaoBusca)
+      );
     });
 
   const melhorPorProduto = new Map<string, Produto>();
@@ -1330,7 +1332,6 @@ useEffect(() => {
       registro_anvisa: produto.registro_anvisa,
       vencimento_registro: produto.vencimento_registro,
       custo_usado: custo || null,
-      quantidade_por_caixa: produto.quantidade_por_caixa || null,
       tipo_preco: tipoPreco,
       valor_unitario: valorUnitario,
       valor_total: valorTotal,
@@ -1547,7 +1548,7 @@ useEffect(() => {
     }
   }
 
-  function continuarRascunhoLicitacao() {
+  async function continuarRascunhoLicitacao() {
     const rascunho = carregarRascunhoLicitacao();
 
     if (!rascunho) {
@@ -1556,16 +1557,34 @@ useEffect(() => {
       return;
     }
 
-    setArquivoNome(rascunho.arquivo_nome || "Licitação em andamento");
-    setMargem(rascunho.margem || "30");
-    setTipoPrecoPadrao(rascunho.tipoPrecoPadrao || "auto");
-    setUsarIa(!!rascunho.usarIa);
-    setItens(rascunho.itens || []);
-    setBuscaManualPorItem(rascunho.buscaManualPorItem || {});
-    setCustoManualTextoPorItem(rascunho.custoManualTextoPorItem || {});
-    setFiltro("todos");
-    setPaginaItens(1);
-    setMensagem("Rascunho restaurado com sucesso.");
+    setErro("");
+    setProcessando(true);
+    setProgressoProcessamento("Carregando produtos para continuar a cotação...");
+
+    try {
+      // O rascunho salva os itens da licitação, mas não deve salvar todo o banco de
+      // produtos no navegador. Por isso, ao continuar, recarregamos o banco antes
+      // de liberar a busca manual dos itens pendentes.
+      const produtos = await buscarTodosProdutosLicitacao();
+      setProdutosBanco(produtos);
+
+      setArquivoNome(rascunho.arquivo_nome || "Licitação em andamento");
+      setMargem(rascunho.margem || "30");
+      setTipoPrecoPadrao(rascunho.tipoPrecoPadrao || "auto");
+      setUsarIa(!!rascunho.usarIa);
+      setItens(rascunho.itens || []);
+      setBuscaManualPorItem(rascunho.buscaManualPorItem || {});
+      setCustoManualTextoPorItem(rascunho.custoManualTextoPorItem || {});
+      setFiltro("todos");
+      setPaginaItens(1);
+      setMensagem(`Rascunho restaurado com sucesso. ${produtos.length} produtos disponíveis para busca.`);
+    } catch (error) {
+      console.error("Erro ao carregar produtos ao continuar cotação:", error);
+      setErro("A cotação foi encontrada, mas não foi possível carregar o Banco de Preços para a busca. Verifique a conexão e tente novamente.");
+    } finally {
+      setProcessando(false);
+      setProgressoProcessamento("");
+    }
   }
 
   function novaCotacaoLicitacao() {
@@ -1753,7 +1772,6 @@ useEffect(() => {
         "TIPO PREÇO": cotar ? (item.tipo_preco === "caixa" ? "CAIXA" : "UNITÁRIO") : "",
         REGISTRO: cotar ? item.registro_anvisa || "" : "",
         MARCA: cotar ? item.marca || "" : "",
-        "QUANTIDADE POR CAIXA": cotar ? item.quantidade_por_caixa || "" : "",
         CUSTO: cotar ? item.custo_usado || "" : "",
         "VL. UNIT": cotar ? item.valor_unitario || "" : "",
         "VL. TOTAL": cotar ? item.valor_total || "" : "",
@@ -2003,6 +2021,22 @@ useEffect(() => {
                                 [item.numero_item]: e.target.value.toUpperCase(),
                               }))
                             }
+                            onFocus={async () => {
+                              if (produtosBanco.length > 0 || processando) return;
+
+                              try {
+                                setProcessando(true);
+                                setProgressoProcessamento("Carregando produtos para busca...");
+                                const produtos = await buscarTodosProdutosLicitacao();
+                                setProdutosBanco(produtos);
+                              } catch (error) {
+                                console.error("Erro ao carregar produtos para busca manual:", error);
+                                setErro("Não foi possível carregar os produtos para busca. Tente novamente.");
+                              } finally {
+                                setProcessando(false);
+                                setProgressoProcessamento("");
+                              }
+                            }}
                           />
 
                           <select
