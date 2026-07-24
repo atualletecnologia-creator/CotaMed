@@ -20,6 +20,7 @@ type Produto = {
   vencimento_registro?: string | null;
   custo_unitario?: number | null;
   custo_caixa?: number | null;
+  quantidade_por_caixa?: number | null;
   pdf_url?: string | null;
 };
 
@@ -29,6 +30,8 @@ type ItemLicitacao = {
   quantidade: number;
   unidade: string;
   produto_id?: string | null;
+  produto_descricao?: string | null;
+  quantidade_por_caixa?: number | null;
   marca?: string | null;
   registro_anvisa?: string | null;
   vencimento_registro?: string | null;
@@ -324,6 +327,8 @@ function montarItemCotado(params: {
     quantidade,
     unidade,
     produto_id: produto.id || null,
+    produto_descricao: produto.descricao || produto.apresentacao || null,
+    quantidade_por_caixa: produto.quantidade_por_caixa ?? null,
     marca: produto.marca,
     registro_anvisa: produto.registro_anvisa,
     vencimento_registro: produto.vencimento_registro,
@@ -1137,6 +1142,8 @@ function compactarItemRascunho(item: ItemLicitacao): ItemLicitacao {
     unidade: item.unidade,
     quantidade: item.quantidade,
     produto_id: item.produto_id || "",
+    produto_descricao: item.produto_descricao || "",
+    quantidade_por_caixa: item.quantidade_por_caixa ?? null,
     marca: item.marca || "",
     registro_anvisa: item.registro_anvisa || "",
     vencimento_registro: item.vencimento_registro || "",
@@ -1339,6 +1346,8 @@ useEffect(() => {
     return {
       ...item,
       produto_id: produto.id || null,
+      produto_descricao: produto.descricao || produto.apresentacao || null,
+      quantidade_por_caixa: produto.quantidade_por_caixa ?? null,
       marca: produto.marca,
       registro_anvisa: produto.registro_anvisa,
       vencimento_registro: produto.vencimento_registro,
@@ -1778,9 +1787,11 @@ useEffect(() => {
       const cotar = itemPodeCotar(item);
       return {
         ITEM: item.numero_item,
-        "DESCRIÇÃO DOS PRODUTOS": item.descricao,
+        "DESCRITIVO DA LICITAÇÃO": item.descricao,
+        "DESCRITIVO DO PRODUTO": cotar ? item.produto_descricao || "" : "",
         UNID: item.unidade,
         QUANT: item.quantidade,
+        "QTD. POR CAIXA": cotar ? (item.quantidade_por_caixa ?? "") : "",
         "TIPO PREÇO": cotar ? (item.tipo_preco === "caixa" ? "CAIXA" : "UNITÁRIO") : "",
         REGISTRO: cotar ? item.registro_anvisa || "" : "",
         MARCA: cotar ? item.marca || "" : "",
