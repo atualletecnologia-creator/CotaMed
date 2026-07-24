@@ -118,9 +118,18 @@ function numero(valor: unknown) {
   return Number.isFinite(n) ? n : null;
 }
 
+function arredondar4(valor: number) {
+  return Math.round((valor + Number.EPSILON) * 10000) / 10000;
+}
+
 function dinheiro(valor?: number | null) {
   if (valor === null || valor === undefined) return "-";
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return valor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  });
 }
 
 function scoreRegistro(produto: Partial<Produto>, registro: RegistroAnvisa) {
@@ -276,7 +285,7 @@ export default function BancoPrecos() {
       if (campo === "quantidade_por_caixa" || campo === "custo_unitario" || campo === "custo_caixa") {
         return {
           ...atual,
-          [campo]: valor === "" ? null : Number(String(valor).replace(",", ".")),
+          [campo]: valor === "" ? null : arredondar4(Number(String(valor).replace(",", "."))),
         };
       }
 
@@ -311,7 +320,7 @@ export default function BancoPrecos() {
       if (campo === "quantidade_por_caixa" || campo === "custo_unitario" || campo === "custo_caixa") {
         return {
           ...atual,
-          [campo]: valor === "" ? null : Number(String(valor).replace(",", ".")),
+          [campo]: valor === "" ? null : arredondar4(Number(String(valor).replace(",", "."))),
         };
       }
 
@@ -578,11 +587,11 @@ export default function BancoPrecos() {
         let custoCaixa = numero(normalizada.custo_caixa);
 
         if ((!custoUnitario || custoUnitario <= 0) && custoCaixa && quantidadePorCaixa) {
-          custoUnitario = custoCaixa / quantidadePorCaixa;
+          custoUnitario = arredondar4(custoCaixa / quantidadePorCaixa);
         }
 
         if ((!custoCaixa || custoCaixa <= 0) && custoUnitario && quantidadePorCaixa) {
-          custoCaixa = custoUnitario * quantidadePorCaixa;
+          custoCaixa = arredondar4(custoUnitario * quantidadePorCaixa);
         }
 
         if (!descricao) {
@@ -1662,8 +1671,8 @@ export default function BancoPrecos() {
                   <input
                     className="input"
                     type="number"
-                    step="0.01"
-                    placeholder="0,00"
+                    step="0.0001"
+                    placeholder="0,0000"
                     value={produtoNovo.custo_unitario || ""}
                     onChange={(e) => atualizarCampoNovo("custo_unitario", e.target.value)}
                   />
@@ -1674,8 +1683,8 @@ export default function BancoPrecos() {
                   <input
                     className="input"
                     type="number"
-                    step="0.01"
-                    placeholder="0,00"
+                    step="0.0001"
+                    placeholder="0,0000"
                     value={produtoNovo.custo_caixa || ""}
                     onChange={(e) => atualizarCampoNovo("custo_caixa", e.target.value)}
                   />
@@ -1741,8 +1750,8 @@ export default function BancoPrecos() {
               <div><label className="text-sm font-medium">Vencimento Registro</label><input className="input mt-2" placeholder="AAAA-MM-DD" value={produtoEditando.vencimento_registro || ""} onChange={(e) => atualizarCampoEdicao("vencimento_registro", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Unidade</label><input className="input mt-2" value={produtoEditando.unidade || ""} onChange={(e) => atualizarCampoEdicao("unidade", e.target.value)} /></div>
               <div><label className="text-sm font-medium">Qtd por caixa</label><input className="input mt-2" type="number" value={produtoEditando.quantidade_por_caixa || ""} onChange={(e) => atualizarCampoEdicao("quantidade_por_caixa", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Custo unitário</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_unitario || ""} onChange={(e) => atualizarCampoEdicao("custo_unitario", e.target.value)} /></div>
-              <div><label className="text-sm font-medium">Custo caixa</label><input className="input mt-2" type="number" step="0.01" value={produtoEditando.custo_caixa || ""} onChange={(e) => atualizarCampoEdicao("custo_caixa", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Custo unitário</label><input className="input mt-2" type="number" step="0.0001" value={produtoEditando.custo_unitario || ""} onChange={(e) => atualizarCampoEdicao("custo_unitario", e.target.value)} /></div>
+              <div><label className="text-sm font-medium">Custo caixa</label><input className="input mt-2" type="number" step="0.0001" value={produtoEditando.custo_caixa || ""} onChange={(e) => atualizarCampoEdicao("custo_caixa", e.target.value)} /></div>
               <div className="md:col-span-3"><label className="text-sm font-medium">Origem do preço</label><input className="input mt-2" value={produtoEditando.origem_preco || ""} onChange={(e) => atualizarCampoEdicao("origem_preco", e.target.value)} /></div>
             </div>
 

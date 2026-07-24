@@ -11,8 +11,8 @@ create table if not exists produtos (
   vencimento_registro date,
   unidade text,
   quantidade_por_caixa numeric,
-  custo_unitario numeric,
-  custo_caixa numeric,
+  custo_unitario numeric(18,4),
+  custo_caixa numeric(18,4),
 
   -- DATA DA ÚLTIMA ATUALIZAÇÃO DO CUSTO
   data_atualizacao_custo timestamp,
@@ -26,10 +26,10 @@ create table if not exists produtos (
 create table if not exists historico_precos (
   id uuid primary key default gen_random_uuid(),
   produto_id uuid references produtos(id) on delete cascade,
-  custo_unitario_antigo numeric,
-  custo_unitario_novo numeric,
-  custo_caixa_antigo numeric,
-  custo_caixa_novo numeric,
+  custo_unitario_antigo numeric(18,4),
+  custo_unitario_novo numeric(18,4),
+  custo_caixa_antigo numeric(18,4),
+  custo_caixa_novo numeric(18,4),
   data_alteracao timestamp default now(),
   usuario text,
   origem_preco text
@@ -55,13 +55,13 @@ create table if not exists itens_licitacao (
   unidade text,
   tipo_cotacao text,
   quantidade_por_caixa numeric,
-  custo_unitario numeric,
-  custo_caixa numeric,
-  custo_usado numeric,
+  custo_unitario numeric(18,4),
+  custo_caixa numeric(18,4),
+  custo_usado numeric(18,4),
   marca text,
   registro_anvisa text,
-  valor_unitario numeric,
-  valor_total numeric,
+  valor_unitario numeric(18,4),
+  valor_total numeric(18,4),
   created_at timestamp default now()
 );
 

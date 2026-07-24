@@ -74,9 +74,18 @@ function numero(valor: unknown) {
   return Number.isFinite(n) ? n : 0;
 }
 
+function arredondar4(valor: number) {
+  return Math.round((valor + Number.EPSILON) * 10000) / 10000;
+}
+
 function dinheiro(valor?: number | null) {
   if (valor === null || valor === undefined || Number.isNaN(valor)) return "-";
-  return valor.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  return valor.toLocaleString("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+    minimumFractionDigits: 4,
+    maximumFractionDigits: 4,
+  });
 }
 
 function nomeSeguro(texto: string) {
@@ -298,8 +307,9 @@ function montarItemCotado(params: {
 
   const score = confianca || 0;
   const custo = custoPorTipo(produto, tipoPreco);
-  const valorUnitario = custo > 0 ? custo * (1 + margem / 100) : null;
-  const valorTotal = valorUnitario ? valorUnitario * quantidade : null;
+  const custo4 = custo > 0 ? arredondar4(custo) : 0;
+  const valorUnitario = custo4 > 0 ? arredondar4(custo4 * (1 + margem / 100)) : null;
+  const valorTotal = valorUnitario ? arredondar4(valorUnitario * quantidade) : null;
   const nivel = classificarConfianca(score);
 
   let status = "Não encontrado";
@@ -317,7 +327,7 @@ function montarItemCotado(params: {
     marca: produto.marca,
     registro_anvisa: produto.registro_anvisa,
     vencimento_registro: produto.vencimento_registro,
-    custo_usado: custo || null,
+    custo_usado: custo4 || null,
     tipo_preco: tipoPreco,
     valor_unitario: valorUnitario,
     valor_total: valorTotal,
@@ -1322,8 +1332,9 @@ useEffect(() => {
   function recalcularItem(item: ItemLicitacao, produto: Produto, tipoPreco: TipoPreco, status = "Manual") {
     const margemNumero = numero(margem);
     const custo = custoPorTipo(produto, tipoPreco);
-    const valorUnitario = custo > 0 ? custo * (1 + margemNumero / 100) : null;
-    const valorTotal = valorUnitario ? valorUnitario * item.quantidade : null;
+    const custo4 = custo > 0 ? arredondar4(custo) : 0;
+    const valorUnitario = custo4 > 0 ? arredondar4(custo4 * (1 + margemNumero / 100)) : null;
+    const valorTotal = valorUnitario ? arredondar4(valorUnitario * item.quantidade) : null;
 
     return {
       ...item,
@@ -1331,7 +1342,7 @@ useEffect(() => {
       marca: produto.marca,
       registro_anvisa: produto.registro_anvisa,
       vencimento_registro: produto.vencimento_registro,
-      custo_usado: custo || null,
+      custo_usado: custo4 || null,
       tipo_preco: tipoPreco,
       valor_unitario: valorUnitario,
       valor_total: valorTotal,
@@ -1349,8 +1360,9 @@ useEffect(() => {
   ) {
     const margemNumero = numero(margem);
     const custo = campos.custo_usado ?? item.custo_usado ?? 0;
-    const valorUnitario = custo > 0 ? custo * (1 + margemNumero / 100) : null;
-    const valorTotal = valorUnitario ? valorUnitario * item.quantidade : null;
+    const custo4 = custo > 0 ? arredondar4(custo) : 0;
+    const valorUnitario = custo4 > 0 ? arredondar4(custo4 * (1 + margemNumero / 100)) : null;
+    const valorTotal = valorUnitario ? arredondar4(valorUnitario * item.quantidade) : null;
 
     return {
       ...item,
@@ -1358,7 +1370,7 @@ useEffect(() => {
       produto_id: null,
       marca: maiusculo(campos.marca ?? item.marca),
       registro_anvisa: maiusculo(campos.registro_anvisa ?? item.registro_anvisa),
-      custo_usado: custo || null,
+      custo_usado: custo4 || null,
       tipo_preco: campos.tipo_preco || item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade),
       valor_unitario: valorUnitario,
       valor_total: valorTotal,
@@ -1783,6 +1795,20 @@ useEffect(() => {
     });
 
     const ws = XLSX.utils.json_to_sheet(dados);
+
+    // Mantém quatro casas decimais nas colunas financeiras do Excel.
+    const cabecalhos = dados.length ? Object.keys(dados[0]) : [];
+    const colunasQuatroCasas = new Set(["CUSTO", "VL. UNIT", "VL. TOTAL"]);
+    cabecalhos.forEach((cabecalho, indiceColuna) => {
+      if (!colunasQuatroCasas.has(cabecalho)) return;
+      for (let linha = 2; linha <= dados.length + 1; linha++) {
+        const endereco = XLSX.utils.encode_cell({ r: linha - 1, c: indiceColuna });
+        if (ws[endereco] && typeof ws[endereco].v === "number") {
+          ws[endereco].z = '#,##0.0000';
+        }
+      }
+    });
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Cotação");
     XLSX.writeFile(wb, `cotacao-preenchida-cotamed-${new Date().toISOString().slice(0, 10)}.xlsx`);
