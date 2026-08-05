@@ -36,7 +36,6 @@ const sinonimos: Record<string, string> = {
 const palavrasIgnoradas = new Set([
   "de", "da", "do", "das", "dos", "para", "por", "em", "a", "o", "e",
   "produto", "material", "hospitalar", "uso", "adulto", "infantil", "item",
-  "sulfato", "cloridrato", "sodico", "sódico", "dissodico", "dissódico",
   "base", "solucao", "solução", "frasco", "ampola", "ml", "mg"
 ]);
 

@@ -362,6 +362,25 @@ function chaveProdutoSemMarca(produto: Produto) {
   ].filter(Boolean).join(" | "));
 }
 
+const cacheTextoBuscaManual = new Map<string, string>();
+
+function textoProdutoManualCache(produto: Produto) {
+  const chave = `${produto.id || ""}|${produto.descricao || ""}|${produto.apresentacao || ""}|${produto.marca || ""}|${produto.registro_anvisa || ""}`;
+  const existente = cacheTextoBuscaManual.get(chave);
+  if (existente !== undefined) return existente;
+
+  const texto = normalizarBuscaProduto([
+    produto.descricao,
+    produto.apresentacao,
+    produto.marca,
+    produto.registro_anvisa,
+  ].filter(Boolean).join(" "));
+
+  if (cacheTextoBuscaManual.size > 12000) cacheTextoBuscaManual.clear();
+  cacheTextoBuscaManual.set(chave, texto);
+  return texto;
+}
+
 function produtosBuscaManualMenorCusto(
   produtos: Produto[],
   descricaoBusca: string,
@@ -371,12 +390,7 @@ function produtosBuscaManualMenorCusto(
 
   const candidatos = produtos
     .filter((produto) => {
-      const texto = normalizarBuscaProduto([
-        produto.descricao,
-        produto.apresentacao,
-        produto.marca,
-        produto.registro_anvisa,
-      ].filter(Boolean).join(" "));
+      const texto = textoProdutoManualCache(produto);
 
       return (
         !termo ||
@@ -506,7 +520,7 @@ function normalizarAprendizado(valor: unknown) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[\/\\|,.;:()[\]{}_-]+/g, " ")
-    .replace(/\b(SULFATO|CLORIDRATO|SODICO|SODICA|BASE|SOLUCAO|SOLUÇÃO|INJETAVEL|INJETÁVEL|ORAL|USO|ADULTO|PEDIATRICO|PEDIÁTRICO)\b/g, " ")
+    .replace(/\b(BASE|SOLUCAO|SOLUÇÃO|INJETAVEL|INJETÁVEL|ORAL|USO|ADULTO|PEDIATRICO|PEDIÁTRICO)\b/g, " ")
     .replace(/\b(COMP|COMPR|COMPRIMIDO|COMPRIMIDOS)\b/g, " COMPRIMIDO ")
     .replace(/\b(CAPS|CAPSULA|CÁPSULA|CAPSULAS|CÁPSULAS)\b/g, " CAPSULA ")
     .replace(/\b(AMP|AMPOLA|AMPOLAS)\b/g, " AMPOLA ")
@@ -624,7 +638,7 @@ function buscarProdutoPorAprendizado(descricao: string, produtos: Produto[]) {
     .filter(Boolean) as { produto: Produto; score: number }[];
 
   const melhor = candidatos
-    .filter((c) => c.score >= 72)
+    .filter((c) => c.score >= 90)
     .sort((a, b) => b.score - a.score)[0];
 
   return melhor || null;
@@ -1052,14 +1066,21 @@ function ordenarCandidatosAprimorados(
   return produtos
     .map((produto) => {
       const avaliacao = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
-      const bonusAprendizado = aprendido?.produto?.id === produto.id && !avaliacao.bloqueado ? Math.min(8, 3 + Math.floor((aprendido.score || 0) / 25)) : 0;
+      // O aprendizado nunca mais transforma uma correspondência fraca em automática.
+      // Ele serve apenas como desempate para um candidato que já foi validado pela busca híbrida.
+      const aprendizadoValidado =
+        aprendido?.produto?.id === produto.id &&
+        !avaliacao.bloqueado &&
+        avaliacao.score >= 78 &&
+        (aprendido.score || 0) >= 90;
+      const bonusAprendizado = aprendizadoValidado ? 2 : 0;
       return {
         produto,
         score: Math.min(100, avaliacao.score + bonusAprendizado),
         bloqueado: avaliacao.bloqueado,
         motivo: avaliacao.motivo,
         custo: custoPorTipo(produto, tipoPreco) || Number.MAX_SAFE_INTEGER,
-        aprendido: aprendido?.produto?.id === produto.id,
+        aprendido: aprendizadoValidado,
       };
     })
     .filter((c) => !c.bloqueado && c.score >= 48)
@@ -1080,10 +1101,10 @@ function encontrarMelhorProdutoAprimorado(
   const segundo = avaliados[1];
   const vantagem = segundo ? melhor.score - segundo.score : 100;
 
-  // 82+ é automático quando há vantagem clara. Entre 72 e 81 o produto é sugerido
-  // como "Conferir". Abaixo disso não é preenchido sem ajuda da IA.
-  if (melhor.score < 72) return null;
-  if (melhor.score < 82 && vantagem < 7 && !melhor.aprendido) return null;
+  // Correspondências com boa identidade técnica podem ser sugeridas a partir de 76.
+  // Abaixo de 84 exigimos vantagem clara sobre o segundo candidato.
+  if (melhor.score < 76) return null;
+  if (melhor.score < 84 && vantagem < 8 && !melhor.aprendido) return null;
 
   return {
     produto: melhor.produto,
@@ -1222,6 +1243,7 @@ export default function Licitacoes() {
   const [usarIa, setUsarIa] = useState(false);
   const [produtosBanco, setProdutosBanco] = useState<Produto[]>([]);
   const [buscaManualPorItem, setBuscaManualPorItem] = useState<Record<string, string>>({});
+  const [itemBuscaManualAtivo, setItemBuscaManualAtivo] = useState<string | null>(null);
   const [custoManualTextoPorItem, setCustoManualTextoPorItem] = useState<Record<string, string>>({});
   const [itens, setItens] = useState<ItemLicitacao[]>([]);
   const [filtro, setFiltro] = useState("todos");
@@ -1233,6 +1255,14 @@ export default function Licitacoes() {
   const [arquivoNome, setArquivoNome] = useState("");
   const [rascunhoDisponivel, setRascunhoDisponivel] = useState<RascunhoLicitacao | null>(null);
   const [rascunhoCarregado, setRascunhoCarregado] = useState(false);
+
+  const produtosPorId = useMemo(() => {
+    const mapa = new Map<string, Produto>();
+    produtosBanco.forEach((produto) => {
+      if (produto.id) mapa.set(produto.id, produto);
+    });
+    return mapa;
+  }, [produtosBanco]);
 
   const resumo = useMemo(() => {
     const total = itens.filter(itemPodeCotar).reduce((acc, item) => acc + (item.valor_total || 0), 0);
@@ -2059,6 +2089,7 @@ useEffect(() => {
                               }))
                             }
                             onFocus={async () => {
+                              setItemBuscaManualAtivo(item.numero_item);
                               if (produtosBanco.length > 0 || processando) return;
 
                               try {
@@ -2082,13 +2113,18 @@ useEffect(() => {
                             onChange={(e) => selecionarProdutoManual(item.numero_item, e.target.value)}
                           >
                             <option value="">Menor custo</option>
-                            {produtosBuscaManualMenorCusto(
-                              produtosBanco,
-                              buscaManualPorItem[item.numero_item] || item.descricao,
-                              item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)
-                            ).map((p) => (
-                              <option key={p.id} value={p.id}>{labelProduto(p)}</option>
-                            ))}
+                            {item.produto_id && itemBuscaManualAtivo !== item.numero_item && produtosPorId.get(item.produto_id) ? (
+                              <option value={item.produto_id}>{labelProduto(produtosPorId.get(item.produto_id)!)}</option>
+                            ) : null}
+                            {itemBuscaManualAtivo === item.numero_item
+                              ? produtosBuscaManualMenorCusto(
+                                  produtosBanco,
+                                  buscaManualPorItem[item.numero_item] || item.descricao,
+                                  item.tipo_preco || resolverTipoPrecoPadrao(tipoPrecoPadrao, item.descricao, item.unidade)
+                                ).map((p) => (
+                                  <option key={p.id} value={p.id}>{labelProduto(p)}</option>
+                                ))
+                              : null}
                           </select>
                         </div>
 
