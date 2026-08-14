@@ -520,7 +520,7 @@ function normalizarAprendizado(valor: unknown) {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .replace(/[\/\\|,.;:()[\]{}_-]+/g, " ")
-    .replace(/\b(BASE|SOLUCAO|SOLUÇÃO|INJETAVEL|INJETÁVEL|ORAL|USO|ADULTO|PEDIATRICO|PEDIÁTRICO)\b/g, " ")
+    .replace(/\b(SULFATO|CLORIDRATO|SODICO|SÓDICO|SODICA|SÓDICA|BASE|SOLUCAO|SOLUÇÃO|INJETAVEL|INJETÁVEL|ORAL|USO|ADULTO|PEDIATRICO|PEDIÁTRICO)\b/g, " ")
     .replace(/\b(COMP|COMPR|COMPRIMIDO|COMPRIMIDOS)\b/g, " COMPRIMIDO ")
     .replace(/\b(CAPS|CAPSULA|CÁPSULA|CAPSULAS|CÁPSULAS)\b/g, " CAPSULA ")
     .replace(/\b(AMP|AMPOLA|AMPOLAS)\b/g, " AMPOLA ")
@@ -638,7 +638,7 @@ function buscarProdutoPorAprendizado(descricao: string, produtos: Produto[]) {
     .filter(Boolean) as { produto: Produto; score: number }[];
 
   const melhor = candidatos
-    .filter((c) => c.score >= 90)
+    .filter((c) => c.score >= 72)
     .sort((a, b) => b.score - a.score)[0];
 
   return melhor || null;
@@ -1066,14 +1066,17 @@ function ordenarCandidatosAprimorados(
   return produtos
     .map((produto) => {
       const avaliacao = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
-      // O aprendizado nunca mais transforma uma correspondência fraca em automática.
-      // Ele serve apenas como desempate para um candidato que já foi validado pela busca híbrida.
+      // O aprendizado ajuda no desempate, mas nunca libera um candidato tecnicamente bloqueado.
+      // Uma correspondência aprendida pode recuperar variações fortes de descritivo quando a
+      // avaliação local já encontrou identidade mínima do produto.
       const aprendizadoValidado =
         aprendido?.produto?.id === produto.id &&
         !avaliacao.bloqueado &&
-        avaliacao.score >= 78 &&
-        (aprendido.score || 0) >= 90;
-      const bonusAprendizado = aprendizadoValidado ? 2 : 0;
+        avaliacao.score >= 58 &&
+        (aprendido.score || 0) >= 72;
+      const bonusAprendizado = aprendizadoValidado
+        ? Math.min(6, 2 + Math.floor((aprendido.score || 0) / 30))
+        : 0;
       return {
         produto,
         score: Math.min(100, avaliacao.score + bonusAprendizado),
@@ -1083,7 +1086,7 @@ function ordenarCandidatosAprimorados(
         aprendido: aprendizadoValidado,
       };
     })
-    .filter((c) => !c.bloqueado && c.score >= 48)
+    .filter((c) => !c.bloqueado && c.score >= 42)
     .sort((a, b) => b.score !== a.score ? b.score - a.score : a.custo - b.custo);
 }
 
@@ -1101,10 +1104,13 @@ function encontrarMelhorProdutoAprimorado(
   const segundo = avaliados[1];
   const vantagem = segundo ? melhor.score - segundo.score : 100;
 
-  // Correspondências com boa identidade técnica podem ser sugeridas a partir de 76.
-  // Abaixo de 84 exigimos vantagem clara sobre o segundo candidato.
-  if (melhor.score < 76) return null;
-  if (melhor.score < 84 && vantagem < 8 && !melhor.aprendido) return null;
+  // O objetivo é cotar o máximo de itens plausíveis sem inventar produto.
+  // 82+ é automático. Entre 72 e 81 entra como Conferir. Um aprendizado validado
+  // pode recuperar a partir de 68. Quando houver empate forte, também mantemos o
+  // melhor candidato como Conferir, desde que a identidade técnica já tenha passado.
+  const minimo = melhor.aprendido ? 68 : 72;
+  if (melhor.score < minimo) return null;
+  if (melhor.score < 82 && vantagem < 4 && !melhor.aprendido && melhor.score < 76) return null;
 
   return {
     produto: melhor.produto,
@@ -1521,7 +1527,7 @@ useEffect(() => {
       const scoreFinal = Math.round((confiancaIa * 0.35) + (avaliacaoEstrita.score * 0.65));
 
       // A IA nunca pode contornar as regras objetivas de produto, dose, apresentação ou marca.
-      if (avaliacaoEstrita.bloqueado || avaliacaoEstrita.score < 65 || scoreFinal < 74) return null;
+      if (avaliacaoEstrita.bloqueado || avaliacaoEstrita.score < 55 || scoreFinal < 68) return null;
 
       return { produto, score: scoreFinal };
     } catch {
@@ -1763,7 +1769,7 @@ useEffect(() => {
       });
 
       setItens(itensCorrigidos);
-      setMensagem(`${itensCorrigidos.length} itens processados. A busca híbrida comparou nome principal, medidas, apresentação, marca, registro ANVISA e variações do descritivo. Correspondências duvidosas foram marcadas para conferência em vez de serem descartadas.`);
+      setMensagem(`${itensCorrigidos.length} itens processados. A busca híbrida comparou nome principal, medidas, apresentação, marca, registro ANVISA e variações do descritivo. Correspondências plausíveis foram cotadas; as de confiança intermediária ficaram como Conferir em vez de serem descartadas.`);
     } finally {
       setProcessando(false);
       setProgressoProcessamento("");
