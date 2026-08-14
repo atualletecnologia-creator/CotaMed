@@ -1062,21 +1062,18 @@ function ordenarCandidatosAprimorados(
   marcaSolicitada = "",
   registroSolicitado = ""
 ) {
-  const aprendido = buscarProdutoPorAprendizado(descricao, produtos);
+  // O aprendizado foi retirado da decisão automática.
+  // Ele pode conter escolhas antigas/manuais que não servem para um novo edital.
+  // A cotação automática passa a depender somente da compatibilidade técnica atual.
+  const aprendido = null;
   return produtos
     .map((produto) => {
       const avaliacao = avaliarProdutoEstrito(descricao, produto, marcaSolicitada, registroSolicitado);
       // O aprendizado ajuda no desempate, mas nunca libera um candidato tecnicamente bloqueado.
       // Uma correspondência aprendida pode recuperar variações fortes de descritivo quando a
       // avaliação local já encontrou identidade mínima do produto.
-      const aprendizadoValidado =
-        aprendido?.produto?.id === produto.id &&
-        !avaliacao.bloqueado &&
-        avaliacao.score >= 58 &&
-        (aprendido.score || 0) >= 72;
-      const bonusAprendizado = aprendizadoValidado
-        ? Math.min(6, 2 + Math.floor((aprendido.score || 0) / 30))
-        : 0;
+      const aprendizadoValidado = false;
+      const bonusAprendizado = 0;
       return {
         produto,
         score: Math.min(100, avaliacao.score + bonusAprendizado),
@@ -1108,14 +1105,16 @@ function encontrarMelhorProdutoAprimorado(
   // 82+ é automático. Entre 72 e 81 entra como Conferir. Um aprendizado validado
   // pode recuperar a partir de 68. Quando houver empate forte, também mantemos o
   // melhor candidato como Conferir, desde que a identidade técnica já tenha passado.
-  const minimo = melhor.aprendido ? 68 : 72;
-  if (melhor.score < minimo) return null;
-  if (melhor.score < 82 && vantagem < 4 && !melhor.aprendido && melhor.score < 76) return null;
+  // Candidatos tecnicamente compatíveis não são descartados só por diferença de redação.
+  // 78+ entra como encontrado; 60–77 entra como "Conferir".
+  // Empates de baixa confiança continuam sem cotação para evitar escolha aleatória.
+  if (melhor.score < 60) return null;
+  if (melhor.score < 70 && segundo && vantagem < 3) return null;
 
   return {
     produto: melhor.produto,
     score: melhor.score,
-    origem: melhor.aprendido ? "aprendizado_validado" : melhor.score >= 82 ? "busca_hibrida" : "busca_hibrida_revisar",
+    origem: melhor.score >= 78 ? "busca_hibrida" : "busca_hibrida_revisar",
   };
 }
 
@@ -1462,10 +1461,8 @@ useEffect(() => {
     const produto = produtosBanco.find((p) => p.id === produtoId);
     if (!produto) return;
 
-    const itemAtual = itens.find((item) => item.numero_item === numeroItem);
-    if (itemAtual) {
-      gravarAprendizadoBusca(itemAtual.descricao, produto);
-    }
+    // Aprendizado automático temporariamente desativado.
+    // A seleção manual continua valendo para o item atual, mas não influencia outras licitações.
 
     setCustoManualTextoPorItem((atual) => {
       const novo = { ...atual };
@@ -1527,7 +1524,7 @@ useEffect(() => {
       const scoreFinal = Math.round((confiancaIa * 0.35) + (avaliacaoEstrita.score * 0.65));
 
       // A IA nunca pode contornar as regras objetivas de produto, dose, apresentação ou marca.
-      if (avaliacaoEstrita.bloqueado || avaliacaoEstrita.score < 55 || scoreFinal < 68) return null;
+      if (avaliacaoEstrita.bloqueado || avaliacaoEstrita.score < 50 || scoreFinal < 62) return null;
 
       return { produto, score: scoreFinal };
     } catch {
@@ -1769,7 +1766,7 @@ useEffect(() => {
       });
 
       setItens(itensCorrigidos);
-      setMensagem(`${itensCorrigidos.length} itens processados. A busca híbrida comparou nome principal, medidas, apresentação, marca, registro ANVISA e variações do descritivo. Correspondências plausíveis foram cotadas; as de confiança intermediária ficaram como Conferir em vez de serem descartadas.`);
+      setMensagem(`${itensCorrigidos.length} itens processados. A busca híbrida comparou nome principal, medidas, apresentação, marca, registro ANVISA e variações do descritivo. O aprendizado antigo não interfere mais na cotação automática. Correspondências tecnicamente compatíveis foram cotadas; as de confiança intermediária ficaram como Conferir.`);
     } finally {
       setProcessando(false);
       setProgressoProcessamento("");
