@@ -7,17 +7,19 @@ import { useState } from "react";
 import { AuthGuard } from "@/components/AuthGuard";
 import { supabase } from "@/lib/supabase";
 
-type MenuIconName = "dashboard" | "banco" | "licitacoes" | "propostas" | "documentacao" | "registros" | "consulta" | "relatorios" | "configuracoes" | "sair";
+type MenuIconName = "dashboard" | "banco" | "licitacoes" | "cotacoes" | "propostas" | "documentacao" | "registros" | "consulta" | "relatorios" | "dados" | "configuracoes" | "sair";
 
 const menu: { href: string; label: string; icon: MenuIconName }[] = [
   { href: "/dashboard", label: "Dashboard", icon: "dashboard" },
   { href: "/banco-precos", label: "Banco de preços", icon: "banco" },
   { href: "/licitacoes", label: "Licitações", icon: "licitacoes" },
+  { href: "/cotacoes", label: "Cotações", icon: "cotacoes" },
   { href: "/propostas", label: "Propostas", icon: "propostas" },
   { href: "/documentacao-edital", label: "Documentação", icon: "documentacao" },
   { href: "/registros-anvisa", label: "Registros ANVISA", icon: "registros" },
   { href: "/consulta-rapida", label: "Consulta rápida", icon: "consulta" },
   { href: "/relatorios", label: "Relatórios", icon: "relatorios" },
+  { href: "/dados", label: "Dados", icon: "dados" },
 ];
 
 function MenuIcon({ name }: { name: MenuIconName }) {
@@ -45,6 +47,10 @@ function MenuIcon({ name }: { name: MenuIconName }) {
     return <svg {...common}><path d="M14.5 4.5l5 5"/><path d="M12 7l5 5"/><path d="M6.8 9.8l4-4 5.4 5.4-4 4z"/><path d="M11 14l-7 7"/><path d="M3 21h8"/><path d="M16.8 12.8l3.4 3.4"/></svg>;
   }
 
+  if (name === "cotacoes") {
+    return <svg {...common}><path d="M5 7h14"/><path d="M7 4h10l2 3v13H5V7z"/><path d="M8 11h8"/><path d="M8 15h5"/><circle cx="16.5" cy="15.5" r="1.5"/></svg>;
+  }
+
   if (name === "propostas") {
     return <svg {...common}><path d="M7 3h7l5 5v13a1 1 0 0 1-1 1H7a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z"/><path d="M14 3v5h5"/><path d="M9 13h6"/><path d="M9 17h6"/><path d="M9 9h2"/></svg>;
   }
@@ -63,6 +69,10 @@ function MenuIcon({ name }: { name: MenuIconName }) {
 
   if (name === "relatorios") {
     return <svg {...common}><path d="M4 19V5"/><path d="M4 19h16"/><path d="M8 16v-5"/><path d="M12 16V8"/><path d="M16 16v-3"/></svg>;
+  }
+
+  if (name === "dados") {
+    return <svg {...common}><path d="M4 21h16"/><path d="M6 21V8l6-4 6 4v13"/><path d="M9 11h2"/><path d="M13 11h2"/><path d="M9 15h2"/><path d="M13 15h2"/></svg>;
   }
 
   if (name === "configuracoes") {
