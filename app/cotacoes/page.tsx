@@ -351,24 +351,71 @@ export default function CotacoesPage() {
       )}
 
       <div className="cotacao-print-root">
-        <div className="cotacao-pdf-header">
-          <div className="cotacao-pdf-logo">{dadosEmpresa?.logo_base64 ? <img src={dadosEmpresa.logo_base64} alt="Logo" /> : <strong>{dadosEmpresa?.nome || "CotaMed"}</strong>}</div>
-          <div className="cotacao-pdf-company"><h1>{dadosEmpresa?.nome || "Dados da empresa não cadastrados"}</h1><p>{dadosEmpresa?.cnpj ? `CNPJ: ${dadosEmpresa.cnpj}` : ""}{dadosEmpresa?.inscricao_estadual ? ` • IE: ${dadosEmpresa.inscricao_estadual}` : ""}</p><p>{dadosEmpresa?.endereco || ""}</p><p>{[dadosEmpresa?.telefone, dadosEmpresa?.email].filter(Boolean).join(" • ")}</p></div>
-        </div>
-        <div className="cotacao-pdf-title"><h2>COTAÇÃO COMERCIAL</h2><span>{new Date().toLocaleDateString("pt-BR")}</span></div>
-        <div className="cotacao-pdf-cliente"><strong>CLIENTE</strong><h3>{cliente?.nome || "-"}</h3><p>{cliente?.cnpj ? `CNPJ: ${cliente.cnpj}` : ""}{cliente?.inscricao_estadual ? ` • IE: ${cliente.inscricao_estadual}` : ""}</p><p>{cliente?.endereco || ""}</p><p>{[cliente?.telefone, cliente?.email].filter(Boolean).join(" • ")}</p></div>
-        {(prazoEntrega || validadeProposta) && (
-          <div className="cotacao-pdf-condicoes">
-            {prazoEntrega && <div><strong>Prazo de entrega:</strong><span>{prazoEntrega}</span></div>}
-            {validadeProposta && <div><strong>Validade da proposta:</strong><span>{validadeProposta}</span></div>}
+        <div className="cotacao-ref-header">
+          <div className="cotacao-ref-brand">
+            <div className="cotacao-ref-logo">{dadosEmpresa?.logo_base64 ? <img src={dadosEmpresa.logo_base64} alt="Logo" /> : <strong>{dadosEmpresa?.nome?.slice(0, 2) || "CM"}</strong>}</div>
+            <div>
+              <h1>{dadosEmpresa?.nome || "Dados da empresa não cadastrados"}</h1>
+              <p>{dadosEmpresa?.cnpj ? `CNPJ: ${dadosEmpresa.cnpj}` : ""}{dadosEmpresa?.inscricao_estadual ? `   |   IE: ${dadosEmpresa.inscricao_estadual}` : ""}</p>
+              <p>{dadosEmpresa?.endereco || ""}</p>
+              <p>{[dadosEmpresa?.telefone, dadosEmpresa?.email].filter(Boolean).join("   ✉   ")}</p>
+            </div>
           </div>
-        )}
+          <div className="cotacao-ref-document">
+            <h2>COTAÇÃO COMERCIAL</h2>
+            <strong>Nº {String(Date.now()).slice(-6)}</strong>
+            <span>Data: {new Date().toLocaleDateString("pt-BR")}</span>
+          </div>
+        </div>
+
+        <section className="cotacao-ref-client">
+          <h3>DADOS DO CLIENTE</h3>
+          <div className="cotacao-ref-client-grid">
+            <div><p><b>Nome / Razão Social:</b><span>{cliente?.nome || "-"}</span></p><p><b>CNPJ:</b><span>{cliente?.cnpj || "-"}</span></p><p><b>Inscrição Estadual:</b><span>{cliente?.inscricao_estadual || "-"}</span></p></div>
+            <div><p><b>Endereço:</b><span>{cliente?.endereco || "-"}</span></p><p><b>Telefone:</b><span>{cliente?.telefone || "-"}</span></p><p><b>E-mail:</b><span>{cliente?.email || "-"}</span></p></div>
+          </div>
+        </section>
+
+        <div className="cotacao-ref-conditions">
+          <div><strong>PRAZO DE ENTREGA</strong><span>{prazoEntrega || "-"}</span></div>
+          <div><strong>VALIDADE DA PROPOSTA</strong><span>{validadeProposta || "-"}</span></div>
+        </div>
+
         <table className="cotacao-pdf-table">
-          <thead><tr><th>Item</th><th>Descrição</th><th>Marca</th><th>Qtd.</th><th>Tipo</th><th>Qtd./Cx</th><th>Valor unit.</th><th>Total</th></tr></thead>
-          <tbody>{itens.map((item, index) => <tr key={item.chave}><td>{index + 1}</td><td>{item.produto.descricao}<small>{item.produto.apresentacao ? ` — ${item.produto.apresentacao}` : ""}</small></td><td>{item.produto.marca || "-"}</td><td>{item.quantidade}</td><td>{item.tipo_preco === "caixa" ? "Caixa" : (item.produto.unidade || "Unidade")}</td><td>{item.produto.quantidade_por_caixa || "-"}</td><td>{moeda4(precoVenda(item))}</td><td>{moeda4(totalItem(item))}</td></tr>)}</tbody>
+          <colgroup>
+            <col className="col-item" /><col className="col-descricao" /><col className="col-marca" />
+            <col className="col-apresentacao" /><col className="col-qtd" /><col className="col-unidade" />
+            <col className="col-qtd-caixa" /><col className="col-valor-unit" /><col className="col-valor-total" />
+          </colgroup>
+          <thead><tr><th>Item</th><th>Descrição</th><th>Marca</th><th>Apresentação</th><th>Qtd.</th><th>Unidade</th><th>Qtd. por Caixa</th><th>Valor Unitário (R$)</th><th>Valor Total (R$)</th></tr></thead>
+          <tbody>{itens.map((item, index) => (
+            <tr key={item.chave}>
+              <td>{index + 1}</td><td className="cell-descricao">{item.produto.descricao || "-"}</td>
+              <td>{item.produto.marca || "-"}</td><td>{item.produto.apresentacao || "-"}</td><td>{item.quantidade}</td>
+              <td>{item.tipo_preco === "caixa" ? "CAIXA" : (item.produto.unidade || "UNIDADE")}</td>
+              <td>{item.produto.quantidade_por_caixa || "-"}</td>
+              <td>{moeda4(precoVenda(item)).replace("R$ ", "").replace("R$ ", "")}</td>
+              <td>{moeda4(totalItem(item)).replace("R$ ", "").replace("R$ ", "")}</td>
+            </tr>
+          ))}</tbody>
         </table>
-        <div className="cotacao-pdf-total"><span>VALOR TOTAL DA COTAÇÃO</span><strong>{moeda2(total)}</strong></div>
-        <div className="cotacao-pdf-footer"><span>{dadosEmpresa?.nome || ""}</span><span>{[dadosEmpresa?.telefone, dadosEmpresa?.email].filter(Boolean).join(" • ")}</span></div>
+
+        <div className="cotacao-ref-total"><span>VALOR TOTAL DA COTAÇÃO</span><strong>{moeda4(total)}</strong></div>
+
+        <div className="cotacao-ref-notes">
+          <strong>Observações:</strong>
+          <span>- Valores válidos pelo prazo da proposta.</span>
+        </div>
+
+        <div className="cotacao-ref-signature">
+          <div></div><span>{dadosEmpresa?.nome || ""}</span>
+        </div>
+
+        <div className="cotacao-ref-footer">
+          <span>● &nbsp; {dadosEmpresa?.endereco || ""}</span>
+          <span>☎ &nbsp; {dadosEmpresa?.telefone || ""}</span>
+          <span>✉ &nbsp; {dadosEmpresa?.email || ""}</span>
+        </div>
       </div>
     </AppShell>
   );
