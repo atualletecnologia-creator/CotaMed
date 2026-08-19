@@ -106,6 +106,8 @@ export default function CotacoesPage() {
   const [itens, setItens] = useState<ItemCotacao[]>([]);
   const [margemPadrao, setMargemPadrao] = useState(20);
   const [tipoPadrao, setTipoPadrao] = useState<TipoPreco>("unidade");
+  const [prazoEntrega, setPrazoEntrega] = useState("");
+  const [validadeProposta, setValidadeProposta] = useState("");
   const [erro, setErro] = useState("");
   const [mensagem, setMensagem] = useState("");
 
@@ -114,7 +116,14 @@ export default function CotacoesPage() {
   }, []);
 
   useEffect(() => {
-    const timer = window.setTimeout(() => void pesquisarProdutos(busca), 300);
+    const termo = busca.trim();
+    if (!termo) {
+      setResultados([]);
+      setBuscando(false);
+      return;
+    }
+
+    const timer = window.setTimeout(() => void pesquisarProdutos(termo), 300);
     return () => window.clearTimeout(timer);
   }, [busca]);
 
@@ -133,13 +142,18 @@ export default function CotacoesPage() {
       if (dadosResp.error) throw dadosResp.error;
       setClientes((clientesResp.data || []) as Cliente[]);
       setDadosEmpresa((dadosResp.data || null) as DadosEmpresa | null);
-      await pesquisarProdutos("");
     } catch (e: any) {
       setErro(e?.message || "Não foi possível carregar a tela de cotações. Execute o SQL de instalação se esta for a primeira utilização.");
     }
   }
 
   async function pesquisarProdutos(termo: string) {
+    const termoLimpo = termo.trim();
+    if (!termoLimpo) {
+      setResultados([]);
+      return;
+    }
+
     setBuscando(true);
     try {
       let query = supabase
@@ -148,7 +162,7 @@ export default function CotacoesPage() {
         .order("descricao")
         .limit(40);
 
-      const limpo = termo.trim().replace(/[,%()]/g, " ").replace(/\s+/g, " ");
+      const limpo = termoLimpo.replace(/[,%()]/g, " ").replace(/\s+/g, " ");
       if (limpo) {
         query = query.or(`descricao.ilike.%${limpo}%,marca.ilike.%${limpo}%,apresentacao.ilike.%${limpo}%`);
       }
@@ -201,6 +215,8 @@ export default function CotacoesPage() {
       quantidade: 1,
       margem: margemPadrao,
     }]);
+    setBusca("");
+    setResultados([]);
   }
 
   function atualizarItem(chave: string, patch: Partial<ItemCotacao>) {
@@ -263,6 +279,8 @@ export default function CotacoesPage() {
             <div className="grid grid-cols-2 gap-3 mt-4">
               <label>Margem de lucro (%)<input className="input mt-2" type="number" step="0.01" min="0" value={margemPadrao} onChange={(e) => setMargemPadrao(numero(e.target.value))} /></label>
               <label>Cotar por<select className="input mt-2" value={tipoPadrao} onChange={(e) => setTipoPadrao(e.target.value as TipoPreco)}><option value="unidade">Unidade</option><option value="caixa">Caixa</option></select></label>
+              <label>Prazo de entrega<input className="input mt-2" placeholder="Ex.: 5 dias úteis" value={prazoEntrega} onChange={(e) => setPrazoEntrega(e.target.value)} /></label>
+              <label>Validade da proposta<input className="input mt-2" placeholder="Ex.: 30 dias" value={validadeProposta} onChange={(e) => setValidadeProposta(e.target.value)} /></label>
             </div>
           </div>
         </div>
@@ -270,18 +288,22 @@ export default function CotacoesPage() {
         <div className="clean-card p-5 mt-5">
           <div className="cotacao-section-title"><div><span>3</span><div><strong>Adicionar produtos</strong><small>Pesquise somente entre os produtos já cadastrados no CotaMed</small></div></div></div>
           <div className="cotacao-search mt-4">
-            <input className="input" placeholder="Buscar por descrição, marca ou apresentação..." value={busca} onChange={(e) => setBusca(e.target.value)} />
-            <span>{buscando ? "Buscando..." : `${resultados.length} resultado(s)`}</span>
+            <input className="input" placeholder="Digite o nome, marca ou apresentação do produto..." value={busca} onChange={(e) => setBusca(e.target.value)} />
+            <span>{buscando ? "Buscando..." : busca.trim() ? `${resultados.length} resultado(s)` : "Digite para pesquisar"}</span>
           </div>
-          <div className="cotacao-produtos-resultados mt-3">
-            {resultados.map((produto) => (
-              <button type="button" key={produto.id} className="cotacao-produto-card" onClick={() => adicionarProduto(produto)}>
-                <div><strong>{produto.descricao || "Sem descrição"}</strong><span>{[produto.apresentacao, produto.marca].filter(Boolean).join(" • ") || "Sem apresentação/marca"}</span></div>
-                <div className="cotacao-produto-precos"><span>UN {moeda4(custoBase({ chave: "", produto, tipo_preco: "unidade", quantidade: 1, margem: 0 }))}</span><span>CX {moeda4(custoBase({ chave: "", produto, tipo_preco: "caixa", quantidade: 1, margem: 0 }))}</span></div>
-                <b>Adicionar</b>
-              </button>
-            ))}
-          </div>
+
+          {busca.trim() && (
+            <div className="cotacao-produtos-resultados mt-3">
+              {!buscando && resultados.length === 0 && <div className="cotacao-vazio">Nenhum produto encontrado para esta pesquisa.</div>}
+              {resultados.map((produto) => (
+                <button type="button" key={produto.id} className="cotacao-produto-card" onClick={() => adicionarProduto(produto)}>
+                  <div><strong>{produto.descricao || "Sem descrição"}</strong><span>{[produto.apresentacao, produto.marca].filter(Boolean).join(" • ") || "Sem apresentação/marca"}</span></div>
+                  <div className="cotacao-produto-precos"><span>UN {moeda4(custoBase({ chave: "", produto, tipo_preco: "unidade", quantidade: 1, margem: 0 }))}</span><span>CX {moeda4(custoBase({ chave: "", produto, tipo_preco: "caixa", quantidade: 1, margem: 0 }))}</span></div>
+                  <b>Adicionar</b>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="clean-card p-5 mt-5">
@@ -335,6 +357,12 @@ export default function CotacoesPage() {
         </div>
         <div className="cotacao-pdf-title"><h2>COTAÇÃO COMERCIAL</h2><span>{new Date().toLocaleDateString("pt-BR")}</span></div>
         <div className="cotacao-pdf-cliente"><strong>CLIENTE</strong><h3>{cliente?.nome || "-"}</h3><p>{cliente?.cnpj ? `CNPJ: ${cliente.cnpj}` : ""}{cliente?.inscricao_estadual ? ` • IE: ${cliente.inscricao_estadual}` : ""}</p><p>{cliente?.endereco || ""}</p><p>{[cliente?.telefone, cliente?.email].filter(Boolean).join(" • ")}</p></div>
+        {(prazoEntrega || validadeProposta) && (
+          <div className="cotacao-pdf-condicoes">
+            {prazoEntrega && <div><strong>Prazo de entrega:</strong><span>{prazoEntrega}</span></div>}
+            {validadeProposta && <div><strong>Validade da proposta:</strong><span>{validadeProposta}</span></div>}
+          </div>
+        )}
         <table className="cotacao-pdf-table">
           <thead><tr><th>Item</th><th>Descrição</th><th>Marca</th><th>Qtd.</th><th>Tipo</th><th>Qtd./Cx</th><th>Valor unit.</th><th>Total</th></tr></thead>
           <tbody>{itens.map((item, index) => <tr key={item.chave}><td>{index + 1}</td><td>{item.produto.descricao}<small>{item.produto.apresentacao ? ` — ${item.produto.apresentacao}` : ""}</small></td><td>{item.produto.marca || "-"}</td><td>{item.quantidade}</td><td>{item.tipo_preco === "caixa" ? "Caixa" : (item.produto.unidade || "Unidade")}</td><td>{item.produto.quantidade_por_caixa || "-"}</td><td>{moeda4(precoVenda(item))}</td><td>{moeda4(totalItem(item))}</td></tr>)}</tbody>
