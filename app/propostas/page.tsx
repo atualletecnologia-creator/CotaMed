@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AppShell } from "@/components/AppShell";
 
 const CHAVE_RASCUNHO_LICITACAO = "cotamed_rascunho_licitacao_24h";
@@ -295,7 +295,71 @@ export default function PropostasPage() {
     return itensProposta.reduce((total, item) => total + Number(item.valor_total || 0), 0);
   }, [itensProposta]);
 
-  const paginasItens = useMemo(() => paginarItensProposta(itensProposta), [itensProposta]);
+  const [paginasItens, setPaginasItens] = useState<ItemProposta[][]>(() => paginarItensProposta(itensProposta));
+  const medidorRef = useRef<HTMLDivElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!itensProposta.length) {
+      setPaginasItens([[]]);
+      return;
+    }
+
+    const medir = () => {
+      const medidor = medidorRef.current;
+      if (!medidor) return;
+
+      const corpo = medidor.querySelector("tbody");
+      const limite = medidor.querySelector<HTMLElement>("[data-limite-rodape]");
+      const linhas = Array.from(medidor.querySelectorAll<HTMLTableRowElement>("tr[data-medicao-item]"));
+      if (!corpo || !limite || linhas.length !== itensProposta.length) return;
+
+      // Espaço REAL entre o início do corpo da tabela e a linha de segurança do rodapé.
+      const capacidade = Math.max(300, limite.getBoundingClientRect().top - corpo.getBoundingClientRect().top - 8);
+      const reservaTotal = 54; // total + valor por extenso na última página
+      const alturas = linhas.map((linha) => Math.ceil(linha.getBoundingClientRect().height));
+      const paginas: ItemProposta[][] = [];
+      let pagina: ItemProposta[] = [];
+      let altura = 0;
+
+      alturas.forEach((alturaLinha, indice) => {
+        const restante = itensProposta.length - indice;
+        const limitePagina = restante === 1 ? capacidade - reservaTotal : capacidade;
+        if (pagina.length && altura + alturaLinha > limitePagina) {
+          paginas.push(pagina);
+          pagina = [];
+          altura = 0;
+        }
+        pagina.push(itensProposta[indice]);
+        altura += alturaLinha;
+      });
+      if (pagina.length) paginas.push(pagina);
+
+      // Se o total não couber na última página, move linhas de baixo para uma nova folha.
+      if (paginas.length) {
+        let ultima = paginas[paginas.length - 1];
+        let alturaUltima = ultima.reduce((soma, item) => {
+          const idx = itensProposta.indexOf(item);
+          return soma + (alturas[idx] || 0);
+        }, 0);
+        while (ultima.length > 1 && alturaUltima + reservaTotal > capacidade) {
+          const movido = ultima.pop()!;
+          const idx = itensProposta.indexOf(movido);
+          alturaUltima -= alturas[idx] || 0;
+          if (paginas[paginas.length] == null) paginas.push([]);
+          paginas[paginas.length - 1].push(movido);
+        }
+      }
+
+      setPaginasItens(paginas.length ? paginas : [itensProposta]);
+    };
+
+    const frame = window.requestAnimationFrame(medir);
+    window.addEventListener("resize", medir);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("resize", medir);
+    };
+  }, [itensProposta]);
   const declaracoesProposta = useMemo(() => criarDeclaracoesProposta(validade, condicoesPagamento), [validade, condicoesPagamento]);
   const paginasDeclaracoes = useMemo(() => paginarDeclaracoes(declaracoesProposta), [declaracoesProposta]);
   const totalPaginasProposta = 1 + paginasItens.length + paginasDeclaracoes.length;
@@ -416,6 +480,25 @@ export default function PropostasPage() {
             Itens selecionados: <b>{itensProposta.length}</b> • Valor global: <b>{dinheiro(valorGlobal)}</b>
           </p>
         </section>
+
+        <div className="proposta-medidor" ref={medidorRef} aria-hidden="true">
+          <section className="proposta-page proposta-page-table">
+            <header className="proposta-pdf-header proposta-pdf-header-small">
+              <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="" />
+              <div className="proposta-empresa"><h2>DOM BOSCO HOSPITALAR LTDA</h2><p>ENDEREÇO: RUA 06, QUADRA 06, LOTE 17, MORADA NOBRE</p><p>CIDADE/UF: VALPARAÍSO DE GOIÁS-GO CEP: 72.870-324</p><p>CNPJ: 35.020.039/0001-55 I.E.: 10.775.504-1</p></div>
+            </header>
+            <h1 className="proposta-titulo proposta-titulo-tabela">PROPOSTA DE PREÇOS</h1>
+            <div className="proposta-table-wrap">
+              <table className="proposta-table">
+                <colgroup><col className="col-item"/><col className="col-descricao"/><col className="col-und"/><col className="col-qtd"/><col className="col-registro"/><col className="col-marca"/><col className="col-unitario"/><col className="col-total"/></colgroup>
+                <thead><tr><th>ITEM</th><th>DESCRIÇÃO</th><th>UND</th><th>QTD</th><th>REGISTRO</th><th>MARCA</th><th>VL UNIT</th><th>VL TOTAL</th></tr></thead>
+                <tbody>{itensProposta.map((item, index) => <tr data-medicao-item key={`medir-${index}`}><td>{item.numero_item || index + 1}</td><td className="descricao">{limparTexto(item.descricao)}</td><td>{limparTexto(item.unidade)}</td><td>{Number(item.quantidade || 0)}</td><td>{limparTexto(item.registro_anvisa) || "ISENTO"}</td><td>{limparTexto(item.marca) || "-"}</td><td>{dinheiro(item.valor_unitario)}</td><td>{dinheiro(item.valor_total)}</td></tr>)}</tbody>
+              </table>
+            </div>
+            <div className="proposta-limite-rodape" data-limite-rodape></div>
+            <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM | TELEFONE: (61) 3205-9003</footer>
+          </section>
+        </div>
 
         <div className="proposta-doc">
           <section className="proposta-page proposta-page-cover">

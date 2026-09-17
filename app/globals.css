@@ -5983,3 +5983,40 @@ input[type="file"]::file-selector-button {
     padding:3.5px 3px!important;
   }
 }
+
+/* PROPOSTAS V11 — paginação pela altura REAL renderizada até o rodapé */
+.proposta-medidor{
+  position:fixed!important;
+  left:-10000px!important;
+  top:0!important;
+  width:210mm!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+  z-index:-1!important;
+}
+.proposta-medidor .proposta-page-table{display:block!important;transform:none!important;}
+.proposta-limite-rodape{
+  position:absolute!important;
+  left:10mm!important;
+  right:10mm!important;
+  bottom:18mm!important;
+  height:1px!important;
+}
+/* Fonte volta a um tamanho confortável; a paginação passa a se adaptar à altura. */
+.proposta-page-table .proposta-table th{
+  font-size:8.4px!important;
+  line-height:1.18!important;
+  padding:5px 4px!important;
+}
+.proposta-page-table .proposta-table td,
+.proposta-page-table .proposta-table td.descricao{
+  font-size:8.4px!important;
+  line-height:1.22!important;
+  padding:5px 4px!important;
+}
+@media print{
+  .proposta-medidor{display:none!important;}
+  .proposta-page-table .proposta-table th{font-size:8.2px!important;padding:4.5px 3.5px!important;}
+  .proposta-page-table .proposta-table td,
+  .proposta-page-table .proposta-table td.descricao{font-size:8.2px!important;line-height:1.2!important;padding:4.5px 3.5px!important;}
+}
