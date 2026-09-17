@@ -6020,3 +6020,21 @@ input[type="file"]::file-selector-button {
   .proposta-page-table .proposta-table td,
   .proposta-page-table .proposta-table td.descricao{font-size:8.2px!important;line-height:1.2!important;padding:4.5px 3.5px!important;}
 }
+
+/* PROPOSTAS V12 — fonte legível e medição segura */
+.proposta-page-table .proposta-table th,
+.proposta-page-table .proposta-table td,
+.proposta-page-table .proposta-table td.descricao{
+  font-size:9px!important;
+  line-height:1.2!important;
+  padding:5px 4px!important;
+}
+@media print{
+  .proposta-page-table .proposta-table th,
+  .proposta-page-table .proposta-table td,
+  .proposta-page-table .proposta-table td.descricao{
+    font-size:8.8px!important;
+    line-height:1.18!important;
+    padding:4.5px 3.5px!important;
+  }
+}

@@ -308,49 +308,59 @@ export default function PropostasPage() {
       const medidor = medidorRef.current;
       if (!medidor) return;
 
-      const corpo = medidor.querySelector("tbody");
+      const corpo = medidor.querySelector<HTMLElement>("tbody");
       const limite = medidor.querySelector<HTMLElement>("[data-limite-rodape]");
       const linhas = Array.from(medidor.querySelectorAll<HTMLTableRowElement>("tr[data-medicao-item]"));
-      if (!corpo || !limite || linhas.length !== itensProposta.length) return;
 
-      // Espaço REAL entre o início do corpo da tabela e a linha de segurança do rodapé.
-      const capacidade = Math.max(300, limite.getBoundingClientRect().top - corpo.getBoundingClientRect().top - 8);
-      const reservaTotal = 54; // total + valor por extenso na última página
-      const alturas = linhas.map((linha) => Math.ceil(linha.getBoundingClientRect().height));
+      // Nunca apaga os itens se o DOM de medição ainda não estiver pronto.
+      if (!corpo || !limite || linhas.length !== itensProposta.length || linhas.length === 0) return;
+
+      const capacidade = limite.getBoundingClientRect().top - corpo.getBoundingClientRect().top - 10;
+      if (!Number.isFinite(capacidade) || capacidade < 250) return;
+
+      const alturas = linhas.map((linha) => Math.max(1, Math.ceil(linha.getBoundingClientRect().height)));
       const paginas: ItemProposta[][] = [];
-      let pagina: ItemProposta[] = [];
-      let altura = 0;
+      const alturasPaginas: number[] = [];
+      let paginaAtual: ItemProposta[] = [];
+      let alturaAtual = 0;
 
-      alturas.forEach((alturaLinha, indice) => {
-        const restante = itensProposta.length - indice;
-        const limitePagina = restante === 1 ? capacidade - reservaTotal : capacidade;
-        if (pagina.length && altura + alturaLinha > limitePagina) {
-          paginas.push(pagina);
-          pagina = [];
-          altura = 0;
+      // Preenche cada página até o limite físico imediatamente acima do rodapé.
+      itensProposta.forEach((item, indice) => {
+        const alturaLinha = alturas[indice];
+        if (paginaAtual.length > 0 && alturaAtual + alturaLinha > capacidade) {
+          paginas.push(paginaAtual);
+          alturasPaginas.push(alturaAtual);
+          paginaAtual = [];
+          alturaAtual = 0;
         }
-        pagina.push(itensProposta[indice]);
-        altura += alturaLinha;
+        paginaAtual.push(item);
+        alturaAtual += alturaLinha;
       });
-      if (pagina.length) paginas.push(pagina);
 
-      // Se o total não couber na última página, move linhas de baixo para uma nova folha.
-      if (paginas.length) {
-        let ultima = paginas[paginas.length - 1];
-        let alturaUltima = ultima.reduce((soma, item) => {
-          const idx = itensProposta.indexOf(item);
-          return soma + (alturas[idx] || 0);
-        }, 0);
-        while (ultima.length > 1 && alturaUltima + reservaTotal > capacidade) {
-          const movido = ultima.pop()!;
-          const idx = itensProposta.indexOf(movido);
-          alturaUltima -= alturas[idx] || 0;
-          if (paginas[paginas.length] == null) paginas.push([]);
-          paginas[paginas.length - 1].push(movido);
-        }
+      if (paginaAtual.length) {
+        paginas.push(paginaAtual);
+        alturasPaginas.push(alturaAtual);
       }
 
-      setPaginasItens(paginas.length ? paginas : [itensProposta]);
+      // Na última página reservamos somente o espaço real do total + valor por extenso.
+      const reservaTotal = 48;
+      if (paginas.length && alturasPaginas[alturasPaginas.length - 1] + reservaTotal > capacidade) {
+        const ultima = paginas[paginas.length - 1];
+        let alturaUltima = alturasPaginas[alturasPaginas.length - 1];
+        const novaUltima: ItemProposta[] = [];
+        while (ultima.length > 1 && alturaUltima + reservaTotal > capacidade) {
+          const movido = ultima.pop()!;
+          const indiceOriginal = itensProposta.indexOf(movido);
+          alturaUltima -= alturas[indiceOriginal] || 0;
+          novaUltima.unshift(movido);
+        }
+        if (novaUltima.length) paginas.push(novaUltima);
+      }
+
+      const quantidadePaginada = paginas.reduce((soma, pagina) => soma + pagina.length, 0);
+      if (quantidadePaginada === itensProposta.length && paginas.every((pagina) => pagina.length > 0)) {
+        setPaginasItens(paginas);
+      }
     };
 
     const frame = window.requestAnimationFrame(medir);
@@ -360,9 +370,20 @@ export default function PropostasPage() {
       window.removeEventListener("resize", medir);
     };
   }, [itensProposta]);
+
+  // Enquanto a medição real ainda não terminou, mostra imediatamente uma paginação segura.
+  // Assim a tabela nunca aparece vazia durante a troca/recarga da cotação.
+  const paginasRenderizadas = useMemo(() => {
+    const quantidadeMedida = paginasItens.reduce((soma, pagina) => soma + pagina.length, 0);
+    if (itensProposta.length > 0 && quantidadeMedida !== itensProposta.length) {
+      return paginarItensProposta(itensProposta);
+    }
+    return paginasItens;
+  }, [paginasItens, itensProposta]);
+
   const declaracoesProposta = useMemo(() => criarDeclaracoesProposta(validade, condicoesPagamento), [validade, condicoesPagamento]);
   const paginasDeclaracoes = useMemo(() => paginarDeclaracoes(declaracoesProposta), [declaracoesProposta]);
-  const totalPaginasProposta = 1 + paginasItens.length + paginasDeclaracoes.length;
+  const totalPaginasProposta = 1 + paginasRenderizadas.length + paginasDeclaracoes.length;
 
   const descricaoPregao = `${modalidade} ${numeroPregao}`.trim();
 
@@ -555,10 +576,10 @@ export default function PropostasPage() {
             <footer className="proposta-footer">E-MAIL: DOMBOSCOVAL@GMAIL.COM&nbsp;&nbsp;&nbsp; | &nbsp;&nbsp;&nbsp;TELEFONE: (61) 3205-9003</footer>
           </section>
 
-          {paginasItens.map((itensPagina, paginaIndex) => {
-            const ultimaPaginaTabela = paginaIndex === paginasItens.length - 1;
+          {paginasRenderizadas.map((itensPagina, paginaIndex) => {
+            const ultimaPaginaTabela = paginaIndex === paginasRenderizadas.length - 1;
             const numeroPagina = paginaIndex + 2;
-            const deslocamento = paginasItens
+            const deslocamento = paginasRenderizadas
               .slice(0, paginaIndex)
               .reduce((total, pagina) => total + pagina.length, 0);
 
@@ -576,7 +597,7 @@ export default function PropostasPage() {
                 </header>
 
                 <h1 className="proposta-titulo proposta-titulo-tabela">
-                  PROPOSTA DE PREÇOS{paginasItens.length > 1 ? ` — ${paginaIndex + 1}/${paginasItens.length}` : ""}
+                  PROPOSTA DE PREÇOS{paginasRenderizadas.length > 1 ? ` — ${paginaIndex + 1}/${paginasRenderizadas.length}` : ""}
                 </h1>
 
                 <div className="proposta-table-wrap">
@@ -631,7 +652,7 @@ export default function PropostasPage() {
           })}
 
           {paginasDeclaracoes.map((declaracoes, paginaDeclaracao) => {
-            const numeroPagina = paginasItens.length + 2 + paginaDeclaracao;
+            const numeroPagina = paginasRenderizadas.length + 2 + paginaDeclaracao;
             const ultimaPaginaDeclaracoes = paginaDeclaracao === paginasDeclaracoes.length - 1;
 
             return (
