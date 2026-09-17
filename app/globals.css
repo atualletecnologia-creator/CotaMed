@@ -5930,3 +5930,56 @@ input[type="file"]::file-selector-button {
     line-height:1.05!important;
   }
 }
+
+
+/* PROPOSTAS V10 — fonte legível + preenchimento real da folha */
+.proposta-page-table{
+  padding:9mm 10mm 13mm!important;
+}
+.proposta-page-table .proposta-pdf-header-small{
+  margin-bottom:2mm!important;
+}
+.proposta-page-table .proposta-logo-oficial{
+  max-height:19mm!important;
+}
+.proposta-page-table .proposta-titulo-tabela{
+  margin:2mm 0 3mm!important;
+}
+.proposta-page-table .proposta-table{
+  width:100%!important;
+  table-layout:fixed!important;
+}
+.proposta-page-table .proposta-table th{
+  font-size:7.2px!important;
+  line-height:1.12!important;
+  padding:4px 3px!important;
+}
+.proposta-page-table .proposta-table td,
+.proposta-page-table .proposta-table td.descricao{
+  font-size:7.2px!important;
+  line-height:1.16!important;
+  padding:4px 3px!important;
+}
+.proposta-page-table .proposta-table td.descricao{
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+.proposta-page-table .proposta-table tr{
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+}
+@media print{
+  .proposta-page-table{
+    padding:8mm 9mm 12mm!important;
+  }
+  .proposta-page-table .proposta-table th{
+    font-size:7px!important;
+    padding:3.5px 3px!important;
+  }
+  .proposta-page-table .proposta-table td,
+  .proposta-page-table .proposta-table td.descricao{
+    font-size:7px!important;
+    line-height:1.14!important;
+    padding:3.5px 3px!important;
+  }
+}

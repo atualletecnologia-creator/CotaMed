@@ -175,17 +175,37 @@ function criarDeclaracoesProposta(validade: string, condicoesPagamento: string) 
 function paginarItensProposta(itens: ItemProposta[]) {
   if (!itens.length) return [[]];
 
-  // Paginação compacta: a proposta anterior estimava a altura pelo número
-  // de caracteres e acabava isolando descrições grandes em uma folha.
-  // Agora usamos blocos maiores e deixamos a própria linha crescer somente
-  // o necessário. Isso aproveita muito melhor a área útil do A4.
-  const ITENS_POR_PAGINA = 12;
+  // A paginação agora considera o espaço aproximado REAL de cada descrição.
+  // Não existe mais limite baixo/fixo de 10 ou 12 itens por folha.
+  // Itens curtos ocupam uma linha; descrições grandes consomem mais capacidade.
   const paginas: ItemProposta[][] = [];
+  let paginaAtual: ItemProposta[] = [];
+  let linhasUsadas = 0;
 
-  for (let inicio = 0; inicio < itens.length; inicio += ITENS_POR_PAGINA) {
-    paginas.push(itens.slice(inicio, inicio + ITENS_POR_PAGINA));
+  // Capacidade calibrada para a área útil da página A4 com fonte legível.
+  const LINHAS_POR_PAGINA = 58;
+  const MAX_ITENS_POR_PAGINA = 22;
+
+  for (const item of itens) {
+    const descricao = limparTexto(item.descricao);
+    const linhasDescricao = Math.max(1, Math.ceil(descricao.length / 58));
+    // 1 linha-base da linha da tabela + linhas extras causadas pela descrição.
+    const linhasItem = 1.15 + Math.max(0, linhasDescricao - 1) * 0.82;
+
+    if (
+      paginaAtual.length > 0 &&
+      (paginaAtual.length >= MAX_ITENS_POR_PAGINA || linhasUsadas + linhasItem > LINHAS_POR_PAGINA)
+    ) {
+      paginas.push(paginaAtual);
+      paginaAtual = [];
+      linhasUsadas = 0;
+    }
+
+    paginaAtual.push(item);
+    linhasUsadas += linhasItem;
   }
 
+  if (paginaAtual.length) paginas.push(paginaAtual);
   return paginas;
 }
 
