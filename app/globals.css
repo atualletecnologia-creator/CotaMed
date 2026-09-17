@@ -5830,3 +5830,35 @@ input[type="file"]::file-selector-button {
  .cotacao-pdf-table tr{break-inside:avoid;page-break-inside:avoid}
  .cotacao-pdf-table th,.cotacao-pdf-table td{font-size:7.5px!important;padding:5px 3px!important}
 }
+
+
+/* PROPOSTAS V8 — melhor aproveitamento vertical das páginas de itens */
+.proposta-page-table {
+  padding-top: 10mm !important;
+  padding-bottom: 14mm !important;
+}
+.proposta-page-table .proposta-pdf-header-small {
+  margin-bottom: 2mm !important;
+}
+.proposta-page-table .proposta-titulo-tabela {
+  margin-top: 2mm !important;
+  margin-bottom: 3mm !important;
+}
+.proposta-page-table .proposta-table th,
+.proposta-page-table .proposta-table td {
+  padding-top: 5px !important;
+  padding-bottom: 5px !important;
+}
+.proposta-page-table .proposta-table tr {
+  break-inside: avoid !important;
+  page-break-inside: avoid !important;
+}
+@media print {
+  .proposta-page-table {
+    padding: 9mm 10mm 13mm !important;
+  }
+  .proposta-page-table .proposta-table th,
+  .proposta-page-table .proposta-table td {
+    padding: 4px 4px !important;
+  }
+}
