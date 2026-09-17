@@ -6038,3 +6038,40 @@ input[type="file"]::file-selector-button {
     padding:4.5px 3.5px!important;
   }
 }
+
+
+/* PROPOSTAS V13 — faixa de segurança real antes do rodapé */
+.proposta-page-table{
+  padding-bottom:18mm!important;
+}
+.proposta-page-table .proposta-table-wrap{
+  margin-bottom:8mm!important;
+}
+.proposta-page-table .proposta-footer{
+  bottom:5mm!important;
+  height:6mm!important;
+  padding-top:2mm!important;
+  background:#fff!important;
+  z-index:5!important;
+}
+.proposta-medidor .proposta-limite-rodape{
+  position:absolute!important;
+  left:10mm!important;
+  right:10mm!important;
+  bottom:19mm!important;
+  height:1px!important;
+  pointer-events:none!important;
+}
+@media print{
+  .proposta-page-table{
+    padding-bottom:19mm!important;
+  }
+  .proposta-page-table .proposta-table-wrap{
+    margin-bottom:8mm!important;
+  }
+  .proposta-page-table .proposta-footer{
+    bottom:5mm!important;
+    height:6mm!important;
+    background:#fff!important;
+  }
+}

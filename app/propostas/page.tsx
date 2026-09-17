@@ -315,7 +315,9 @@ export default function PropostasPage() {
       // Nunca apaga os itens se o DOM de medição ainda não estiver pronto.
       if (!corpo || !limite || linhas.length !== itensProposta.length || linhas.length === 0) return;
 
-      const capacidade = limite.getBoundingClientRect().top - corpo.getBoundingClientRect().top - 10;
+      // Reserva física de segurança antes do rodapé. Além do espaço do próprio
+      // rodapé, deixamos 34px livres para borda/zoom/arredondamentos do navegador.
+      const capacidade = limite.getBoundingClientRect().top - corpo.getBoundingClientRect().top - 44;
       if (!Number.isFinite(capacidade) || capacidade < 250) return;
 
       const alturas = linhas.map((linha) => Math.max(1, Math.ceil(linha.getBoundingClientRect().height)));
@@ -597,7 +599,7 @@ export default function PropostasPage() {
                 </header>
 
                 <h1 className="proposta-titulo proposta-titulo-tabela">
-                  PROPOSTA DE PREÇOS{paginasRenderizadas.length > 1 ? ` — ${paginaIndex + 1}/${paginasRenderizadas.length}` : ""}
+                  PROPOSTA DE PREÇOS
                 </h1>
 
                 <div className="proposta-table-wrap">
