@@ -175,37 +175,17 @@ function criarDeclaracoesProposta(validade: string, condicoesPagamento: string) 
 function paginarItensProposta(itens: ItemProposta[]) {
   if (!itens.length) return [[]];
 
+  // Paginação compacta: a proposta anterior estimava a altura pelo número
+  // de caracteres e acabava isolando descrições grandes em uma folha.
+  // Agora usamos blocos maiores e deixamos a própria linha crescer somente
+  // o necessário. Isso aproveita muito melhor a área útil do A4.
+  const ITENS_POR_PAGINA = 12;
   const paginas: ItemProposta[][] = [];
-  let paginaAtual: ItemProposta[] = [];
-  let pesoAtual = 0;
 
-  // A página A4 de itens possui bastante área útil. A versão anterior
-  // limitava artificialmente cada folha a somente 3 produtos e ainda
-  // superestimava descrições longas, gerando páginas quase vazias.
-  // O peso abaixo é apenas uma proteção para descrições excepcionalmente
-  // grandes; normalmente cabem de 6 a 10 itens por página.
-  const pesoMaximo = 155;
-  const maximoItensPorPagina = 10;
-
-  for (const item of itens) {
-    const descricao = limparTexto(item.descricao);
-    const linhasEstimadas = Math.max(1, Math.ceil(descricao.length / 52));
-    const pesoItem = 8 + linhasEstimadas * 5;
-
-    if (
-      paginaAtual.length > 0 &&
-      (paginaAtual.length >= maximoItensPorPagina || pesoAtual + pesoItem > pesoMaximo)
-    ) {
-      paginas.push(paginaAtual);
-      paginaAtual = [];
-      pesoAtual = 0;
-    }
-
-    paginaAtual.push(item);
-    pesoAtual += pesoItem;
+  for (let inicio = 0; inicio < itens.length; inicio += ITENS_POR_PAGINA) {
+    paginas.push(itens.slice(inicio, inicio + ITENS_POR_PAGINA));
   }
 
-  if (paginaAtual.length) paginas.push(paginaAtual);
   return paginas;
 }
 

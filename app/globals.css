@@ -5862,3 +5862,71 @@ input[type="file"]::file-selector-button {
     padding: 4px 4px !important;
   }
 }
+
+
+/* PROPOSTAS V9 — tabela compacta, sem páginas quase vazias */
+.proposta-page-table{
+  padding-top:7mm!important;
+  padding-bottom:11mm!important;
+}
+.proposta-page-table .proposta-pdf-header-small{
+  margin-bottom:1mm!important;
+  min-height:0!important;
+}
+.proposta-page-table .proposta-logo-oficial{
+  max-height:16mm!important;
+}
+.proposta-page-table .proposta-empresa h2{
+  margin-bottom:1px!important;
+}
+.proposta-page-table .proposta-empresa p{
+  margin:0!important;
+  line-height:1.08!important;
+}
+.proposta-page-table .proposta-titulo-tabela{
+  margin:1.5mm 0 2mm!important;
+  line-height:1!important;
+}
+.proposta-page-table .proposta-table{
+  table-layout:fixed!important;
+  width:100%!important;
+}
+.proposta-page-table .proposta-table th{
+  padding:3px 2px!important;
+  line-height:1.05!important;
+}
+.proposta-page-table .proposta-table td{
+  padding:3px 2px!important;
+  line-height:1.08!important;
+  vertical-align:middle!important;
+}
+.proposta-page-table .proposta-table td.descricao{
+  font-size:6.2px!important;
+  line-height:1.08!important;
+  overflow-wrap:anywhere!important;
+  word-break:normal!important;
+}
+.proposta-page-table .proposta-table tr{
+  break-inside:avoid!important;
+  page-break-inside:avoid!important;
+}
+.proposta-page-table .proposta-footer{
+  bottom:5mm!important;
+}
+@media print{
+  .proposta-page-table{
+    padding:6mm 9mm 10mm!important;
+  }
+  .proposta-page-table .proposta-table th{
+    font-size:5.8px!important;
+    padding:2.5px 2px!important;
+  }
+  .proposta-page-table .proposta-table td{
+    font-size:5.9px!important;
+    padding:2.5px 2px!important;
+  }
+  .proposta-page-table .proposta-table td.descricao{
+    font-size:5.8px!important;
+    line-height:1.05!important;
+  }
+}
