@@ -383,6 +383,63 @@ export default function PropostasPage() {
     return paginasItens;
   }, [paginasItens, itensProposta]);
 
+  // Ajuste final usando as páginas REAIS já renderizadas. Esta etapa corrige as
+  // diferenças que podem existir entre o medidor oculto e a página visível.
+  // Também tenta puxar itens da página seguinte quando ainda existe espaço livre.
+  useLayoutEffect(() => {
+    if (!itensProposta.length || !paginasItens.length) return;
+
+    const frame = window.requestAnimationFrame(() => {
+      const paginasDom = Array.from(document.querySelectorAll<HTMLElement>(".proposta-doc .proposta-page-table[data-pagina-itens]"));
+      if (paginasDom.length !== paginasItens.length) return;
+
+      const margemSeguranca = 18; // px acima do rodapé
+      const copia = paginasItens.map((pagina) => [...pagina]);
+
+      // 1) Se alguma página ultrapassou o limite REAL, empurra o último item.
+      for (let i = 0; i < paginasDom.length; i++) {
+        const pagina = paginasDom[i];
+        const tabela = pagina.querySelector<HTMLElement>(".proposta-table");
+        const rodape = pagina.querySelector<HTMLElement>(".proposta-footer");
+        if (!tabela || !rodape || copia[i].length === 0) continue;
+
+        const limite = rodape.getBoundingClientRect().top - margemSeguranca;
+        const fimTabela = tabela.getBoundingClientRect().bottom;
+        if (fimTabela > limite) {
+          const movido = copia[i].pop();
+          if (!movido) continue;
+          if (!copia[i + 1]) copia[i + 1] = [];
+          copia[i + 1].unshift(movido);
+          setPaginasItens(copia.filter((paginaItens) => paginaItens.length > 0));
+          return;
+        }
+      }
+
+      // 2) Se sobrou espaço, puxa o primeiro item da próxima página e mede de
+      // novo no próximo frame. Isso faz a tabela chegar perto do rodapé sem invadi-lo.
+      for (let i = 0; i < paginasDom.length - 1; i++) {
+        if (!copia[i + 1] || copia[i + 1].length <= 1) continue;
+        const pagina = paginasDom[i];
+        const tabela = pagina.querySelector<HTMLElement>(".proposta-table");
+        const rodape = pagina.querySelector<HTMLElement>(".proposta-footer");
+        const primeiraLinhaSeguinte = paginasDom[i + 1]?.querySelector<HTMLTableRowElement>("tbody tr[data-item-proposta]");
+        if (!tabela || !rodape || !primeiraLinhaSeguinte) continue;
+
+        const espacoLivre = rodape.getBoundingClientRect().top - margemSeguranca - tabela.getBoundingClientRect().bottom;
+        const alturaCandidata = primeiraLinhaSeguinte.getBoundingClientRect().height;
+        if (alturaCandidata > 0 && alturaCandidata + 2 <= espacoLivre) {
+          const movido = copia[i + 1].shift();
+          if (!movido) continue;
+          copia[i].push(movido);
+          setPaginasItens(copia.filter((paginaItens) => paginaItens.length > 0));
+          return;
+        }
+      }
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [paginasItens, itensProposta]);
+
   const declaracoesProposta = useMemo(() => criarDeclaracoesProposta(validade, condicoesPagamento), [validade, condicoesPagamento]);
   const paginasDeclaracoes = useMemo(() => paginarDeclaracoes(declaracoesProposta), [declaracoesProposta]);
   const totalPaginasProposta = 1 + paginasRenderizadas.length + paginasDeclaracoes.length;
@@ -586,7 +643,7 @@ export default function PropostasPage() {
               .reduce((total, pagina) => total + pagina.length, 0);
 
             return (
-              <section className="proposta-page proposta-page-table" key={`tabela-${paginaIndex}`}>
+              <section className="proposta-page proposta-page-table" data-pagina-itens={paginaIndex} key={`tabela-${paginaIndex}`}>
                 <div className="proposta-page-number">{numeroPagina}/{totalPaginasProposta}</div>
                 <header className="proposta-pdf-header proposta-pdf-header-small">
                   <img className="proposta-logo-oficial" src="/proposta/dom-bosco-logo.png" alt="Dom Bosco Hospitalar" />
@@ -621,7 +678,7 @@ export default function PropostasPage() {
                       {itensPagina.map((item, index) => {
                         const indiceGlobal = deslocamento + index;
                         return (
-                          <tr key={`${item.numero_item}-${indiceGlobal}`}>
+                          <tr data-item-proposta key={`${item.numero_item}-${indiceGlobal}`}>
                             <td>{item.numero_item || indiceGlobal + 1}</td>
                             <td className="descricao">{limparTexto(item.descricao)}</td>
                             <td>{limparTexto(item.unidade)}</td>

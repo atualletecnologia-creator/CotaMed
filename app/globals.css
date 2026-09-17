@@ -6075,3 +6075,12 @@ input[type="file"]::file-selector-button {
     background:#fff!important;
   }
 }
+
+/* PROPOSTAS V14 — limite visual real do rodapé */
+.proposta-page-table .proposta-footer{
+  bottom:5mm!important;
+}
+.proposta-page-table .proposta-table-wrap{
+  margin-bottom:0!important;
+}
+/* O preenchimento agora é controlado pela medição do DOM real, não por margem artificial. */
