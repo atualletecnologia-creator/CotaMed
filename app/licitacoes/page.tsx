@@ -2190,6 +2190,32 @@ useEffect(() => {
               })}
             </div>
 
+            <div className="mt-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3 rounded-2xl bg-blue-50 p-3 text-sm">
+              <span>
+                Página <b>{Math.min(paginaItens, totalPaginasItens)}</b> de <b>{totalPaginasItens}</b> — mostrando até {itensPorPagina} itens por vez para não travar.
+              </span>
+
+              <div className="flex min-w-0 gap-2">
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-2 hover:bg-white disabled:opacity-50"
+                  disabled={paginaItens <= 1}
+                  onClick={() => setPaginaItens((p) => Math.max(1, p - 1))}
+                >
+                  Anterior
+                </button>
+
+                <button
+                  type="button"
+                  className="rounded-lg border px-3 py-2 hover:bg-white disabled:opacity-50"
+                  disabled={paginaItens >= totalPaginasItens}
+                  onClick={() => setPaginaItens((p) => Math.min(totalPaginasItens, p + 1))}
+                >
+                  Próxima
+                </button>
+              </div>
+            </div>
+
             {itensFiltrados.length === 0 && <div className="mt-6 rounded-2xl bg-blue-50 p-5 text-slate-600">Nenhum item encontrado para este filtro.</div>}
           </section>
         </>
